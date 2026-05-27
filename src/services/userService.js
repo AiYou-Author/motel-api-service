@@ -91,7 +91,7 @@ class UserService {
   }
 
   // 📝 原生注册（用户名/密码，无需 LDAP）
-  async registerNativeUser({ username, password, email, displayName }) {
+  async registerNativeUser({ username, password, email, displayName, referralCode }) {
     try {
       const existing = await this.getUserByUsername(username)
       if (existing) {
@@ -118,6 +118,20 @@ class UserService {
       await redis.set(`${this.usernamePrefix}${username}`, userId)
       await redis.addToIndex('user:index', userId)
       await this.transferMatchingApiKeys(user)
+
+      // 绑定推荐关系（失败不阻塞注册）
+      if (referralCode) {
+        try {
+          const referralService = require('./referralService')
+          const referrerId = await referralService.getReferrerByCode(referralCode)
+          if (referrerId && referrerId !== userId) {
+            await referralService.bindReferral(userId, referrerId)
+          }
+        } catch (refErr) {
+          logger.warn(`⚠️ Failed to bind referral for user ${userId}: ${refErr.message}`)
+        }
+      }
+
       logger.info(`📝 Native user registered: ${username} (${userId})`)
       return user
     } catch (error) {

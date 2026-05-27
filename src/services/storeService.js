@@ -2,6 +2,7 @@ const redis = require('../models/redis')
 const crypto = require('crypto')
 const logger = require('../utils/logger')
 const accountGroupService = require('./accountGroupService')
+const referralService = require('./referralService')
 
 // ─── 默认套餐（参照 Pincc 定价，Redis 无数据时回退）──────────────
 const DEFAULT_PLANS = [
@@ -571,6 +572,8 @@ class StoreService {
       order.updatedAt = new Date().toISOString()
       await redis.set(`${this.orderPrefix}${orderId}`, JSON.stringify(order))
       logger.info(`✅ Order approved: ${orderId}`)
+      // 处理返佣
+      await referralService.processOrderCommission(order)
       return order
     } catch (error) {
       logger.error('❌ Error approving order:', error)

@@ -22,6 +22,8 @@ const QuotaCardsView = () => import('@/views/QuotaCardsView.vue')
 const StoreOrdersView = () => import('@/views/StoreOrdersView.vue')
 const StorePlansAdminView = () => import('@/views/StorePlansAdminView.vue')
 const RequestDetailsView = () => import('@/views/RequestDetailsView.vue')
+const ReferralConfigView = () => import('@/views/admin/ReferralConfigView.vue')
+const ReferralWithdrawalView = () => import('@/views/admin/ReferralWithdrawalView.vue')
 
 const routes = [
   {
@@ -224,6 +226,32 @@ const routes = [
         name: 'RequestDetails',
         component: RequestDetailsView,
         meta: { title: '请求详情' }
+      }
+    ]
+  },
+  {
+    path: '/admin/referral/config',
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'ReferralConfig',
+        component: ReferralConfigView,
+        meta: { title: '返佣配置' }
+      }
+    ]
+  },
+  {
+    path: '/admin/referral/withdrawals',
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'ReferralWithdrawal',
+        component: ReferralWithdrawalView,
+        meta: { title: '提现审核' }
       }
     ]
   },

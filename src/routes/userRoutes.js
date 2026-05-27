@@ -51,7 +51,7 @@ function initRateLimiters() {
 // 📝 用户注册端点（原生认证）
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, email, displayName } = req.body
+    const { username, password, email, displayName, referralCode } = req.body
 
     if (!config.userManagement.enabled) {
       return res
@@ -77,7 +77,8 @@ router.post('/register', async (req, res) => {
       username: validatedUsername,
       password,
       email: email || null,
-      displayName: displayName || null
+      displayName: displayName || null,
+      referralCode: referralCode || null
     })
 
     const sessionToken = await userService.createUserSession(user.id)

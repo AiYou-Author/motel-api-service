@@ -370,6 +370,7 @@ class Application {
       this.app.use('/azure', azureOpenaiRoutes)
       this.app.use('/admin/webhook', webhookRoutes)
       this.app.use('/store', storeRoutes)
+      this.app.use('/api/referral', require('./routes/referral'))
       this.app.use('/admin', adminOrderRoutes)
       this.app.use('/admin/store', adminStoreRoutes)
 

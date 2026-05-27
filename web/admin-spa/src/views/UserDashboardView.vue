@@ -90,6 +90,17 @@
                 >
                   账户
                 </button>
+                <button
+                  :class="[
+                    'rounded-md px-3 py-2 text-sm font-medium',
+                    activeTab === 'referral'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  ]"
+                  @click="handleTabChange('referral')"
+                >
+                  推广奖励
+                </button>
               </div>
             </div>
           </div>
@@ -591,6 +602,11 @@
           <div v-else-if="activeTab === 'tutorial'" class="space-y-6">
             <TutorialView />
           </div>
+
+          <!-- 推广奖励 Tab -->
+          <div v-else-if="activeTab === 'referral'" class="space-y-6">
+            <UserReferralView />
+          </div>
         </div>
       </Transition>
     </main>
@@ -624,6 +640,7 @@ import UserUsageStats from '@/components/user/UserUsageStats.vue'
 import DashboardUsageOverview from '@/components/user/DashboardUsageOverview.vue'
 import StorePlansSection from '@/components/user/StorePlansSection.vue'
 import TutorialView from '@/views/TutorialView.vue'
+import UserReferralView from '@/views/UserReferralView.vue'
 import ApiKeyTestDialog from '@/components/user/ApiKeyTestDialog.vue'
 import OrderDetailDialog from '@/components/user/OrderDetailDialog.vue'
 import UserApiKeyModal from '@/components/user/UserApiKeyModal.vue'
