@@ -44,7 +44,7 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginView,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false, title: '管理员登录' }
   },
   {
     path: '/admin-login',
@@ -58,31 +58,31 @@ const routes = [
     path: '/user/login',
     name: 'UserLogin',
     component: UserLoginView,
-    meta: { requiresAuth: false, userAuth: true }
+    meta: { requiresAuth: false, userAuth: true, title: '用户登录' }
   },
   {
     path: '/user/register',
     name: 'UserRegister',
     component: UserRegisterView,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false, title: '用户注册' }
   },
   {
     path: '/user/store',
     name: 'Store',
     component: StoreView,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false, title: '商城' }
   },
   {
     path: '/user/dashboard',
     name: 'UserDashboard',
     component: UserDashboardView,
-    meta: { requiresUserAuth: true }
+    meta: { requiresUserAuth: true, title: '用户中心' }
   },
   {
     path: '/api-stats',
     name: 'ApiStats',
     component: ApiStatsView,
-    meta: { requiresAuth: false }
+    meta: { requiresAuth: false, title: 'API 统计' }
   },
   {
     path: '/dashboard',
@@ -92,7 +92,8 @@ const routes = [
       {
         path: '',
         name: 'Dashboard',
-        component: DashboardView
+        component: DashboardView,
+        meta: { title: '仪表盘' }
       }
     ]
   },
@@ -104,7 +105,8 @@ const routes = [
       {
         path: '',
         name: 'ApiKeys',
-        component: ApiKeysView
+        component: ApiKeysView,
+        meta: { title: 'API Keys' }
       }
     ]
   },
@@ -116,7 +118,8 @@ const routes = [
       {
         path: '',
         name: 'ApiKeyUsageRecords',
-        component: ApiKeyUsageRecordsView
+        component: ApiKeyUsageRecordsView,
+        meta: { title: '使用记录' }
       }
     ]
   },
@@ -128,7 +131,8 @@ const routes = [
       {
         path: '',
         name: 'Accounts',
-        component: AccountsView
+        component: AccountsView,
+        meta: { title: '账户管理' }
       }
     ]
   },
@@ -140,7 +144,8 @@ const routes = [
       {
         path: '',
         name: 'AccountUsageRecords',
-        component: AccountUsageRecordsView
+        component: AccountUsageRecordsView,
+        meta: { title: '账户使用记录' }
       }
     ]
   },
@@ -152,7 +157,8 @@ const routes = [
       {
         path: '',
         name: 'Settings',
-        component: SettingsView
+        component: SettingsView,
+        meta: { title: '系统设置' }
       }
     ]
   },
@@ -164,7 +170,8 @@ const routes = [
       {
         path: '',
         name: 'UserManagement',
-        component: UserManagementView
+        component: UserManagementView,
+        meta: { title: '用户管理' }
       }
     ]
   },
@@ -177,7 +184,7 @@ const routes = [
         path: '',
         name: 'StoreOrders',
         component: StoreOrdersView,
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true, title: '订单管理' }
       }
     ]
   },
@@ -190,7 +197,7 @@ const routes = [
         path: '',
         name: 'StorePlansAdmin',
         component: StorePlansAdminView,
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true, title: '商城套餐' }
       }
     ]
   },
@@ -202,7 +209,8 @@ const routes = [
       {
         path: '',
         name: 'QuotaCards',
-        component: QuotaCardsView
+        component: QuotaCardsView,
+        meta: { title: '额度卡' }
       }
     ]
   },
@@ -214,7 +222,8 @@ const routes = [
       {
         path: '',
         name: 'RequestDetails',
-        component: RequestDetailsView
+        component: RequestDetailsView,
+        meta: { title: '请求详情' }
       }
     ]
   },
@@ -287,6 +296,13 @@ router.beforeEach(async (to, from, next) => {
   } else {
     next()
   }
+})
+
+// 更新页面标题
+router.afterEach((to) => {
+  const baseTitle = 'Motel API Service'
+  const pageTitle = to.meta.title
+  document.title = pageTitle ? `${pageTitle} - ${baseTitle}` : baseTitle
 })
 
 export default router
