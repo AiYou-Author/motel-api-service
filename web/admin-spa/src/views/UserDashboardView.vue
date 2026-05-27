@@ -553,7 +553,8 @@
                           </button>
                           <button
                             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            @click.stop="copyKey(order.apiKeyValue)"
+                            title="查看密钥详情"
+                            @click.stop="openUserApiKeyModal(order)"
                           >
                             <svg
                               class="h-4 w-4"
@@ -596,6 +597,12 @@
 
     <ApiKeyTestDialog :order="testOrder" :show="testDialogOpen" @close="closeTest" />
 
+    <UserApiKeyModal
+      v-if="showUserApiKeyModal && currentUserApiKey"
+      :api-key="currentUserApiKey"
+      @close="showUserApiKeyModal = false"
+    />
+
     <OrderDetailDialog
       :order="detailOrder"
       :show="detailDialogOpen"
@@ -619,6 +626,7 @@ import StorePlansSection from '@/components/user/StorePlansSection.vue'
 import TutorialView from '@/views/TutorialView.vue'
 import ApiKeyTestDialog from '@/components/user/ApiKeyTestDialog.vue'
 import OrderDetailDialog from '@/components/user/OrderDetailDialog.vue'
+import UserApiKeyModal from '@/components/user/UserApiKeyModal.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -637,12 +645,19 @@ const toggleKeyVisibility = (orderId) => {
   visibleKeys[orderId] = !visibleKeys[orderId]
 }
 
-const copyKey = async (key) => {
-  try {
-    await navigator.clipboard.writeText(key)
-    showToast('已复制到剪贴板', 'success')
-  } catch {
-    showToast('复制失败', 'error')
+// 用户 API Key 模态框
+const showUserApiKeyModal = ref(false)
+const currentUserApiKey = ref(null)
+
+const openUserApiKeyModal = (order) => {
+  if (order.apiKeyValue) {
+    currentUserApiKey.value = {
+      name: order.planName || order.apiKeyName || 'API Key',
+      apiKey: order.apiKeyValue
+    }
+    showUserApiKeyModal.value = true
+  } else {
+    showToast('该订单暂无可用 API Key', 'error')
   }
 }
 

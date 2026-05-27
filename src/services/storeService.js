@@ -1,6 +1,7 @@
 const redis = require('../models/redis')
 const crypto = require('crypto')
 const logger = require('../utils/logger')
+const accountGroupService = require('./accountGroupService')
 
 // ─── 默认套餐（参照 Pincc 定价，Redis 无数据时回退）──────────────
 const DEFAULT_PLANS = [
@@ -55,7 +56,7 @@ const DEFAULT_PLANS = [
     serviceRate: 0.15,
     permissions: ['claude'],
     accountType: 'claude-console',
-    targetGroupId: '455104cd-783c-4e0e-be2c-af3cad98501d',
+    targetGroupId: null, // 自动匹配账户分组
     models: [
       'MiniMax-M2.7',
       'MiniMax-M2.7-highspeed',
@@ -113,11 +114,45 @@ class StoreService {
   async getPlans(onlyEnabled = true) {
     try {
       const { plans } = await this._readPlansEnvelope()
-      return onlyEnabled ? plans.filter((p) => p.enabled) : plans
+
+      // 自动匹配 targetGroupId：仅当 targetGroupId 为 null 或特殊值时自动解析
+      const resolvedPlans = await Promise.all(
+        plans.map(async (plan) => {
+          if (plan.targetGroupId === null || plan.targetGroupId === undefined) {
+            // 根据 channel 和 accountType 自动匹配账户分组
+            const platform = this._getPlatformFromAccountType(plan.accountType)
+            if (platform) {
+              const groups = await accountGroupService.getAllGroups(platform)
+              // 优先匹配名称包含 channel 的分组，否则取第一个
+              const matchedGroup =
+                groups.find((g) => g.name.toLowerCase().includes(plan.channel?.toLowerCase())) ||
+                groups.find((g) => g.name.toLowerCase().includes(plan.id?.toLowerCase())) ||
+                groups[0]
+
+              if (matchedGroup) {
+                logger.debug(`📦 套餐 ${plan.id} 自动匹配分组: ${matchedGroup.name} (${matchedGroup.id})`)
+                return { ...plan, targetGroupId: matchedGroup.id }
+              }
+            }
+          }
+          return plan
+        })
+      )
+
+      return onlyEnabled ? resolvedPlans.filter((p) => p.enabled) : resolvedPlans
     } catch (error) {
       logger.error('❌ Error getting store plans:', error)
       throw error
     }
+  }
+
+  _getPlatformFromAccountType(accountType) {
+    if (!accountType) return null
+    if (accountType === 'claude-console' || accountType === 'claude') return 'claude'
+    if (accountType === 'openai' || accountType === 'openai-responses') return 'openai'
+    if (accountType === 'gemini') return 'gemini'
+    if (accountType === 'droid') return 'droid'
+    return null
   }
 
   // 兼容旧调用方（如 admin/orders.js 的 PUT /store/config）：直接覆盖并自增版本

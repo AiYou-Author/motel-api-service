@@ -248,7 +248,7 @@
 import { computed, h, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { deleteOrderApi } from '@/utils/http_apis'
-import { showToast, formatDate, formatNumber } from '@/utils/tools'
+import { showToast, formatDate, formatNumber, copyText } from '@/utils/tools'
 import ApiKeyTestPanel from './ApiKeyTestPanel.vue'
 
 const props = defineProps({
@@ -474,12 +474,7 @@ function onClose() {
 }
 
 async function copyKey() {
-  try {
-    await navigator.clipboard.writeText(props.order.apiKeyValue)
-    showToast('已复制到剪贴板', 'success')
-  } catch {
-    showToast('复制失败', 'error')
-  }
+  await copyText(props.order.apiKeyValue, '已复制到剪贴板')
 }
 
 async function doDelete() {
