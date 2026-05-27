@@ -30,6 +30,7 @@ const serviceRatesRoutes = require('./serviceRates')
 const quotaCardsRoutes = require('./quotaCards')
 const errorHistoryRoutes = require('./errorHistory')
 const requestDetailsRoutes = require('./requestDetails')
+const referralRoutes = require('./referral')
 
 // 挂载所有子路由
 // 使用完整路径的模块（直接挂载到根路径）
@@ -58,5 +59,6 @@ router.use('/ccr-accounts', ccrAccountsRoutes)
 router.use('/bedrock-accounts', bedrockAccountsRoutes)
 router.use('/gemini-accounts', geminiAccountsRoutes)
 router.use('/openai-accounts', openaiAccountsRoutes)
+router.use('/referral', referralRoutes)
 
 module.exports = router

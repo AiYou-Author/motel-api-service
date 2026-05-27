@@ -214,7 +214,8 @@ const form = reactive({
   username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  referralCode: ''
 })
 
 const redirect = computed(() => route.query.redirect || '/user/store')
@@ -240,7 +241,8 @@ const handleRegister = async () => {
     await userStore.register({
       username: form.username,
       password: form.password,
-      email: form.email || undefined
+      email: form.email || undefined,
+      referralCode: form.referralCode || undefined
     })
     showToast('账户创建成功！', 'success')
     router.push(redirect.value)
@@ -253,5 +255,10 @@ const handleRegister = async () => {
 
 onMounted(() => {
   themeStore.initTheme()
+  // 获取URL中的推广码
+  const refCode = route.query.ref
+  if (refCode && typeof refCode === 'string') {
+    form.referralCode = refCode.toUpperCase()
+  }
 })
 </script>

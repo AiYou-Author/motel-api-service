@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const storeService = require('../services/storeService')
 const pricingService = require('../services/pricingService')
+const referralService = require('../services/referralService')
 const { authenticateUser } = require('../middleware/auth')
 const logger = require('../utils/logger')
 
@@ -56,8 +57,9 @@ router.get('/plans', async (req, res) => {
 // POST /store/orders - 需登录才能下单
 router.post('/orders', authenticateUser, async (req, res) => {
   try {
-    const { planId, amount } = req.body
+    const { planId, amount, useCommissionAmount = 0 } = req.body
     const userId = req.user?.id
+    let usedCommission = 0
 
     if (!planId) {
       return res.status(400).json({ error: 'planId is required' })
@@ -67,6 +69,16 @@ router.post('/orders', authenticateUser, async (req, res) => {
     const plan = plans.find((p) => p.id === planId)
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found or disabled' })
+    }
+
+    // 处理佣金抵扣
+    const commissionAmount = parseFloat(useCommissionAmount) || 0
+    if (commissionAmount > 0) {
+      const balance = await referralService.getWalletBalance(userId)
+      if (balance < commissionAmount) {
+        return res.status(400).json({ error: 'INSUFFICIENT_COMMISSION', message: '佣金余额不足' })
+      }
+      usedCommission = commissionAmount
     }
 
     // ── 按量付费：必须传 amount ──────────────────────────────────
@@ -81,7 +93,18 @@ router.post('/orders', authenticateUser, async (req, res) => {
         return res.status(400).json({ error: `amount must be one of: ${allowed.join(', ')} (CNY)` })
       }
 
-      // creditUSD = amount / serviceRate，保留 4 位小数
+      // 扣减佣金（如果有）
+      if (usedCommission > 0) {
+        if (usedCommission > parsedAmount) {
+          return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+        }
+        await referralService.debitWallet(userId, usedCommission, {
+          type: 'purchase',
+          note: `购买套餐 ${plan.name} 抵扣 ¥${usedCommission}`
+        })
+      }
+
+      // creditUSD = 总金额 / serviceRate，保留 4 位小数
       const serviceRate = plan.serviceRate || 1
       const creditUSD = parseFloat((parsedAmount / serviceRate).toFixed(4))
 
@@ -97,13 +120,26 @@ router.post('/orders', authenticateUser, async (req, res) => {
         permissions: plan.permissions || [],
         accountType: plan.accountType || null,
         targetGroupId: plan.targetGroupId || null,
-        userId
+        userId,
+        commissionDeduction: usedCommission
       })
 
       return res.status(201).json({ success: true, order })
     }
 
     // ── 兼容旧固定价格套餐 ────────────────────────────────────────
+    const planPrice = Number(plan.price) || 0
+    // 扣减佣金（如果有）
+    if (usedCommission > 0) {
+      if (usedCommission > planPrice) {
+        return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+      }
+      await referralService.debitWallet(userId, usedCommission, {
+        type: 'purchase',
+        note: `购买套餐 ${plan.name} 抵扣 ¥${usedCommission}`
+      })
+    }
+
     const order = await storeService.createOrder({
       planId: plan.id,
       planName: plan.name,
@@ -117,7 +153,8 @@ router.post('/orders', authenticateUser, async (req, res) => {
       accountType: plan.accountType || null,
       targetGroupId: plan.targetGroupId || null,
       tokenLimit: plan.tokenLimit || null,
-      userId
+      userId,
+      commissionDeduction: usedCommission
     })
 
     return res.status(201).json({ success: true, order })
