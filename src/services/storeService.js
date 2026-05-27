@@ -130,7 +130,9 @@ class StoreService {
                 groups[0]
 
               if (matchedGroup) {
-                logger.debug(`📦 套餐 ${plan.id} 自动匹配分组: ${matchedGroup.name} (${matchedGroup.id})`)
+                logger.debug(
+                  `📦 套餐 ${plan.id} 自动匹配分组: ${matchedGroup.name} (${matchedGroup.id})`
+                )
                 return { ...plan, targetGroupId: matchedGroup.id }
               }
             }
@@ -147,11 +149,21 @@ class StoreService {
   }
 
   _getPlatformFromAccountType(accountType) {
-    if (!accountType) return null
-    if (accountType === 'claude-console' || accountType === 'claude') return 'claude'
-    if (accountType === 'openai' || accountType === 'openai-responses') return 'openai'
-    if (accountType === 'gemini') return 'gemini'
-    if (accountType === 'droid') return 'droid'
+    if (!accountType) {
+      return null
+    }
+    if (accountType === 'claude-console' || accountType === 'claude') {
+      return 'claude'
+    }
+    if (accountType === 'openai' || accountType === 'openai-responses') {
+      return 'openai'
+    }
+    if (accountType === 'gemini') {
+      return 'gemini'
+    }
+    if (accountType === 'droid') {
+      return 'droid'
+    }
     return null
   }
 
@@ -262,19 +274,28 @@ class StoreService {
 
   // ─── 商店配置（收款二维码等）──────────────────────────────────
 
+  _defaultConfig() {
+    return {
+      qrCodeImage: null,
+      paymentInstructions: '',
+      rechargeAmounts: ALLOWED_RECHARGE_AMOUNTS
+    }
+  }
+
   async getConfig() {
     try {
       const data = await redis.get(this.configKey)
-      return data
-        ? JSON.parse(data)
-        : {
-            qrCodeImage: null,
-            paymentInstructions: '',
-            rechargeAmounts: ALLOWED_RECHARGE_AMOUNTS
-          }
+      const parsed = data ? JSON.parse(data) : null
+      if (!parsed) {
+        return this._defaultConfig()
+      }
+      return {
+        ...this._defaultConfig(),
+        ...parsed
+      }
     } catch (error) {
       logger.error('❌ Error getting store config:', error)
-      throw error
+      return this._defaultConfig()
     }
   }
 

@@ -137,8 +137,15 @@ router.put('/store/config', authenticateAdmin, async (req, res) => {
     if (plans !== undefined) {
       results.plans = await storeService.savePlans(plans)
     }
-    if (config !== undefined) {
-      results.config = await storeService.saveConfig(config)
+    // 支持前端直接传顶层字段（qrCodeImage, paymentInstructions）而不包装在 config 里
+    const configData =
+      config !== undefined
+        ? config
+        : req.body.qrCodeImage !== undefined || req.body.paymentInstructions !== undefined
+          ? req.body
+          : null
+    if (configData) {
+      results.config = await storeService.saveConfig(configData)
     }
     res.json({ success: true, ...results })
   } catch (error) {
