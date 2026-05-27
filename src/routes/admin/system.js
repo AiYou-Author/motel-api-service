@@ -451,4 +451,56 @@ router.post('/models/pricing/refresh', authenticateAdmin, async (req, res) => {
   }
 })
 
+// ─── 自定义模型价格 CRUD ──────────────────────────────────────
+
+// 列出全部自定义价格
+router.get('/models/pricing/custom', authenticateAdmin, async (req, res) => {
+  try {
+    const list = pricingService.getAllCustomPricing()
+    res.json({ success: true, data: list })
+  } catch (error) {
+    logger.error('Failed to list custom pricing:', error)
+    res.status(500).json({ error: 'Failed to list custom pricing', message: error.message })
+  }
+})
+
+// 创建或更新自定义价格（幂等）
+router.put('/models/pricing/custom/:model', authenticateAdmin, async (req, res) => {
+  const { model } = req.params
+  try {
+    const data = await pricingService.setCustomPricing(model, req.body || {}, req.admin?.id)
+    res.json({ success: true, data })
+  } catch (error) {
+    const map = {
+      INVALID_MODEL_NAME: {
+        code: 400,
+        msg: '模型名不合法（仅允许字母、数字、._-/，最长 64 字符）'
+      },
+      INVALID_INPUT_COST: { code: 400, msg: '输入价格必须是 ≥ 0 的数字' },
+      INVALID_OUTPUT_COST: { code: 400, msg: '输出价格必须是 ≥ 0 的数字' }
+    }
+    const hit = map[error.message]
+    if (hit) {
+      return res.status(hit.code).json({ error: error.message, message: hit.msg })
+    }
+    logger.error('Failed to set custom pricing:', error)
+    res.status(500).json({ error: 'Failed to set custom pricing', message: error.message })
+  }
+})
+
+// 删除自定义价格
+router.delete('/models/pricing/custom/:model', authenticateAdmin, async (req, res) => {
+  const { model } = req.params
+  try {
+    await pricingService.removeCustomPricing(model, req.admin?.id)
+    res.json({ success: true })
+  } catch (error) {
+    if (error.message === 'CUSTOM_PRICING_NOT_FOUND') {
+      return res.status(404).json({ error: error.message, message: '自定义价格不存在' })
+    }
+    logger.error('Failed to remove custom pricing:', error)
+    res.status(500).json({ error: 'Failed to remove custom pricing', message: error.message })
+  }
+})
+
 module.exports = router

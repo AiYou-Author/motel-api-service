@@ -74,19 +74,48 @@ class ModelService {
 
   /**
    * 获取所有支持的模型（OpenAI API 格式）
+   * @param {object} [opts]
+   * @param {boolean} [opts.includeCustom=true] 是否合并 pricingService.customPricing 中的自定义模型
    */
-  getAllModels() {
+  getAllModels(opts = {}) {
+    const { includeCustom = true } = opts
     const models = []
     const now = Math.floor(Date.now() / 1000)
+    const seen = new Set()
 
     for (const [_service, config] of Object.entries(this.supportedModels)) {
       for (const modelId of config.models) {
+        if (seen.has(modelId)) {
+          continue
+        }
+        seen.add(modelId)
         models.push({
           id: modelId,
           object: 'model',
           created: now,
           owned_by: config.provider
         })
+      }
+    }
+
+    if (includeCustom) {
+      try {
+        const pricingService = require('./pricingService')
+        const custom = pricingService.customPricing || {}
+        for (const [modelId, info] of Object.entries(custom)) {
+          if (seen.has(modelId)) {
+            continue
+          }
+          seen.add(modelId)
+          models.push({
+            id: modelId,
+            object: 'model',
+            created: now,
+            owned_by: (info && info.litellm_provider) || 'custom'
+          })
+        }
+      } catch (e) {
+        logger.warn('⚠️  modelService 合并自定义模型失败:', e.message)
       }
     }
 
@@ -97,6 +126,127 @@ class ModelService {
       }
       return a.id.localeCompare(b.id)
     })
+  }
+
+  /**
+   * 根据 API Key 绑定的账号 / 账号组，解析其可访问的模型 ID 集合。
+   * 返回 null 表示没有特定限制（即应回退到全量列表）。
+   *
+   * 解析规则：
+   *  - 若 apiKey.claudeConsoleAccountId 指向具体的 claude-console 账号 → 取该账号 supportedModels
+   *  - 若 apiKey.claudeAccountId 形如 "group:<id>" → 取该分组下所有 claude-console 成员 supportedModels 的并集
+   *  - 任一目标账号 supportedModels 为空数组 → 视为"该账号支持所有模型" → 回退 null
+   *  - 没有任何 claude-console 绑定 → 回退 null
+   *
+   * @param {object} apiKey
+   * @returns {Promise<Set<string>|null>}
+   */
+  async resolveAllowedModelsForApiKey(apiKey) {
+    if (!apiKey) {
+      return null
+    }
+
+    const claudeConsoleAccountService = require('./account/claudeConsoleAccountService')
+    const accountGroupService = require('./accountGroupService')
+
+    const collectFromAccount = async (accountId) => {
+      try {
+        const acc = await claudeConsoleAccountService.getAccount(accountId)
+        if (!acc) {
+          return { unrestricted: false, models: [] }
+        }
+        const sm = acc.supportedModels
+        let list = []
+
+        // 支持多种格式：数组、JSON 字符串（数组或对象）、逗号/空格分隔字符串
+        if (Array.isArray(sm)) {
+          list = sm
+        } else if (typeof sm === 'string' && sm.trim()) {
+          // 尝试 JSON 解析
+          try {
+            const parsed = JSON.parse(sm)
+            if (Array.isArray(parsed)) {
+              list = parsed
+            } else if (parsed && typeof parsed === 'object') {
+              // 对象格式 {"model1":"model1", ...} → 取 keys
+              list = Object.keys(parsed)
+            }
+          } catch (_e) {
+            // JSON 解析失败，按逗号/空格分隔
+            list = sm
+              .split(/[\s,]+/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          }
+        } else if (sm && typeof sm === 'object') {
+          // 直接是对象（非字符串）
+          list = Object.keys(sm)
+        }
+
+        if (list.length === 0) {
+          return { unrestricted: true, models: [] }
+        }
+        return { unrestricted: false, models: list }
+      } catch (e) {
+        logger.warn(`⚠️  resolveAllowedModelsForApiKey 读取账号 ${accountId} 失败: ${e.message}`)
+        return { unrestricted: false, models: [] }
+      }
+    }
+
+    // 解析分组的辅助函数
+    const resolveGroup = async (groupId) => {
+      try {
+        const memberIds = await accountGroupService.getGroupMembers(groupId)
+        if (!Array.isArray(memberIds) || memberIds.length === 0) {
+          return null
+        }
+
+        const union = new Set()
+        let sawConsole = false
+        for (const memberId of memberIds) {
+          const r = await collectFromAccount(memberId)
+          if (r.models.length === 0 && !r.unrestricted) {
+            // 非 claude-console 成员（取不到）忽略
+            continue
+          }
+          sawConsole = true
+          if (r.unrestricted) {
+            return null
+          } // 任一成员无限制即整体无限制
+          r.models.forEach((m) => union.add(m))
+        }
+        if (!sawConsole) {
+          return null
+        }
+        return union.size > 0 ? union : null
+      } catch (e) {
+        logger.warn(`⚠️  resolveAllowedModelsForApiKey 解析分组 ${groupId} 失败: ${e.message}`)
+        return null
+      }
+    }
+
+    // 1) 优先检查 claudeConsoleAccountId
+    if (apiKey.claudeConsoleAccountId) {
+      // 可能是 "group:xxx" 或直接账号 ID
+      if (apiKey.claudeConsoleAccountId.startsWith('group:')) {
+        const groupId = apiKey.claudeConsoleAccountId.replace('group:', '')
+        return await resolveGroup(groupId)
+      }
+      // 直接账号 ID
+      const r = await collectFromAccount(apiKey.claudeConsoleAccountId)
+      if (r.unrestricted) {
+        return null
+      }
+      return r.models.length > 0 ? new Set(r.models) : null
+    }
+
+    // 2) 回退：账号组（claudeAccountId 以 "group:" 开头）
+    if (typeof apiKey.claudeAccountId === 'string' && apiKey.claudeAccountId.startsWith('group:')) {
+      const groupId = apiKey.claudeAccountId.replace('group:', '')
+      return await resolveGroup(groupId)
+    }
+
+    return null
   }
 
   /**

@@ -12,7 +12,14 @@ const CLAUDE_MODELS = [
   { value: 'claude-opus-4-1-20250805', label: 'Claude Opus 4.1' },
   { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
   { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
-  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' }
+  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
+  { value: 'MiniMax-M2.7', label: 'MiniMax M2.7' },
+  { value: 'MiniMax-M2.7-highspeed', label: 'MiniMax M2.7 Highspeed' },
+  { value: 'MiniMax-M2.5', label: 'MiniMax M2.5' },
+  { value: 'MiniMax-M2.5-highspeed', label: 'MiniMax M2.5 Highspeed' },
+  { value: 'MiniMax-M2.1', label: 'MiniMax M2.1' },
+  { value: 'MiniMax-M2.1-highspeed', label: 'MiniMax M2.1 Highspeed' },
+  { value: 'MiniMax-M2', label: 'MiniMax M2' }
 ]
 
 const GEMINI_MODELS = [

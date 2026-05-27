@@ -26,15 +26,16 @@
           <span class="ml-2 text-xl font-bold text-gray-900 dark:text-white">Motel</span>
         </div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-          用户登录
+          注册账户
         </h2>
         <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-          登录账户以管理您的 API Key
+          注册以购买和管理您的 API Key
         </p>
       </div>
 
       <div class="rounded-lg bg-white px-6 py-8 shadow dark:bg-gray-800 dark:shadow-xl">
-        <form class="space-y-6" @submit.prevent="handleLogin">
+        <form class="space-y-5" @submit.prevent="handleRegister">
+          <!-- 用户名 -->
           <div>
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -57,6 +58,27 @@
             </div>
           </div>
 
+          <!-- 邮箱（可选） -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300" for="email">
+              邮箱
+              <span class="text-gray-400 dark:text-gray-500">（可选）</span>
+            </label>
+            <div class="mt-1">
+              <input
+                id="email"
+                v-model="form.email"
+                autocomplete="email"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                :disabled="loading"
+                name="email"
+                placeholder="请输入邮箱"
+                type="email"
+              />
+            </div>
+          </div>
+
+          <!-- 密码 -->
           <div>
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -68,17 +90,41 @@
               <input
                 id="password"
                 v-model="form.password"
-                autocomplete="current-password"
+                autocomplete="new-password"
                 class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
                 :disabled="loading"
                 name="password"
-                placeholder="请输入密码"
+                placeholder="至少 8 位字符"
                 required
                 type="password"
               />
             </div>
           </div>
 
+          <!-- 确认密码 -->
+          <div>
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              for="confirmPassword"
+            >
+              确认密码
+            </label>
+            <div class="mt-1">
+              <input
+                id="confirmPassword"
+                v-model="form.confirmPassword"
+                autocomplete="new-password"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                :disabled="loading"
+                name="confirmPassword"
+                placeholder="再次输入密码"
+                required
+                type="password"
+              />
+            </div>
+          </div>
+
+          <!-- 错误提示 -->
           <div
             v-if="error"
             class="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20"
@@ -99,10 +145,11 @@
             </div>
           </div>
 
+          <!-- 注册按钮 -->
           <div>
             <button
               class="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
-              :disabled="loading || !form.username || !form.password"
+              :disabled="loading || !form.username || !form.password || !form.confirmPassword"
               type="submit"
             >
               <span v-if="loading" class="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -127,16 +174,18 @@
                   ></path>
                 </svg>
               </span>
-              {{ loading ? '登录中…' : '登录' }}
+              {{ loading ? '注册中…' : '注册账户' }}
             </button>
           </div>
 
-          <div class="text-center text-sm">
+          <!-- 跳转到登录 -->
+          <div class="text-center text-sm text-gray-600 dark:text-gray-400">
+            已有账户？
             <router-link
               class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
-              :to="registerLink"
+              :to="loginRedirect"
             >
-              注册新账户
+              立即登录
             </router-link>
           </div>
         </form>
@@ -158,46 +207,51 @@ const route = useRoute()
 const userStore = useUserStore()
 const themeStore = useThemeStore()
 
-const registerLink = computed(() => {
-  const r = route.query.redirect
-  return r ? `/user/register?redirect=${encodeURIComponent(r)}` : '/user/register'
-})
-
 const loading = ref(false)
 const error = ref('')
 
 const form = reactive({
   username: '',
-  password: ''
+  email: '',
+  password: '',
+  confirmPassword: ''
 })
 
-const handleLogin = async () => {
-  if (!form.username || !form.password) {
-    error.value = '请输入用户名和密码'
+const redirect = computed(() => route.query.redirect || '/user/store')
+const loginRedirect = computed(() => {
+  const r = route.query.redirect
+  return r ? `/user/login?redirect=${encodeURIComponent(r)}` : '/user/login'
+})
+
+const handleRegister = async () => {
+  error.value = ''
+
+  if (form.password !== form.confirmPassword) {
+    error.value = '两次输入的密码不一致'
+    return
+  }
+  if (form.password.length < 8) {
+    error.value = '密码至少需要 8 位字符'
     return
   }
 
   loading.value = true
-  error.value = ''
-
   try {
-    await userStore.login({
+    await userStore.register({
       username: form.username,
-      password: form.password
+      password: form.password,
+      email: form.email || undefined
     })
-
-    showToast('登录成功！', 'success')
-    router.push('/user/dashboard')
+    showToast('账户创建成功！', 'success')
+    router.push(redirect.value)
   } catch (err) {
-    console.error('Login error:', err)
-    error.value = err.response?.data?.message || err.message || '登录失败'
+    error.value = err.response?.data?.message || err.message || '注册失败'
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  // 初始化主题（因为该页面不在 MainLayout 内）
   themeStore.initTheme()
 })
 </script>

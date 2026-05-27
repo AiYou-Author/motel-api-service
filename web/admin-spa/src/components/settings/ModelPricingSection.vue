@@ -19,19 +19,28 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">上次更新: {{ lastUpdated }}</p>
           </div>
         </div>
-        <button
-          :class="[
-            'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition',
-            refreshing
-              ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
-              : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md'
-          ]"
-          :disabled="refreshing"
-          @click="handleRefresh"
-        >
-          <i :class="['fas', refreshing ? 'fa-spinner fa-spin' : 'fa-sync-alt']" />
-          {{ refreshing ? '刷新中...' : '立即刷新' }}
-        </button>
+        <div class="flex gap-2">
+          <button
+            class="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md"
+            @click="openCreate"
+          >
+            <i class="fas fa-plus" />
+            新增自定义
+          </button>
+          <button
+            :class="[
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition',
+              refreshing
+                ? 'cursor-not-allowed bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md'
+            ]"
+            :disabled="refreshing"
+            @click="handleRefresh"
+          >
+            <i :class="['fas', refreshing ? 'fa-spinner fa-spin' : 'fa-sync-alt']" />
+            {{ refreshing ? '刷新中...' : '立即刷新' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -119,6 +128,11 @@
             >
               上下文窗口
             </th>
+            <th
+              class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+            >
+              操作
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
@@ -128,7 +142,14 @@
             class="transition hover:bg-gray-50 dark:hover:bg-gray-800/50"
           >
             <td class="whitespace-nowrap px-3 py-2.5">
-              <div class="font-medium text-gray-900 dark:text-gray-100">{{ model.name }}</div>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ model.name }}</span>
+                <span
+                  v-if="model.isCustom"
+                  class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                  >自定义</span
+                >
+              </div>
               <div v-if="model.provider" class="text-xs text-gray-400">{{ model.provider }}</div>
             </td>
             <td
@@ -156,9 +177,26 @@
             >
               {{ formatContext(model.maxTokens) }}
             </td>
+            <td class="whitespace-nowrap px-3 py-2.5 text-right text-xs">
+              <template v-if="model.isCustom">
+                <button
+                  class="mr-2 text-blue-600 hover:underline dark:text-blue-400"
+                  @click="openEdit(model)"
+                >
+                  编辑
+                </button>
+                <button
+                  class="text-red-600 hover:underline dark:text-red-400"
+                  @click="confirmDelete(model)"
+                >
+                  删除
+                </button>
+              </template>
+              <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+            </td>
           </tr>
           <tr v-if="sortedModels.length === 0">
-            <td class="px-3 py-8 text-center text-gray-500 dark:text-gray-400" colspan="6">
+            <td class="px-3 py-8 text-center text-gray-500 dark:text-gray-400" colspan="7">
               <i class="fas fa-search mb-2 text-2xl text-gray-300 dark:text-gray-600" />
               <p>没有匹配的模型</p>
             </td>
@@ -171,6 +209,13 @@
     <div v-if="!loading" class="mt-3 text-right text-xs text-gray-400 dark:text-gray-500">
       显示 {{ sortedModels.length }} / {{ allModels.length }} 个模型
     </div>
+
+    <CustomPricingModal
+      :initial="modalInitial"
+      :show="modalShow"
+      @close="modalShow = false"
+      @saved="onSaved"
+    />
   </div>
 </template>
 
@@ -179,15 +224,26 @@ import { ref, computed, onMounted } from 'vue'
 import {
   getModelPricingApi,
   getModelPricingStatusApi,
-  refreshModelPricingApi
+  refreshModelPricingApi,
+  getCustomPricingApi,
+  deleteCustomPricingApi
 } from '@/utils/http_apis'
 import { showToast } from '@/utils/tools'
+import CustomPricingModal from './CustomPricingModal.vue'
 
 // ========== 状态 ==========
 const loading = ref(false)
 const refreshing = ref(false)
 const pricingData = ref({})
 const pricingStatus = ref({})
+const customPricingList = ref([])
+const customMap = computed(() => {
+  const m = {}
+  for (const item of customPricingList.value) m[item.model] = item
+  return m
+})
+const modalShow = ref(false)
+const modalInitial = ref(null)
 const searchQuery = ref('')
 const activePlatform = ref('all')
 const sortField = ref('name')
@@ -209,17 +265,24 @@ const lastUpdated = computed(() => {
   return new Date(pricingStatus.value.lastUpdated).toLocaleString('zh-CN')
 })
 
-const allModels = computed(() =>
-  Object.entries(pricingData.value).map(([name, data]) => ({
+const allModels = computed(() => {
+  const merged = { ...pricingData.value }
+  // 自定义条目覆盖同名远程条目，并补充新模型
+  for (const item of customPricingList.value) {
+    merged[item.model] = item
+  }
+  return Object.entries(merged).map(([name, data]) => ({
     name,
-    provider: detectProvider(name),
+    provider: data.litellm_provider || detectProvider(name),
     inputCost: (data.input_cost_per_token || 0) * 1e6,
     outputCost: (data.output_cost_per_token || 0) * 1e6,
     cacheCreateCost: (data.cache_creation_input_token_cost || 0) * 1e6,
     cacheReadCost: (data.cache_read_input_token_cost || 0) * 1e6,
-    maxTokens: data.max_tokens || data.max_output_tokens || 0
+    maxTokens: data.max_tokens || data.max_output_tokens || 0,
+    isCustom: !!customMap.value[name],
+    raw: data
   }))
-)
+})
 
 const filteredModels = computed(() => {
   let models = allModels.value
@@ -318,11 +381,56 @@ const toggleSort = (field) => {
   }
 }
 
+const loadCustomPricing = async () => {
+  try {
+    const result = await getCustomPricingApi()
+    if (result?.success) {
+      customPricingList.value = result.data || []
+    }
+  } catch (e) {
+    // 静默失败，不影响主表
+  }
+}
+
+const openCreate = () => {
+  modalInitial.value = null
+  modalShow.value = true
+}
+
+const openEdit = (model) => {
+  modalInitial.value = customMap.value[model.name] || null
+  modalShow.value = true
+}
+
+const onSaved = async () => {
+  await loadCustomPricing()
+}
+
+const confirmDelete = async (model) => {
+  if (
+    !window.confirm(`确认删除自定义价格「${model.name}」？删除后将回退到远程同步价格或默认值。`)
+  ) {
+    return
+  }
+  try {
+    const result = await deleteCustomPricingApi(model.name)
+    if (result?.success) {
+      showToast('已删除', 'success')
+      await loadCustomPricing()
+    } else {
+      showToast(result?.message || '删除失败', 'error')
+    }
+  } catch (e) {
+    showToast(e?.response?.data?.message || e?.message || '删除失败', 'error')
+  }
+}
+
 const loadData = async () => {
   loading.value = true
   const [pricingResult, statusResult] = await Promise.all([
     getModelPricingApi(),
-    getModelPricingStatusApi()
+    getModelPricingStatusApi(),
+    loadCustomPricing()
   ])
   if (pricingResult.success) {
     pricingData.value = pricingResult.data

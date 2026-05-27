@@ -36,7 +36,7 @@
           <router-link
             v-if="oemSettings.ldapEnabled"
             class="user-login-button flex items-center gap-2 rounded-2xl px-4 py-2 text-white transition-all duration-300 md:px-5 md:py-2.5"
-            to="/user-login"
+            to="/user/login"
           >
             <i class="fas fa-user text-sm md:text-base" />
             <span class="text-xs font-semibold tracking-wide md:text-sm">用户登录</span>

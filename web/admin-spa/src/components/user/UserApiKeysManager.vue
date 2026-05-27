@@ -2,51 +2,26 @@
   <div class="space-y-6">
     <div class="sm:flex sm:items-center">
       <div class="sm:flex-auto">
-        <h1 class="text-2xl font-semibold text-gray-900">My API Keys</h1>
-        <p class="mt-2 text-sm text-gray-700">
-          Manage your API keys to access Claude Relay services
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">我的 API Key</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          购买套餐后即可获得 API Key，前往商店开始使用。
         </p>
       </div>
       <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-        <button
-          class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          :disabled="activeApiKeysCount >= maxApiKeys"
-          @click="showCreateModal = true"
+        <router-link
+          class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 sm:w-auto"
+          to="/user/store"
         >
           <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
             />
           </svg>
-          Create API Key
-        </button>
-      </div>
-    </div>
-
-    <!-- API Keys 数量限制提示 -->
-    <div
-      v-if="activeApiKeysCount >= maxApiKeys"
-      class="rounded-md border border-yellow-200 bg-yellow-50 p-4"
-    >
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              clip-rule="evenodd"
-              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-              fill-rule="evenodd"
-            />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm text-yellow-700">
-            You have reached the maximum number of API keys ({{ maxApiKeys }}). Please delete an
-            existing key to create a new one.
-          </p>
-        </div>
+          Buy API Key
+        </router-link>
       </div>
     </div>
 
@@ -100,29 +75,29 @@
                     v-if="apiKey.isDeleted === true || apiKey.deletedAt"
                     class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800"
                   >
-                    Deleted
+                    已删除
                   </span>
                   <span
                     v-else-if="!apiKey.isActive"
                     class="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800"
                   >
-                    Deleted
+                    已停用
                   </span>
                 </div>
                 <div class="mt-1">
-                  <p class="text-sm text-gray-500">{{ apiKey.description || 'No description' }}</p>
+                  <p class="text-sm text-gray-500">{{ apiKey.description || '暂无描述' }}</p>
                   <div class="mt-1 flex items-center space-x-4 text-xs text-gray-400">
-                    <span>Created: {{ formatDate(apiKey.createdAt) }}</span>
+                    <span>创建于：{{ formatDate(apiKey.createdAt) }}</span>
                     <span v-if="apiKey.isDeleted === 'true' || apiKey.deletedAt"
-                      >Deleted: {{ formatDate(apiKey.deletedAt) }}</span
+                      >已删除：{{ formatDate(apiKey.deletedAt) }}</span
                     >
                     <span v-else-if="apiKey.lastUsedAt"
-                      >Last used: {{ formatDate(apiKey.lastUsedAt) }}</span
+                      >最近使用：{{ formatDate(apiKey.lastUsedAt) }}</span
                     >
-                    <span v-else>Never used</span>
+                    <span v-else>从未使用</span>
                     <span
                       v-if="apiKey.expiresAt && !(apiKey.isDeleted === 'true' || apiKey.deletedAt)"
-                      >Expires: {{ formatDate(apiKey.expiresAt) }}</span
+                      >过期时间：{{ formatDate(apiKey.expiresAt) }}</span
                     >
                   </div>
                 </div>
@@ -131,7 +106,7 @@
             <div class="flex items-center space-x-2">
               <!-- Usage Stats -->
               <div class="text-right text-xs text-gray-500">
-                <div>{{ formatNumber(apiKey.usage?.requests || 0) }} requests</div>
+                <div>{{ formatNumber(apiKey.usage?.requests || 0) }} 次请求</div>
                 <div v-if="apiKey.usage?.totalCost">${{ apiKey.usage.totalCost.toFixed(4) }}</div>
               </div>
 
@@ -139,7 +114,7 @@
               <div class="flex items-center space-x-1">
                 <button
                   class="inline-flex items-center rounded border border-transparent p-1 text-gray-400 hover:text-gray-600"
-                  title="View API Key"
+                  title="查看 API Key"
                   @click="showApiKey(apiKey)"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,7 +140,7 @@
                     allowUserDeleteApiKeys
                   "
                   class="inline-flex items-center rounded border border-transparent p-1 text-red-400 hover:text-red-600"
-                  title="Delete API Key"
+                  title="删除 API Key"
                   @click="deleteApiKey(apiKey)"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +160,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="py-12 text-center">
+    <div v-else class="rounded-lg bg-white py-16 text-center shadow dark:bg-gray-800">
       <svg
         class="mx-auto h-12 w-12 text-gray-400"
         fill="none"
@@ -199,32 +174,25 @@
           stroke-width="2"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No API keys</h3>
-      <p class="mt-1 text-sm text-gray-500">Get started by creating your first API key.</p>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">暂无 API Key</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">购买套餐即可获得 API Key。</p>
       <div class="mt-6">
-        <button
-          class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          @click="showCreateModal = true"
+        <router-link
+          class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
+          to="/user/store"
         >
           <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
             />
           </svg>
-          Create API Key
-        </button>
+          Browse Plans
+        </router-link>
       </div>
     </div>
-
-    <!-- Create API Key Modal -->
-    <CreateApiKeyModal
-      :show="showCreateModal"
-      @close="showCreateModal = false"
-      @created="handleApiKeyCreated"
-    />
 
     <!-- View API Key Modal -->
     <ViewApiKeyModal
@@ -236,10 +204,10 @@
     <!-- Confirm Delete Modal -->
     <ConfirmModal
       confirm-class="bg-red-600 hover:bg-red-700"
-      confirm-text="Delete"
-      :message="`Are you sure you want to delete '${selectedApiKey?.name}'? This action cannot be undone.`"
+      confirm-text="删除"
+      :message="`确定要删除 '${selectedApiKey?.name}' 吗？此操作无法撤销。`"
       :show="showDeleteModal"
-      title="Delete API Key"
+      title="删除 API Key"
       @cancel="showDeleteModal = false"
       @confirm="handleDeleteConfirm"
     />
@@ -250,7 +218,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { showToast, formatNumber, formatDate } from '@/utils/tools'
-import CreateApiKeyModal from './CreateApiKeyModal.vue'
 import ViewApiKeyModal from './ViewApiKeyModal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 
@@ -258,35 +225,22 @@ const userStore = useUserStore()
 
 const loading = ref(true)
 const apiKeys = ref([])
-const maxApiKeys = computed(() => userStore.config?.maxApiKeysPerUser || 5)
 const allowUserDeleteApiKeys = computed(() => userStore.config?.allowUserDeleteApiKeys === true)
 
-const showCreateModal = ref(false)
 const showViewModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedApiKey = ref(null)
 
-// Computed property to sort API keys by creation time (descending - newest first)
 const sortedApiKeys = computed(() => {
-  return [...apiKeys.value].sort((a, b) => {
-    const dateA = new Date(a.createdAt)
-    const dateB = new Date(b.createdAt)
-    return dateB - dateA // Descending order
-  })
-})
-
-// Computed property to count only active (non-deleted) API keys
-const activeApiKeysCount = computed(() => {
-  return apiKeys.value.filter((key) => !(key.isDeleted === 'true' || key.deletedAt)).length
+  return [...apiKeys.value].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 })
 
 const loadApiKeys = async () => {
   loading.value = true
   try {
-    apiKeys.value = await userStore.getUserApiKeys(true) // Include deleted keys
+    apiKeys.value = await userStore.getUserApiKeys(true)
   } catch (error) {
-    console.error('Failed to load API keys:', error)
-    showToast('Failed to load API keys', 'error')
+    showToast('加载 API Key 失败', 'error')
   } finally {
     loading.value = false
   }
@@ -305,23 +259,16 @@ const deleteApiKey = (apiKey) => {
 const handleDeleteConfirm = async () => {
   try {
     const result = await userStore.deleteApiKey(selectedApiKey.value.id)
-
     if (result.success) {
-      showToast('API key deleted successfully', 'success')
+      showToast('API Key 已删除', 'success')
       await loadApiKeys()
     }
   } catch (error) {
-    console.error('Failed to delete API key:', error)
-    showToast('Failed to delete API key', 'error')
+    showToast('删除 API Key 失败', 'error')
   } finally {
     showDeleteModal.value = false
     selectedApiKey.value = null
   }
-}
-
-const handleApiKeyCreated = async () => {
-  showCreateModal.value = false
-  await loadApiKeys()
 }
 
 onMounted(() => {

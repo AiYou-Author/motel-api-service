@@ -1,5 +1,6 @@
 const redis = require('../models/redis')
 const crypto = require('crypto')
+const bcrypt = require('bcryptjs')
 const logger = require('../utils/logger')
 const config = require('../../config/config')
 
@@ -85,6 +86,66 @@ class UserService {
       return user
     } catch (error) {
       logger.error('❌ Error creating/updating user:', error)
+      throw error
+    }
+  }
+
+  // 📝 原生注册（用户名/密码，无需 LDAP）
+  async registerNativeUser({ username, password, email, displayName }) {
+    try {
+      const existing = await this.getUserByUsername(username)
+      if (existing) {
+        throw new Error('USERNAME_TAKEN')
+      }
+      const passwordHash = await bcrypt.hash(password, 10)
+      const userId = this.generateUserId()
+      const user = {
+        id: userId,
+        username,
+        email: email || null,
+        displayName: displayName || username,
+        role: config.userManagement.defaultUserRole,
+        isActive: true,
+        authType: 'native',
+        passwordHash,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastLoginAt: null,
+        apiKeyCount: 0,
+        totalUsage: { requests: 0, inputTokens: 0, outputTokens: 0, totalCost: 0 }
+      }
+      await redis.set(`${this.userPrefix}${userId}`, JSON.stringify(user))
+      await redis.set(`${this.usernamePrefix}${username}`, userId)
+      await redis.addToIndex('user:index', userId)
+      await this.transferMatchingApiKeys(user)
+      logger.info(`📝 Native user registered: ${username} (${userId})`)
+      return user
+    } catch (error) {
+      logger.error('❌ Error registering native user:', error)
+      throw error
+    }
+  }
+
+  // 🔐 原生密码认证
+  async authenticateNative(username, password) {
+    try {
+      const user = await this.getUserByUsername(username)
+      if (!user || user.authType !== 'native' || !user.passwordHash) {
+        return null
+      }
+      if (!user.isActive) {
+        return null
+      }
+      const valid = await bcrypt.compare(password, user.passwordHash)
+      if (!valid) {
+        return null
+      }
+      // 更新最后登录时间
+      user.lastLoginAt = new Date().toISOString()
+      await redis.set(`${this.userPrefix}${user.id}`, JSON.stringify(user))
+      return user
+    } catch (error) {
+      logger.error('❌ Error authenticating native user:', error)
       throw error
     }
   }

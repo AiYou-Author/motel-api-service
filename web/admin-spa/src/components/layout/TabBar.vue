@@ -38,7 +38,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 
 defineProps({
   activeTab: {
@@ -48,8 +47,6 @@ defineProps({
 })
 
 defineEmits(['tab-change'])
-
-const authStore = useAuthStore()
 
 // 根据 LDAP 配置动态生成 tabs
 const tabs = computed(() => {
@@ -61,16 +58,25 @@ const tabs = computed(() => {
     { key: 'quotaCards', name: '额度卡', shortName: '额度卡', icon: 'fas fa-ticket-alt' }
   ]
 
-  // 只有在 LDAP 启用时才显示用户管理
-  if (authStore.oemSettings?.ldapEnabled) {
-    baseTabs.push({
-      key: 'userManagement',
-      name: '用户管理',
-      shortName: '用户',
-      icon: 'fas fa-users'
-    })
-  }
+  baseTabs.push({
+    key: 'userManagement',
+    name: '用户管理',
+    shortName: '用户',
+    icon: 'fas fa-users'
+  })
 
+  baseTabs.push({
+    key: 'storeOrders',
+    name: '商店订单',
+    shortName: '订单',
+    icon: 'fas fa-shopping-cart'
+  })
+  baseTabs.push({
+    key: 'storePlans',
+    name: '商城套餐',
+    shortName: '套餐',
+    icon: 'fas fa-tags'
+  })
   baseTabs.push({ key: 'settings', name: '系统设置', shortName: '设置', icon: 'fas fa-cogs' })
 
   return baseTabs

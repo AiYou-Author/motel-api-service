@@ -19,6 +19,8 @@ class PricingService {
     )
     this.localHashFile = path.join(this.dataDir, 'model_pricing.sha256')
     this.pricingData = null
+    this.customPricing = {} // 管理员自定义价格（覆盖 pricingData）
+    this.customPricingKey = 'pricing:custom'
     this.lastUpdated = null
     this.updateInterval = 24 * 60 * 60 * 1000 // 24小时
     this.hashCheckInterval = 10 * 60 * 1000 // 10分钟哈希校验
@@ -54,6 +56,9 @@ class PricingService {
 
       // 检查是否需要下载或更新价格数据
       await this.checkAndUpdatePricing()
+
+      // 加载管理员自定义价格（独立于 JSON 同步）
+      await this.loadCustomPricing()
 
       // 初次启动时执行一次哈希校验，确保与远端保持一致
       await this.syncWithRemoteHash()
@@ -353,7 +358,17 @@ class PricingService {
 
   // 获取模型价格信息
   getModelPricing(modelName) {
-    if (!this.pricingData || !modelName) {
+    if (!modelName) {
+      return null
+    }
+
+    // 1. 自定义价格最高优先级
+    if (this.customPricing && this.customPricing[modelName]) {
+      logger.debug(`💰 Found custom pricing override for ${modelName}`)
+      return this.customPricing[modelName]
+    }
+
+    if (!this.pricingData) {
       return null
     }
 
@@ -885,6 +900,98 @@ class PricingService {
       this.hashCheckTimer = null
       logger.debug('💰 Hash check timer cleared')
     }
+  }
+
+  // ─── 自定义价格 CRUD（覆盖 pricingData，独立于远程同步）─────────────
+
+  async loadCustomPricing() {
+    try {
+      const redis = require('../models/redis')
+      const client = redis.getClientSafe()
+      const all = await client.hgetall(this.customPricingKey)
+      const parsed = {}
+      for (const [model, json] of Object.entries(all || {})) {
+        try {
+          parsed[model] = JSON.parse(json)
+        } catch (e) {
+          logger.warn(`⚠️  Skipping invalid custom pricing for ${model}: ${e.message}`)
+        }
+      }
+      this.customPricing = parsed
+      const count = Object.keys(parsed).length
+      if (count > 0) {
+        logger.info(`💰 Loaded ${count} custom model pricing override(s)`)
+      }
+    } catch (err) {
+      logger.error('❌ Failed to load custom pricing from Redis:', err)
+      this.customPricing = {}
+    }
+  }
+
+  getAllCustomPricing() {
+    return Object.entries(this.customPricing).map(([model, data]) => ({ model, ...data }))
+  }
+
+  async setCustomPricing(modelName, pricing, adminUserId = null) {
+    if (!modelName || typeof modelName !== 'string') {
+      throw new Error('INVALID_MODEL_NAME')
+    }
+    const trimmed = modelName.trim()
+    if (!trimmed || trimmed.length > 64 || !/^[A-Za-z0-9._\-/]+$/.test(trimmed)) {
+      throw new Error('INVALID_MODEL_NAME')
+    }
+    const inputCost = Number(pricing?.input_cost_per_token)
+    const outputCost = Number(pricing?.output_cost_per_token)
+    if (!Number.isFinite(inputCost) || inputCost < 0) {
+      throw new Error('INVALID_INPUT_COST')
+    }
+    if (!Number.isFinite(outputCost) || outputCost < 0) {
+      throw new Error('INVALID_OUTPUT_COST')
+    }
+
+    const now = new Date().toISOString()
+    const existing = this.customPricing[trimmed]
+    const data = {
+      input_cost_per_token: inputCost,
+      output_cost_per_token: outputCost,
+      cache_creation_input_token_cost: Math.max(
+        0,
+        Number(pricing?.cache_creation_input_token_cost) || 0
+      ),
+      cache_read_input_token_cost: Math.max(0, Number(pricing?.cache_read_input_token_cost) || 0),
+      max_tokens: Math.max(0, Number(pricing?.max_tokens) || 0) || undefined,
+      litellm_provider: pricing?.litellm_provider || 'custom',
+      mode: pricing?.mode || 'chat',
+      _custom: true,
+      _createdAt: existing?._createdAt || now,
+      _updatedAt: now,
+      _createdBy: existing?._createdBy || adminUserId || null,
+      _updatedBy: adminUserId || null
+    }
+    if (data.max_tokens === undefined) {
+      delete data.max_tokens
+    }
+
+    const redis = require('../models/redis')
+    const client = redis.getClientSafe()
+    await client.hset(this.customPricingKey, trimmed, JSON.stringify(data))
+    this.customPricing[trimmed] = data
+    logger.info(
+      `💰 Custom pricing ${existing ? 'updated' : 'created'} for ${trimmed} by admin=${adminUserId}`
+    )
+    return data
+  }
+
+  async removeCustomPricing(modelName, adminUserId = null) {
+    if (!modelName || !this.customPricing[modelName]) {
+      throw new Error('CUSTOM_PRICING_NOT_FOUND')
+    }
+    const redis = require('../models/redis')
+    const client = redis.getClientSafe()
+    await client.hdel(this.customPricingKey, modelName)
+    delete this.customPricing[modelName]
+    logger.info(`🗑️  Custom pricing removed for ${modelName} by admin=${adminUserId}`)
+    return true
   }
 }
 

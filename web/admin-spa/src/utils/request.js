@@ -20,7 +20,7 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       const path = window.location.pathname + window.location.hash
       // api-stats 和 user-login 是公开页面，401 是业务错误不是认证错误
-      const isPublicPage = path.includes('/api-stats') || path.includes('/user-login')
+      const isPublicPage = path.includes('/api-stats') || path.includes('/user/login')
       if (!path.includes('/login') && !path.endsWith('/') && !isPublicPage) {
         localStorage.removeItem('authToken')
         window.location.href = getLoginUrl()

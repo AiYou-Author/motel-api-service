@@ -51,6 +51,30 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // 📝 用户注册
+    async register(credentials) {
+      this.loading = true
+      try {
+        const response = await axios.post(`${API_BASE}/register`, credentials)
+        if (response.data.success) {
+          this.user = response.data.user
+          this.sessionToken = response.data.sessionToken
+          this.isAuthenticated = true
+          localStorage.setItem('userToken', this.sessionToken)
+          localStorage.setItem('userData', JSON.stringify(this.user))
+          this.setAuthHeader()
+          return response.data
+        } else {
+          throw new Error(response.data.message || 'Registration failed')
+        }
+      } catch (error) {
+        this.clearAuth()
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     // 🚪 用户登出
     async logout() {
       try {
@@ -205,8 +229,8 @@ export const useUserStore = defineStore('user', {
               this.clearAuth()
               showToast(message, 'error')
               // Redirect to login page
-              if (window.location.pathname !== '/user-login') {
-                window.location.href = '/user-login'
+              if (window.location.pathname !== '/user/login') {
+                window.location.href = '/user/login'
               }
             }
           }

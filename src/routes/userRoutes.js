@@ -48,6 +48,64 @@ function initRateLimiters() {
   return { ipRateLimiter, strictIpRateLimiter }
 }
 
+// 📝 用户注册端点（原生认证）
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password, email, displayName } = req.body
+
+    if (!config.userManagement.enabled) {
+      return res
+        .status(503)
+        .json({ error: 'Service unavailable', message: 'User management is not enabled' })
+    }
+
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ error: 'Missing fields', message: 'Username and password are required' })
+    }
+
+    let validatedUsername
+    try {
+      validatedUsername = inputValidator.validateUsername(username)
+      inputValidator.validatePassword(password)
+    } catch (validationError) {
+      return res.status(400).json({ error: 'Invalid input', message: validationError.message })
+    }
+
+    const user = await userService.registerNativeUser({
+      username: validatedUsername,
+      password,
+      email: email || null,
+      displayName: displayName || null
+    })
+
+    const sessionToken = await userService.createUserSession(user.id)
+
+    logger.info(`📝 New user registered: ${validatedUsername}`)
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role
+      },
+      sessionToken
+    })
+  } catch (error) {
+    if (error.message === 'USERNAME_TAKEN') {
+      return res.status(409).json({ error: 'Conflict', message: '用户名已被占用' })
+    }
+    logger.error('❌ User register error:', error)
+    res
+      .status(500)
+      .json({ error: 'Register error', message: 'Internal server error during registration' })
+  }
+})
+
 // 🔐 用户登录端点
 router.post('/login', async (req, res) => {
   try {
@@ -114,24 +172,28 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    // 检查LDAP是否启用
-    if (!config.ldap || !config.ldap.enabled) {
-      return res.status(503).json({
-        error: 'Service unavailable',
-        message: 'LDAP authentication is not enabled'
-      })
-    }
+    let authUser, authSessionToken
 
-    // 尝试LDAP认证
-    const authResult = await ldapService.authenticateUserCredentials(validatedUsername, password)
-
-    if (!authResult.success) {
-      // 登录失败
-      logger.info(`🚫 Failed login attempt for user: ${validatedUsername} from IP: ${clientIp}`)
-      return res.status(401).json({
-        error: 'Authentication failed',
-        message: authResult.message
-      })
+    if (config.ldap && config.ldap.enabled) {
+      // LDAP 认证路径
+      const authResult = await ldapService.authenticateUserCredentials(validatedUsername, password)
+      if (!authResult.success) {
+        logger.info(`🚫 Failed LDAP login for user: ${validatedUsername} from IP: ${clientIp}`)
+        return res.status(401).json({ error: 'Authentication failed', message: authResult.message })
+      }
+      authUser = authResult.user
+      authSessionToken = authResult.sessionToken
+    } else {
+      // 原生密码认证路径
+      const user = await userService.authenticateNative(validatedUsername, password)
+      if (!user) {
+        logger.info(`🚫 Failed native login for user: ${validatedUsername} from IP: ${clientIp}`)
+        return res
+          .status(401)
+          .json({ error: 'Authentication failed', message: 'Invalid username or password' })
+      }
+      authSessionToken = await userService.createUserSession(user.id)
+      authUser = user
     }
 
     // 登录成功
@@ -141,15 +203,15 @@ router.post('/login', async (req, res) => {
       success: true,
       message: 'Login successful',
       user: {
-        id: authResult.user.id,
-        username: authResult.user.username,
-        email: authResult.user.email,
-        displayName: authResult.user.displayName,
-        firstName: authResult.user.firstName,
-        lastName: authResult.user.lastName,
-        role: authResult.user.role
+        id: authUser.id,
+        username: authUser.username,
+        email: authUser.email,
+        displayName: authUser.displayName,
+        firstName: authUser.firstName,
+        lastName: authUser.lastName,
+        role: authUser.role
       },
-      sessionToken: authResult.sessionToken
+      sessionToken: authSessionToken
     })
   } catch (error) {
     logger.error('❌ User login error:', error)

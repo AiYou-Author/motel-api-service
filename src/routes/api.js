@@ -1537,19 +1537,63 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
 
     const modelService = require('../services/modelService')
 
-    // 从 modelService 获取所有支持的模型
+    // 从 modelService 获取所有支持的模型（含自定义模型，例如 MiniMax）
     const models = modelService.getAllModels()
 
-    // 可选：根据 API Key 的模型限制过滤
-    let filteredModels = models
-    if (req.apiKey.enableModelRestriction && req.apiKey.restrictedModels?.length > 0) {
-      // 将 restrictedModels 视为黑名单：过滤掉受限模型
-      filteredModels = models.filter((model) => !req.apiKey.restrictedModels.includes(model.id))
+    // 1) 根据 API Key 绑定的账号/分组解析可访问模型集合（claude-console 账号的 supportedModels）
+    let allowedSet = null
+    try {
+      allowedSet = await modelService.resolveAllowedModelsForApiKey(req.apiKey)
+    } catch (e) {
+      logger.warn('⚠️  resolveAllowedModelsForApiKey 失败，回退默认列表:', e.message)
     }
+
+    let filteredModels = models
+    if (allowedSet && allowedSet.size > 0) {
+      // 仅保留账号声明支持的模型；若 modelService 没收录但账号支持，仍补回，保证 Claude Code 能看到
+      const matched = models.filter((m) => allowedSet.has(m.id))
+      const matchedIds = new Set(matched.map((m) => m.id))
+      const now = Math.floor(Date.now() / 1000)
+      const supplements = []
+      for (const id of allowedSet) {
+        if (matchedIds.has(id)) {
+          continue
+        }
+        supplements.push({ id, object: 'model', created: now, owned_by: 'custom' })
+      }
+      filteredModels = [...matched, ...supplements]
+    }
+
+    // 2) API Key 的 restrictedModels 黑名单过滤（保持原有语义）
+    if (req.apiKey.enableModelRestriction && req.apiKey.restrictedModels?.length > 0) {
+      filteredModels = filteredModels.filter(
+        (model) => !req.apiKey.restrictedModels.includes(model.id)
+      )
+    }
+
+    // 为非 claude- 前缀的模型添加 display_name，帮助 Claude Code 识别
+    const enrichedModels = filteredModels.map((m) => {
+      // 如果是自定义模型（非 claude/anthropic 开头），添加额外元数据
+      if (
+        !m.id.toLowerCase().startsWith('claude-') &&
+        !m.id.toLowerCase().startsWith('anthropic')
+      ) {
+        return {
+          ...m,
+          display_name: m.id,
+          description: `Custom model: ${m.id}`,
+          capabilities: {
+            vision: false,
+            function_calling: true
+          }
+        }
+      }
+      return m
+    })
 
     res.json({
       object: 'list',
-      data: filteredModels
+      data: enrichedModels
     })
   } catch (error) {
     logger.error('❌ Models list error:', error)

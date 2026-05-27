@@ -72,6 +72,18 @@
             <i class="fas fa-coins mr-2"></i>
             模型价格
           </button>
+          <button
+            :class="[
+              'border-b-2 pb-2 text-sm font-medium transition-colors',
+              activeSection === 'store'
+                ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+            ]"
+            @click="activeSection = 'store'"
+          >
+            <i class="fas fa-store mr-2"></i>
+            商城设置
+          </button>
         </nav>
       </div>
 
@@ -1380,6 +1392,80 @@
         <div v-show="activeSection === 'modelPricing'">
           <ModelPricingSection />
         </div>
+
+        <!-- 商城设置部分 -->
+        <div v-show="activeSection === 'store'" class="space-y-6">
+          <div
+            class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              <i class="fas fa-qrcode mr-2 text-blue-500"></i>
+              收款二维码
+            </h3>
+            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              上传收款二维码，用户在商城购买时将看到此二维码
+            </p>
+
+            <!-- 当前二维码预览 -->
+            <div v-if="storeConfig.qrCodeImage" class="mb-4">
+              <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">当前二维码</p>
+              <img
+                alt="收款二维码"
+                class="h-48 w-48 rounded-lg border border-gray-200 object-contain dark:border-gray-600"
+                :src="storeConfig.qrCodeImage"
+              />
+            </div>
+
+            <!-- 上传新二维码 -->
+            <div class="flex items-center gap-4">
+              <label
+                class="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
+              >
+                <i class="fas fa-upload"></i>
+                {{ storeConfig.qrCodeImage ? '更换二维码' : '上传二维码' }}
+                <input accept="image/*" class="hidden" type="file" @change="handleQrCodeUpload" />
+              </label>
+              <button
+                v-if="storeConfig.qrCodeImage"
+                class="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600"
+                @click="removeQrCode"
+              >
+                <i class="fas fa-trash mr-1"></i>
+                删除
+              </button>
+            </div>
+            <p class="mt-2 text-xs text-gray-400">支持 JPG、PNG 格式，建议尺寸 300x300 像素</p>
+          </div>
+
+          <div
+            class="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
+          >
+            <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              <i class="fas fa-file-alt mr-2 text-green-500"></i>
+              支付说明
+            </h3>
+            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              用户在商城购买时显示的支付说明文字
+            </p>
+            <textarea
+              v-model="storeConfig.paymentInstructions"
+              class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500"
+              placeholder="例如：请扫描上方二维码完成支付，支付完成后请在备注中填写订单号..."
+              rows="4"
+            ></textarea>
+            <div class="mt-4 flex justify-end">
+              <button
+                class="rounded-lg bg-blue-500 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-50"
+                :disabled="storeSaving"
+                @click="saveStoreConfig"
+              >
+                <i v-if="storeSaving" class="fas fa-spinner fa-spin mr-2"></i>
+                <i v-else class="fas fa-save mr-2"></i>
+                保存设置
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2015,6 +2101,71 @@ const confirmModalConfig = ref({
 })
 const confirmResolve = ref(null)
 
+// 商城设置
+const storeConfig = reactive({
+  qrCodeImage: '',
+  paymentInstructions: ''
+})
+const storeSaving = ref(false)
+
+const loadStoreConfig = async () => {
+  try {
+    const { data } = await httpApis.getAdminStoreConfigApi()
+    storeConfig.qrCodeImage = data.qrCodeImage || ''
+    storeConfig.paymentInstructions = data.paymentInstructions || ''
+  } catch (e) {
+    console.error('加载商城配置失败:', e)
+  }
+}
+
+const handleQrCodeUpload = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    showToast('请选择图片文件', 'error')
+    return
+  }
+
+  // 检查文件大小 (最大 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('图片大小不能超过 2MB', 'error')
+    return
+  }
+
+  // 转换为 base64
+  const reader = new FileReader()
+  reader.onload = async (event) => {
+    storeConfig.qrCodeImage = event.target.result
+    await saveStoreConfig()
+  }
+  reader.readAsDataURL(file)
+
+  // 重置 input
+  e.target.value = ''
+}
+
+const removeQrCode = async () => {
+  storeConfig.qrCodeImage = ''
+  await saveStoreConfig()
+}
+
+const saveStoreConfig = async () => {
+  storeSaving.value = true
+  try {
+    await httpApis.updateAdminStoreConfigApi({
+      qrCodeImage: storeConfig.qrCodeImage,
+      paymentInstructions: storeConfig.paymentInstructions
+    })
+    showToast('商城设置已保存', 'success')
+  } catch (e) {
+    showToast('保存失败: ' + (e.message || '未知错误'), 'error')
+  } finally {
+    storeSaving.value = false
+  }
+}
+
 const showConfirm = (
   title,
   message,
@@ -2257,6 +2408,8 @@ const sectionWatcher = watch(activeSection, async (newSection) => {
     await loadClaudeConfig()
   } else if (newSection === 'serviceRates') {
     await loadServiceRates()
+  } else if (newSection === 'store') {
+    await loadStoreConfig()
   }
 })
 
@@ -2386,6 +2539,9 @@ onMounted(async () => {
     }
     if (activeSection.value === 'serviceRates') {
       await loadServiceRates()
+    }
+    if (activeSection.value === 'store') {
+      await loadStoreConfig()
     }
   } catch (error) {
     showToast('加载设置失败', 'error')

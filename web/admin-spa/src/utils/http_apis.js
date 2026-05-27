@@ -1,4 +1,6 @@
 import request from '@/utils/request'
+import axios from 'axios'
+import { APP_CONFIG } from '@/utils/tools'
 
 // 模型
 export const getModelsApi = () => request({ url: '/apiStats/models', method: 'GET' })
@@ -9,6 +11,21 @@ export const getModelPricingStatusApi = () =>
   request({ url: '/admin/models/pricing/status', method: 'GET' })
 export const refreshModelPricingApi = () =>
   request({ url: '/admin/models/pricing/refresh', method: 'POST' })
+
+// 自定义模型价格
+export const getCustomPricingApi = () =>
+  request({ url: '/admin/models/pricing/custom', method: 'GET' })
+export const setCustomPricingApi = (model, data) =>
+  request({
+    url: `/admin/models/pricing/custom/${encodeURIComponent(model)}`,
+    method: 'PUT',
+    data
+  })
+export const deleteCustomPricingApi = (model) =>
+  request({
+    url: `/admin/models/pricing/custom/${encodeURIComponent(model)}`,
+    method: 'DELETE'
+  })
 
 // API Stats
 export const getKeyIdApi = (apiKey) =>
@@ -357,3 +374,50 @@ export const getClaudeCodeVersionApi = () =>
   request({ url: '/admin/claude-code-version', method: 'GET' })
 export const clearClaudeCodeVersionApi = () =>
   request({ url: '/admin/claude-code-version/clear', method: 'POST' })
+
+// ─── Store 公开 API ──────────────────────────────────────────
+const userAxios = () => {
+  const token = localStorage.getItem('userToken')
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['x-user-token'] = token
+  return axios.create({ baseURL: APP_CONFIG.apiPrefix, headers })
+}
+
+export const getStorePlansApi = () => axios.get(`${APP_CONFIG.apiPrefix}/store/plans`)
+
+export const createOrderApi = (planId, amount) =>
+  userAxios().post('/store/orders', { planId, ...(amount != null ? { amount } : {}) })
+
+export const getUserOrdersApi = () => userAxios().get('/store/orders')
+
+export const getOrderApi = (orderId) => userAxios().get(`/store/orders/${orderId}`)
+
+export const deleteOrderApi = (orderId) => userAxios().delete(`/store/orders/${orderId}`)
+
+export const updateOrderNoteApi = (orderId, note) =>
+  userAxios().patch(`/store/orders/${orderId}/note`, { note })
+
+// ─── Admin Store 管理 API ────────────────────────────────────
+export const getAdminOrdersApi = (status) =>
+  request({ url: '/admin/store/orders', method: 'GET', params: status ? { status } : {} })
+
+export const approveOrderApi = (id) =>
+  request({ url: `/admin/store/orders/${id}/approve`, method: 'POST' })
+
+export const rejectOrderApi = (id, reason) =>
+  request({ url: `/admin/store/orders/${id}/reject`, method: 'POST', data: { reason } })
+
+export const getAdminStoreConfigApi = () => request({ url: '/admin/store/config', method: 'GET' })
+
+export const updateAdminStoreConfigApi = (data) =>
+  request({ url: '/admin/store/config', method: 'PUT', data })
+
+// 商城套餐（管理端 - 乐观锁全量替换）
+export const getAdminPlansApi = () => request({ url: '/admin/store/plans', method: 'GET' })
+
+export const saveAdminPlansApi = (plans, expectedVersion) =>
+  request({
+    url: '/admin/store/plans',
+    method: 'PUT',
+    data: { plans, expectedVersion }
+  })

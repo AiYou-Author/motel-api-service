@@ -131,6 +131,10 @@ textarea {
     border-color 0.3s ease;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family:
     'Inter',
