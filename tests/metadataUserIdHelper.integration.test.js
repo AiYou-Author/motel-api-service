@@ -24,7 +24,9 @@ function formatUuidFromSeed(seed) {
 }
 
 function normalizeAccountUuid(candidate) {
-  if (typeof candidate !== 'string') {return null}
+  if (typeof candidate !== 'string') {
+    return null
+  }
   const trimmed = candidate.trim()
 
   return trimmed || null
@@ -35,17 +37,25 @@ const SESSION_PREFIX = 'session_'
 const ACCOUNT_MARKER = '_account_'
 
 function oldRewriteUserId(body, accountId, accountUuid) {
-  if (!body || typeof body !== 'object') {return { nextBody: body, changed: false }}
+  if (!body || typeof body !== 'object') {
+    return { nextBody: body, changed: false }
+  }
   const { metadata } = body
 
-  if (!metadata || typeof metadata !== 'object') {return { nextBody: body, changed: false }}
+  if (!metadata || typeof metadata !== 'object') {
+    return { nextBody: body, changed: false }
+  }
   const userId = metadata.user_id
 
-  if (typeof userId !== 'string') {return { nextBody: body, changed: false }}
+  if (typeof userId !== 'string') {
+    return { nextBody: body, changed: false }
+  }
 
   const pivot = userId.lastIndexOf(SESSION_PREFIX)
 
-  if (pivot === -1) {return { nextBody: body, changed: false }}
+  if (pivot === -1) {
+    return { nextBody: body, changed: false }
+  }
 
   const prefixBeforeSession = userId.slice(0, pivot)
   const sessionTail = userId.slice(pivot + SESSION_PREFIX.length)
@@ -70,13 +80,17 @@ function oldRewriteUserId(body, accountId, accountUuid) {
         const valueStart = accountIndex + ACCOUNT_MARKER.length
         let separatorIndex = normalizedPrefix.indexOf('_', valueStart)
 
-        if (separatorIndex === -1) {separatorIndex = normalizedPrefix.length}
+        if (separatorIndex === -1) {
+          separatorIndex = normalizedPrefix.length
+        }
         const head = normalizedPrefix.slice(0, valueStart)
         let tail = '_'
 
         if (separatorIndex < normalizedPrefix.length) {
           tail = normalizedPrefix.slice(separatorIndex)
-          if (/^_+$/.test(tail)) {tail = '_'}
+          if (/^_+$/.test(tail)) {
+            tail = '_'
+          }
         }
         normalizedPrefix = `${head}${trimmedUuid}${tail}`
       }
@@ -85,7 +99,9 @@ function oldRewriteUserId(body, accountId, accountUuid) {
 
   const nextUserId = `${normalizedPrefix}${SESSION_PREFIX}${hashed}`
 
-  if (nextUserId === userId) {return { nextBody: body, changed: false }}
+  if (nextUserId === userId) {
+    return { nextBody: body, changed: false }
+  }
 
   return {
     nextBody: { ...body, metadata: { ...metadata, user_id: nextUserId } },
@@ -95,17 +111,25 @@ function oldRewriteUserId(body, accountId, accountUuid) {
 
 // ─── 新版 rewriteUserId（从 requestIdentityService 中提取的逻辑） ───
 function newRewriteUserId(body, accountId, accountUuid) {
-  if (!body || typeof body !== 'object') {return { nextBody: body, changed: false }}
+  if (!body || typeof body !== 'object') {
+    return { nextBody: body, changed: false }
+  }
   const { metadata } = body
 
-  if (!metadata || typeof metadata !== 'object') {return { nextBody: body, changed: false }}
+  if (!metadata || typeof metadata !== 'object') {
+    return { nextBody: body, changed: false }
+  }
   const userId = metadata.user_id
 
-  if (typeof userId !== 'string') {return { nextBody: body, changed: false }}
+  if (typeof userId !== 'string') {
+    return { nextBody: body, changed: false }
+  }
 
   const parsed = parse(userId)
 
-  if (!parsed) {return { nextBody: body, changed: false }}
+  if (!parsed) {
+    return { nextBody: body, changed: false }
+  }
 
   const seedTail = parsed.sessionId || 'default'
   const effectiveScheduler = accountId ? String(accountId) : 'unknown-scheduler'
@@ -119,7 +143,9 @@ function newRewriteUserId(body, accountId, accountUuid) {
     isJsonFormat: parsed.isJsonFormat
   })
 
-  if (nextUserId === userId) {return { nextBody: body, changed: false }}
+  if (nextUserId === userId) {
+    return { nextBody: body, changed: false }
+  }
 
   return {
     nextBody: { ...body, metadata: { ...metadata, user_id: nextUserId } },
@@ -129,7 +155,9 @@ function newRewriteUserId(body, accountId, accountUuid) {
 
 // ─── 旧版 _replaceClientId 精确副本 ───
 function oldReplaceClientId(body, unifiedClientId) {
-  if (!body || !body.metadata || !body.metadata.user_id || !unifiedClientId) {return}
+  if (!body || !body.metadata || !body.metadata.user_id || !unifiedClientId) {
+    return
+  }
   const userId = body.metadata.user_id
   const match = userId.match(/^user_[a-f0-9]{64}(_account__session_[a-f0-9-]{36})$/)
 
@@ -140,10 +168,14 @@ function oldReplaceClientId(body, unifiedClientId) {
 
 // ─── 新版 _replaceClientId ───
 function newReplaceClientId(body, unifiedClientId) {
-  if (!body?.metadata?.user_id || !unifiedClientId) {return}
+  if (!body?.metadata?.user_id || !unifiedClientId) {
+    return
+  }
   const parsed = parse(body.metadata.user_id)
 
-  if (!parsed) {return}
+  if (!parsed) {
+    return
+  }
   body.metadata.user_id = build({ ...parsed, deviceId: unifiedClientId })
 }
 

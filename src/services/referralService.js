@@ -62,7 +62,9 @@ class ReferralService {
 
   // 通过推广码查找推荐人 userId
   async getReferrerByCode(code) {
-    if (!code) {return null}
+    if (!code) {
+      return null
+    }
     try {
       return await redis.get(`${REFERRAL_CODE_PREFIX}${code.toUpperCase()}`)
     } catch (error) {
@@ -85,12 +87,16 @@ class ReferralService {
 
   // 绑定推荐关系（注册时调用）
   async bindReferral(newUserId, referrerId) {
-    if (!newUserId || !referrerId || newUserId === referrerId) {return}
+    if (!newUserId || !referrerId || newUserId === referrerId) {
+      return
+    }
     try {
       // 防止重复绑定
       const existing = await redis.get(`${REFERRAL_INVITED_BY_PREFIX}${newUserId}`)
 
-      if (existing) {return}
+      if (existing) {
+        return
+      }
 
       await redis.set(`${REFERRAL_INVITED_BY_PREFIX}${newUserId}`, referrerId)
       await redis.addToIndex(`${REFERRAL_INVITES_PREFIX}${referrerId}`, newUserId)
@@ -129,13 +135,15 @@ class ReferralService {
     try {
       const data = await redis.get(COMMISSION_CONFIG_KEY)
 
-      if (data) {return JSON.parse(data)}
+      if (data) {
+        return JSON.parse(data)
+      }
 
       // 默认配置
       return {
         enabled: false,
-        globalRate: 0.1,  // 10% 全局默认返佣比例
-        planRates: {}      // planId → rate，优先级高于 globalRate
+        globalRate: 0.1, // 10% 全局默认返佣比例
+        planRates: {} // planId → rate，优先级高于 globalRate
       }
     } catch (error) {
       logger.error('❌ Error getting commission config:', error)
@@ -167,7 +175,9 @@ class ReferralService {
   async getCommissionRate(planId) {
     const config = await this.getCommissionConfig()
 
-    if (!config.enabled) {return 0}
+    if (!config.enabled) {
+      return 0
+    }
     if (planId && config.planRates && config.planRates[planId] !== undefined) {
       return Number(config.planRates[planId])
     }
@@ -194,7 +204,11 @@ class ReferralService {
   }
 
   // 增加余额，并记录佣金流水
-  async creditWallet(userId, amount, { type = 'commission', orderId = null, fromUserId = null, note = '' } = {}) {
+  async creditWallet(
+    userId,
+    amount,
+    { type = 'commission', orderId = null, fromUserId = null, note = '' } = {}
+  ) {
     try {
       const current = await this.getWalletBalance(userId)
       const newBalance = parseFloat((current + amount).toFixed(4))
@@ -204,7 +218,7 @@ class ReferralService {
       const record = {
         id: this.generateId(),
         userId,
-        type,         // 'commission' | 'refund' | 'admin_credit'
+        type, // 'commission' | 'refund' | 'admin_credit'
         direction: 'credit',
         amount: parseFloat(amount.toFixed(4)),
         balanceAfter: newBalance,
@@ -267,23 +281,33 @@ class ReferralService {
   // ─── 返佣处理（订单审批后调用）────────────────────────────────
 
   async processOrderCommission(order) {
-    if (!order || !order.userId) {return}
+    if (!order || !order.userId) {
+      return
+    }
     try {
       const referrerId = await this.getReferredBy(order.userId)
 
-      if (!referrerId) {return}
+      if (!referrerId) {
+        return
+      }
 
       const rate = await this.getCommissionRate(order.planId)
 
-      if (!rate || rate <= 0) {return}
+      if (!rate || rate <= 0) {
+        return
+      }
 
       const orderAmount = parseFloat(order.amount) || 0
 
-      if (orderAmount <= 0) {return}
+      if (orderAmount <= 0) {
+        return
+      }
 
       const commission = parseFloat((orderAmount * rate).toFixed(4))
 
-      if (commission <= 0) {return}
+      if (commission <= 0) {
+        return
+      }
 
       await this.creditWallet(referrerId, commission, {
         type: 'commission',
@@ -313,7 +337,9 @@ class ReferralService {
       } else {
         ids = await client.smembers(COMMISSION_RECORDS_INDEX)
       }
-      if (!ids || ids.length === 0) {return { total: 0, records: [] }}
+      if (!ids || ids.length === 0) {
+        return { total: 0, records: [] }
+      }
 
       const records = await Promise.all(
         ids.map(async (id) => {
@@ -355,8 +381,8 @@ class ReferralService {
         id,
         userId,
         amount: parseFloat(amount.toFixed(4)),
-        method,       // 'alipay' | 'wechat' | 'bank'
-        accountInfo,  // 账号信息
+        method, // 'alipay' | 'wechat' | 'bank'
+        accountInfo, // 账号信息
         note,
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -403,7 +429,9 @@ class ReferralService {
       } else {
         ids = await client.smembers(WITHDRAW_REQUESTS_INDEX)
       }
-      if (!ids || ids.length === 0) {return { total: 0, requests: [] }}
+      if (!ids || ids.length === 0) {
+        return { total: 0, requests: [] }
+      }
 
       const requests = await Promise.all(
         ids.map(async (id) => {
@@ -435,8 +463,12 @@ class ReferralService {
     try {
       const request = await this.getWithdrawRequest(id)
 
-      if (!request) {throw new Error('REQUEST_NOT_FOUND')}
-      if (request.status !== 'pending') {throw new Error('REQUEST_NOT_PENDING')}
+      if (!request) {
+        throw new Error('REQUEST_NOT_FOUND')
+      }
+      if (request.status !== 'pending') {
+        throw new Error('REQUEST_NOT_PENDING')
+      }
 
       request.status = 'approved'
       request.adminNote = adminNote
@@ -456,8 +488,12 @@ class ReferralService {
     try {
       const request = await this.getWithdrawRequest(id)
 
-      if (!request) {throw new Error('REQUEST_NOT_FOUND')}
-      if (request.status !== 'pending') {throw new Error('REQUEST_NOT_PENDING')}
+      if (!request) {
+        throw new Error('REQUEST_NOT_FOUND')
+      }
+      if (request.status !== 'pending') {
+        throw new Error('REQUEST_NOT_PENDING')
+      }
 
       // 退回已冻结金额
       await this.creditWallet(request.userId, request.amount, {

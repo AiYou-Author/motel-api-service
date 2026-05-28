@@ -103,7 +103,9 @@ router.post('/orders', authenticateUser, async (req, res) => {
       // 扣减佣金（如果有）
       if (usedCommission > 0) {
         if (usedCommission > parsedAmount) {
-          return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+          return res
+            .status(400)
+            .json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
         }
         await referralService.debitWallet(userId, usedCommission, {
           type: 'purchase',
@@ -140,7 +142,9 @@ router.post('/orders', authenticateUser, async (req, res) => {
     // 扣减佣金（如果有）
     if (usedCommission > 0) {
       if (usedCommission > planPrice) {
-        return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+        return res
+          .status(400)
+          .json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
       }
       await referralService.debitWallet(userId, usedCommission, {
         type: 'purchase',

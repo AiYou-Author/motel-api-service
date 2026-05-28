@@ -14,7 +14,9 @@ const FX_USD_PER_CNY = 1 / 7.2
 
 // 把 CNY/MTok 转换为 USD/token
 function cnyPerMTokToUsdPerToken(cnyPerMTok) {
-  if (cnyPerMTok === null || cnyPerMTok === undefined) {return 0}
+  if (cnyPerMTok === null || cnyPerMTok === undefined) {
+    return 0
+  }
 
   return (cnyPerMTok * FX_USD_PER_CNY) / 1e6
 }
