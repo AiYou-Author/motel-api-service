@@ -7,8 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --config .eslintrc.cjs --ignore-path .gitignore",
+    "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --config .eslintrc.cjs --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{vue,js,jsx,cjs,mjs}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{vue,js,jsx,cjs,mjs}\" --ignore-path .gitignore"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.1",
@@ -26,10 +32,16 @@
     "@playwright/test": "^1.55.0",
     "@vitejs/plugin-vue": "^4.5.2",
     "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/test-utils": "^2.4.3",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-vue": "^9.19.2",
+    "@babel/eslint-parser": "^7.24.8",
+    "happy-dom": "^14.10.1",
+    "jsdom": "^24.0.0",
     "playwright": "^1.55.0",
     "postcss": "^8.4.32",
     "prettier": "^3.1.1",
@@ -39,6 +51,7 @@
     "unplugin-element-plus": "^0.8.0",
     "unplugin-vue-components": "^0.26.0",
     "vite": "^5.0.8",
-    "vite-plugin-checker": "^0.10.2"
+    "vite-plugin-checker": "^0.10.2",
+    "vitest": "^1.6.0"
   }
 }
