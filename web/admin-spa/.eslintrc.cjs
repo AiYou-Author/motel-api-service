@@ -1,44 +1,35 @@
 module.exports = {
-  root: true,
   env: {
-    node: true,
     browser: true,
-    es2021: true
+    es2021: true,
+    node: true,
   },
   extends: [
-    'plugin:vue/vue3-strongly-recommended',
     'eslint:recommended',
-    'plugin:prettier/recommended'
+    'plugin:vue/vue3-recommended',
+    'prettier',
   ],
   parserOptions: {
+    ecmaVersion: 'latest',
     sourceType: 'module',
-    ecmaVersion: 'latest'
+    parser: '@babel/eslint-parser',
+    requireConfigFile: false,
   },
-  plugins: ['prettier'],
+  plugins: ['vue'],
   rules: {
     'vue/multi-word-component-names': 'off',
     'vue/no-v-html': 'off',
+    'vue/require-default-prop': 'off',
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-    'prettier/prettier': 'error',
-    'vue/attributes-order': [
-      'error',
-      {
-        order: [
-          'DEFINITION',
-          'LIST_RENDERING',
-          'CONDITIONALS',
-          'RENDER_MODIFIERS',
-          'GLOBAL',
-          'UNIQUE',
-          'TWO_WAY_BINDING',
-          'OTHER_DIRECTIVES',
-          'OTHER_ATTR',
-          'EVENTS',
-          'CONTENT'
-        ],
-        alphabetical: true
-      }
-    ]
-  }
-}
+    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+  },
+  overrides: [
+    {
+      files: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+      env: {
+        jest: true,
+      },
+    },
+  ],
+};
