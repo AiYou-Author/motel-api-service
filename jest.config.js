@@ -21,7 +21,8 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^../../config/config$': '<rootDir>/config/config.example.js'
   },
   testPathIgnorePatterns: ['/node_modules/', '/web/'],
   transform: {},
