@@ -174,7 +174,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载所有时间段的统计数据
   async function loadAllPeriodStats() {
-    if (!apiId.value) {return}
+    if (!apiId.value) {
+      return
+    }
 
     // 并行加载今日和本月的数据
     await Promise.all([loadPeriodStats('daily'), loadPeriodStats('monthly')])
@@ -185,7 +187,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载所有时间段的模型统计
   async function loadAllModelStats() {
-    if (!apiId.value) {return}
+    if (!apiId.value) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -262,7 +266,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载模型统计数据
   async function loadModelStats(period = 'daily') {
-    if (!apiId.value) {return}
+    if (!apiId.value) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -312,7 +318,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 使用 apiId 直接加载数据
   async function loadStatsWithApiId() {
-    if (!apiId.value) {return}
+    if (!apiId.value) {
+      return
+    }
 
     loading.value = true
     error.value = ''
@@ -503,7 +511,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载批量模型统计
   async function loadBatchModelStats(period = 'daily') {
-    if (apiIds.value.length === 0) {return}
+    if (apiIds.value.length === 0) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -525,7 +535,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 解析 API Keys
   function parseApiKeys() {
-    if (!apiKey.value) {return []}
+    if (!apiKey.value) {
+      return []
+    }
 
     const keys = apiKey.value
       .split(/[,\n]+/)

@@ -80,7 +80,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // 格式化日期时间
   const formatDateTime = (dateString) => {
-    if (!dateString) {return ''}
+    if (!dateString) {
+      return ''
+    }
 
     return new Date(dateString).toLocaleString('zh-CN', {
       year: 'numeric',

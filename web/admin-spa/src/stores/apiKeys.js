@@ -15,8 +15,11 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
     loading.value = true
     const res = await httpApis.getApiKeysApi()
 
-    if (res.success) {apiKeys.value = res.data || []}
-    else {error.value = res.message}
+    if (res.success) {
+      apiKeys.value = res.data || []
+    } else {
+      error.value = res.message
+    }
     loading.value = false
   }
 
@@ -24,8 +27,11 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
     loading.value = true
     const res = await httpApis.createApiKeyApi(data)
 
-    if (res.success) {await fetchApiKeys()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchApiKeys()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -35,8 +41,11 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
     loading.value = true
     const res = await httpApis.updateApiKeyApi(id, data)
 
-    if (res.success) {await fetchApiKeys()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchApiKeys()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -46,8 +55,11 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
     loading.value = true
     const res = await httpApis.toggleApiKeyApi(id)
 
-    if (res.success) {await fetchApiKeys()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchApiKeys()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -59,8 +71,11 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
     loading.value = true
     const res = await httpApis.deleteApiKeyApi(id)
 
-    if (res.success) {await fetchApiKeys()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchApiKeys()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
