@@ -49,8 +49,11 @@ export const useAccountsStore = defineStore('accounts', () => {
     loading.value = true
     const res = await apiFunc()
 
-    if (res.success) {stateRef.value = res.data || []}
-    else {error.value = res.message}
+    if (res.success) {
+      stateRef.value = res.data || []
+    } else {
+      error.value = res.message
+    }
     loading.value = false
   }
 
@@ -59,8 +62,11 @@ export const useAccountsStore = defineStore('accounts', () => {
     loading.value = true
     const res = await apiFunc(...args)
 
-    if (res.success) {await fetchFunc()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchFunc()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -138,18 +144,22 @@ export const useAccountsStore = defineStore('accounts', () => {
   const toggleAccount = async (platform, id) => {
     const config = PLATFORM_CONFIG[platform]
 
-    if (!config) {return { success: false, message: '未知平台' }}
+    if (!config) {
+      return { success: false, message: '未知平台' }
+    }
     loading.value = true
     const res = await httpApis.toggleAccountStatusApi(`/admin/${config.endpoint}/${id}/toggle`)
 
-    if (res.success)
-      {await fetchAccounts(
+    if (res.success) {
+      await fetchAccounts(
         httpApis[
           `get${config.stateKey.charAt(0).toUpperCase() + config.stateKey.slice(1).replace('Accounts', '')}AccountsApi`
         ],
         stateMap[config.stateKey]
-      )}
-    else {error.value = res.message}
+      )
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -159,7 +169,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const deleteAccount = async (platform, id) => {
     const config = PLATFORM_CONFIG[platform]
 
-    if (!config) {return { success: false, message: '未知平台' }}
+    if (!config) {
+      return { success: false, message: '未知平台' }
+    }
     loading.value = true
     const res = await httpApis.deleteAccountByEndpointApi(`/admin/${config.endpoint}/${id}`)
 
@@ -189,8 +201,11 @@ export const useAccountsStore = defineStore('accounts', () => {
     loading.value = true
     const res = await httpApis.refreshClaudeAccountApi(id)
 
-    if (res.success) {await fetchClaudeAccounts()}
-    else {error.value = res.message}
+    if (res.success) {
+      await fetchClaudeAccounts()
+    } else {
+      error.value = res.message
+    }
     loading.value = false
 
     return res
@@ -200,7 +215,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const generateClaudeAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateClaudeAuthUrlApi(proxyConfig)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -208,7 +225,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const exchangeClaudeCode = async (data) => {
     const res = await httpApis.exchangeClaudeCodeApi(data)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -216,7 +235,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const generateClaudeSetupTokenUrl = async (proxyConfig) => {
     const res = await httpApis.generateClaudeSetupTokenUrlApi(proxyConfig)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -224,7 +245,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const exchangeClaudeSetupTokenCode = async (data) => {
     const res = await httpApis.exchangeClaudeSetupTokenApi(data)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -232,7 +255,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const oauthWithCookie = async (payload) => {
     const res = await httpApis.claudeOAuthWithCookieApi(payload)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -240,7 +265,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const oauthSetupTokenWithCookie = async (payload) => {
     const res = await httpApis.claudeSetupTokenWithCookieApi(payload)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -248,7 +275,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const generateGeminiAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateGeminiAuthUrlApi(proxyConfig)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -256,7 +285,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const exchangeGeminiCode = async (data) => {
     const res = await httpApis.exchangeGeminiCodeApi(data)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -264,7 +295,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const generateOpenAIAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateOpenAIAuthUrlApi(proxyConfig)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -272,7 +305,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const exchangeOpenAICode = async (data) => {
     const res = await httpApis.exchangeOpenAICodeApi(data)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }
@@ -280,7 +315,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const generateDroidAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateDroidAuthUrlApi(proxyConfig)
 
-    if (!res.success) {error.value = res.message}
+    if (!res.success) {
+      error.value = res.message
+    }
 
     return res.success ? res.data : null
   }

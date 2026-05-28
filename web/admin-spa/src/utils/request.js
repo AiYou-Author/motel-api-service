@@ -11,7 +11,9 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken')
 
-  if (token) {config.headers['Authorization'] = `Bearer ${token}`}
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`
+  }
 
   return config
 })
@@ -44,9 +46,13 @@ const request = async (config) => {
 
     // 如果后端返回了数据，直接返回（可能是 { success, message } 或 { error, message } 格式）
     if (data) {
-      if (typeof data.success !== 'undefined') {return data}
+      if (typeof data.success !== 'undefined') {
+        return data
+      }
       // 处理 { error, message } 格式的响应
-      if (data.error || data.message) {return { success: false, message: data.message || data.error }}
+      if (data.error || data.message) {
+        return { success: false, message: data.message || data.error }
+      }
     }
     const status = error.response?.status
     const messages = {

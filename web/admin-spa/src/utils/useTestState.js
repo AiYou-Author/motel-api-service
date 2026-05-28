@@ -170,7 +170,9 @@ export const useTestState = () => {
         }
       }
     } catch (err) {
-      if (err.name === 'AbortError') {return}
+      if (err.name === 'AbortError') {
+        return
+      }
       testStatus.value = 'error'
       errorMessage.value = err.message || '连接失败'
       testDuration.value = Date.now() - testStartTime.value

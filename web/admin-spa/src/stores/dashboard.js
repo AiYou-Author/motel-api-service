@@ -110,7 +110,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     const options = getPresetOptions(granularity)
     const hasPreset = options.some((opt) => opt.value === preset)
 
-    if (hasPreset) {return preset}
+    if (hasPreset) {
+      return preset
+    }
 
     return granularity === 'hour' ? 'last24h' : defaultPreset
   }
@@ -735,7 +737,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   function calculateDaysBetween(start, end) {
-    if (!start || !end) {return 7}
+    if (!start || !end) {
+      return 7
+    }
     const startDate = new Date(start)
     const endDate = new Date(end)
     const diffTime = Math.abs(endDate - startDate)

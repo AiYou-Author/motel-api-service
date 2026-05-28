@@ -2,18 +2,14 @@ module.exports = {
   env: {
     browser: true,
     es2021: true,
-    node: true,
+    node: true
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:vue/vue3-recommended',
-    'prettier',
-  ],
+  extends: ['eslint:recommended', 'plugin:vue/vue3-recommended', 'prettier'],
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
     parser: '@babel/eslint-parser',
-    requireConfigFile: false,
+    requireConfigFile: false
   },
   plugins: ['vue'],
   rules: {
@@ -22,18 +18,21 @@ module.exports = {
     'vue/require-default-prop': 'off',
     'no-console': 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-    'no-unused-vars': ['error', { 
-      argsIgnorePattern: '^_',
-      varsIgnorePattern: '^_',
-      caughtErrorsIgnorePattern: '^_',
-    }],
+    'no-unused-vars': [
+      'error',
+      {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_'
+      }
+    ]
   },
   overrides: [
     {
       files: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
       env: {
-        jest: true,
-      },
-    },
-  ],
-};
+        jest: true
+      }
+    }
+  ]
+}
