@@ -1,4 +1,5 @@
 let config = {}
+
 try {
   // config/config.js 可能在某些环境不存在（例如仅拷贝了 config.example.js）
   // 为保证可运行，这里做容错处理
@@ -16,6 +17,7 @@ const parseBooleanEnv = (value) => {
     return false
   }
   const normalized = value.trim().toLowerCase()
+
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
 }
 

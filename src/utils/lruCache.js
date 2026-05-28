@@ -25,8 +25,10 @@ class LRUCache {
     }
 
     const item = this.cache.get(key)
+
     if (!item) {
       this.misses++
+
       return undefined
     }
 
@@ -34,6 +36,7 @@ class LRUCache {
     if (item.expiry && Date.now() > item.expiry) {
       this.cache.delete(key)
       this.misses++
+
       return undefined
     }
 
@@ -45,6 +48,7 @@ class LRUCache {
     })
 
     this.hits++
+
     return item.value
   }
 
@@ -58,6 +62,7 @@ class LRUCache {
     // 如果缓存已满，删除最少使用的项
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       const firstKey = this.cache.keys().next().value
+
       this.cache.delete(firstKey)
       this.evictions++
     }
@@ -95,6 +100,7 @@ class LRUCache {
    */
   clear() {
     const { size } = this.cache
+
     this.cache.clear()
     this.hits = 0
     this.misses = 0
@@ -125,6 +131,7 @@ class LRUCache {
    */
   printStats() {
     const stats = this.getStats()
+
     console.log(
       `📊 LRU Cache Stats: Size: ${stats.size}/${stats.maxSize}, Hit Rate: ${stats.hitRate}, Hits: ${stats.hits}, Misses: ${stats.misses}, Evictions: ${stats.evictions}`
     )

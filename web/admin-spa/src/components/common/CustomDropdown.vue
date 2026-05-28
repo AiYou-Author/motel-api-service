@@ -110,15 +110,18 @@ const isSelected = (value) => {
   if (props.multiple) {
     return Array.isArray(props.modelValue) && props.modelValue.includes(value)
   }
+
   return props.modelValue === value
 }
 
 const selectedLabel = computed(() => {
   if (props.multiple) {
     const count = Array.isArray(props.modelValue) ? props.modelValue.length : 0
+
     return count > 0 ? `已选 ${count} 个` : ''
   }
   const selected = props.options.find((opt) => opt.value === props.modelValue)
+
   return selected ? selected.label : ''
 })
 
@@ -138,6 +141,7 @@ const selectOption = (option) => {
   if (props.multiple) {
     const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
     const idx = current.indexOf(option.value)
+
     if (idx >= 0) {
       current.splice(idx, 1)
     } else {
@@ -176,6 +180,7 @@ const updateDropdownPosition = () => {
 
   // 确保不超出右边界
   const dropdownWidth = 200 // 预估宽度
+
   if (left + dropdownWidth > window.innerWidth) {
     left = window.innerWidth - dropdownWidth - 10
   }

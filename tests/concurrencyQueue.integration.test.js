@@ -41,6 +41,7 @@ function createMockReqRes() {
     // 触发事件的辅助方法
     emit: (event) => {
       const handler = listeners[`req:${event}`]
+
       if (handler) {
         handler()
       }
@@ -56,6 +57,7 @@ function createMockReqRes() {
     }),
     emit: (event) => {
       const handler = listeners[`res:${event}`]
+
       if (handler) {
         handler()
       }
@@ -94,25 +96,30 @@ describe('ConcurrencyQueue Integration Tests', () => {
           mockRedis.concurrencyCount[keyId] = new Set()
         }
         mockRedis.concurrencyCount[keyId].add(requestId)
+
         return mockRedis.concurrencyCount[keyId].size
       })
 
       jest.spyOn(redis, 'decrConcurrency').mockImplementation(async (keyId, requestId) => {
         if (mockRedis.concurrencyCount[keyId]) {
           mockRedis.concurrencyCount[keyId].delete(requestId)
+
           return mockRedis.concurrencyCount[keyId].size
         }
+
         return 0
       })
 
       // Mock 排队计数方法
       jest.spyOn(redis, 'incrConcurrencyQueue').mockImplementation(async (keyId) => {
         mockRedis.queueCount[keyId] = (mockRedis.queueCount[keyId] || 0) + 1
+
         return mockRedis.queueCount[keyId]
       })
 
       jest.spyOn(redis, 'decrConcurrencyQueue').mockImplementation(async (keyId) => {
         mockRedis.queueCount[keyId] = Math.max(0, (mockRedis.queueCount[keyId] || 0) - 1)
+
         return mockRedis.queueCount[keyId]
       })
 
@@ -126,6 +133,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
           mockRedis.stats[keyId] = {}
         }
         mockRedis.stats[keyId][field] = (mockRedis.stats[keyId][field] || 0) + 1
+
         return mockRedis.stats[keyId][field]
       })
 
@@ -157,8 +165,10 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 模拟多个并发请求
         const results = []
+
         for (let i = 1; i <= 5; i++) {
           const count = await redis.incrConcurrency(keyId, `req-${i}`, 300)
+
           results.push({ requestId: `req-${i}`, count, exceeds: count > concurrencyLimit })
         }
 
@@ -177,10 +187,12 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 第一个请求获取槽位
         const count1 = await redis.incrConcurrency(keyId, 'req-1', 300)
+
         expect(count1).toBe(1)
 
         // 第二个请求超限
         const count2 = await redis.incrConcurrency(keyId, 'req-2', 300)
+
         expect(count2).toBe(2)
         expect(count2).toBeGreaterThan(concurrencyLimit)
 
@@ -192,6 +204,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 现在第三个请求应该能获取
         const count3 = await redis.incrConcurrency(keyId, 'req-3', 300)
+
         expect(count3).toBe(1)
       })
     })
@@ -202,16 +215,20 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 增加排队计数
         const count1 = await redis.incrConcurrencyQueue(keyId, 60000)
+
         expect(count1).toBe(1)
 
         const count2 = await redis.incrConcurrencyQueue(keyId, 60000)
+
         expect(count2).toBe(2)
 
         // 减少排队计数
         const count3 = await redis.decrConcurrencyQueue(keyId)
+
         expect(count3).toBe(1)
 
         const count4 = await redis.decrConcurrencyQueue(keyId)
+
         expect(count4).toBe(0)
       })
 
@@ -220,6 +237,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 直接减少（没有先增加）
         const count = await redis.decrConcurrencyQueue(keyId)
+
         expect(count).toBe(0)
       })
 
@@ -235,6 +253,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 所有增量应该是连续的
         const sortedIncrements = [...increments].sort((a, b) => a - b)
+
         expect(sortedIncrements).toEqual([1, 2, 3])
       })
     })
@@ -277,6 +296,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
       it('should detect pre-destroyed request', () => {
         const { req } = createMockReqRes()
+
         req.destroyed = true
 
         expect(req.destroyed).toBe(true)
@@ -333,6 +353,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
           const randomValue = Math.random()
           const jitter = baseInterval * jitterRatio * (randomValue * 2 - 1)
           const finalInterval = baseInterval + jitter
+
           results.push(finalInterval)
         }
 
@@ -369,6 +390,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
           // 模拟原子操作
           concurrencyState.count++
           concurrencyState.holders.add(reqId)
+
           return concurrencyState.count
         })
 
@@ -377,6 +399,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
             concurrencyState.count--
             concurrencyState.holders.delete(reqId)
           }
+
           return concurrencyState.count
         })
 
@@ -399,6 +422,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 只有一个请求应该成功获取槽位
         const successfulAcquires = acquireResults.filter((r) => r.acquired)
+
         expect(successfulAcquires.length).toBe(1)
 
         // 最终并发计数应该是1
@@ -414,11 +438,13 @@ describe('ConcurrencyQueue Integration Tests', () => {
         jest.spyOn(redis, 'incrConcurrency').mockImplementation(async () => {
           concurrencyState.count++
           concurrencyState.maxSeen = Math.max(concurrencyState.maxSeen, concurrencyState.count)
+
           return concurrencyState.count
         })
 
         jest.spyOn(redis, 'decrConcurrency').mockImplementation(async () => {
           concurrencyState.count = Math.max(0, concurrencyState.count - 1)
+
           return concurrencyState.count
         })
 
@@ -459,11 +485,13 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         jest.spyOn(redis, 'incrConcurrencyQueue').mockImplementation(async () => {
           queueState.count++
+
           return queueState.count
         })
 
         jest.spyOn(redis, 'decrConcurrencyQueue').mockImplementation(async () => {
           queueState.count = Math.max(0, queueState.count - 1)
+
           return queueState.count
         })
 
@@ -501,10 +529,12 @@ describe('ConcurrencyQueue Integration Tests', () => {
     async function checkRedisConnection() {
       try {
         const client = redis.getClient()
+
         if (!client) {
           return false
         }
         await client.ping()
+
         return true
       } catch {
         return false
@@ -514,10 +544,12 @@ describe('ConcurrencyQueue Integration Tests', () => {
     beforeAll(async () => {
       if (skipRealRedis) {
         console.log('⏭️  Skipping real Redis tests (set REDIS_TEST=1 to enable)')
+
         return
       }
 
       const connected = await checkRedisConnection()
+
       if (!connected) {
         console.log('⚠️  Redis not connected, skipping real Redis tests')
       }
@@ -531,12 +563,14 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
       try {
         const client = redis.getClient()
+
         if (!client) {
           return
         }
 
         // 清理测试键
         const testKeys = await client.keys('concurrency:queue:test-*')
+
         if (testKeys.length > 0) {
           await client.del(...testKeys)
         }
@@ -553,14 +587,17 @@ describe('ConcurrencyQueue Integration Tests', () => {
         const timeoutMs = 5000
 
         const count1 = await redis.incrConcurrencyQueue(keyId, timeoutMs)
+
         expect(count1).toBe(1)
 
         const count2 = await redis.incrConcurrencyQueue(keyId, timeoutMs)
+
         expect(count2).toBe(2)
 
         // 验证 TTL 被设置
         const client = redis.getClient()
         const ttl = await client.ttl(`concurrency:queue:${keyId}`)
+
         expect(ttl).toBeGreaterThan(0)
         expect(ttl).toBeLessThanOrEqual(Math.ceil(timeoutMs / 1000) + 30)
       })
@@ -576,6 +613,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
         // 验证键已删除
         const client = redis.getClient()
         const exists = await client.exists(`concurrency:queue:${keyId}`)
+
         expect(exists).toBe(0)
       })
 
@@ -590,6 +628,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 所有结果应该是 1 到 numRequests
         const sorted = [...results].sort((a, b) => a - b)
+
         expect(sorted).toEqual(Array.from({ length: numRequests }, (_, i) => i + 1))
       })
     })
@@ -651,9 +690,11 @@ describe('ConcurrencyQueue Integration Tests', () => {
         await redis.incrConcurrencyQueue(keyId, 60000)
 
         const cleared = await redis.clearConcurrencyQueue(keyId)
+
         expect(cleared).toBe(true)
 
         const count = await redis.getConcurrencyQueueCount(keyId)
+
         expect(count).toBe(0)
       })
 
@@ -668,16 +709,19 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 清理所有队列
         const cleared = await redis.clearAllConcurrencyQueues()
+
         expect(cleared).toBeGreaterThanOrEqual(2)
 
         // 验证队列已清理
         const count1 = await redis.getConcurrencyQueueCount(keyId1)
         const count2 = await redis.getConcurrencyQueueCount(keyId2)
+
         expect(count1).toBe(0)
         expect(count2).toBe(0)
 
         // 统计应该保留
         const stats = await redis.getConcurrencyQueueStats(keyId1)
+
         expect(stats.entered).toBe(1)
       })
     })
@@ -718,6 +762,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         for (const tc of testCases) {
           const maxQueueSize = Math.max(tc.concurrencyLimit * tc.multiplier, tc.fixedMin)
+
           expect(maxQueueSize).toBe(tc.expected)
         }
       })
@@ -761,6 +806,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
               // 队列满，拒绝
               state.queue--
               state.rejected++
+
               return { ...req, status: 'rejected', reason: 'queue_full' }
             }
 
@@ -802,6 +848,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 模拟降级行为：Redis 失败时直接拒绝而不是崩溃
         let result
+
         try {
           await redis.incrConcurrencyQueue('fallback-test', 60000)
           result = { success: true }
@@ -824,6 +871,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
         await new Promise((resolve) => setTimeout(resolve, timeoutMs))
 
         const elapsed = Date.now() - startTime
+
         expect(elapsed).toBeGreaterThanOrEqual(timeoutMs - 10) // 允许 10ms 误差
       })
 
@@ -853,6 +901,7 @@ describe('ConcurrencyQueue Integration Tests', () => {
 
         // 成功率应该是 50%
         const successRate = (stats.success / stats.entered) * 100
+
         expect(successRate).toBe(50)
       })
     })

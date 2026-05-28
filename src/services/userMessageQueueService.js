@@ -41,6 +41,7 @@ class UserMessageQueueService {
    */
   isUserMessageRequest(requestBody) {
     const messages = requestBody?.messages
+
     if (!Array.isArray(messages) || messages.length === 0) {
       return false
     }
@@ -53,11 +54,13 @@ class UserMessageQueueService {
 
     // 检查 content 是否包含 tool_result 类型
     const { content } = lastMessage
+
     if (Array.isArray(content)) {
       // 如果 content 数组中任何元素是 tool_result，则不是真正的用户消息
       const hasToolResult = content.some(
         (block) => block?.type === 'tool_result' || block?.type === 'tool_use_result'
       )
+
       if (hasToolResult) {
         return false
       }
@@ -74,6 +77,7 @@ class UserMessageQueueService {
   async getConfig() {
     // 检查缓存
     const cached = getCachedConfig(CONFIG_CACHE_KEY)
+
     if (cached) {
       return cached
     }
@@ -113,10 +117,12 @@ class UserMessageQueueService {
 
       // 缓存配置 30 秒
       setCachedConfig(CONFIG_CACHE_KEY, result, 30000)
+
       return result
     } catch {
       // 回退到环境变量配置，也缓存
       setCachedConfig(CONFIG_CACHE_KEY, defaults, 30000)
+
       return defaults
     }
   }
@@ -127,6 +133,7 @@ class UserMessageQueueService {
    */
   async isEnabled() {
     const cfg = await this.getConfig()
+
     return cfg.enabled === true
   }
 
@@ -144,6 +151,7 @@ class UserMessageQueueService {
 
     // 账户级配置优先：maxConcurrency > 0 时强制启用，忽略全局开关
     let queueEnabled = cfg.enabled
+
     if (accountConfig && accountConfig.maxConcurrency > 0) {
       queueEnabled = true
       logger.debug(
@@ -180,6 +188,7 @@ class UserMessageQueueService {
           requestId: reqId,
           errorMessage: result.errorMessage
         })
+
         return {
           acquired: false,
           requestId: reqId,
@@ -194,6 +203,7 @@ class UserMessageQueueService {
           waitedMs: Date.now() - startTime,
           retries: retryCount
         })
+
         return { acquired: true, requestId: reqId }
       }
 
@@ -210,6 +220,7 @@ class UserMessageQueueService {
         // 添加 ±15% 随机抖动，避免高并发下的周期性碰撞
         const jitter = basePollInterval * (0.85 + Math.random() * 0.3)
         const pollInterval = Math.min(jitter, POLL_INTERVAL_MAX_MS)
+
         await this._sleep(pollInterval)
         retryCount++
       }
@@ -295,6 +306,7 @@ class UserMessageQueueService {
       return cleanedCount
     } catch (error) {
       logger.error('📬 User message queue: failed to cleanup stale locks on startup:', error)
+
       return 0
     }
   }
@@ -311,8 +323,10 @@ class UserMessageQueueService {
     this.cleanupTimer = setInterval(async () => {
       // 每次运行时检查配置，以便在运行时动态启用/禁用
       const currentConfig = await this.getConfig()
+
       if (!currentConfig.enabled) {
         logger.debug('📬 User message queue: cleanup skipped (feature disabled)')
+
         return
       }
       await this._cleanupOrphanLocks()

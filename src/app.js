@@ -60,6 +60,7 @@ class Application {
       const { getAppVersion, versionGt } = require('./utils/commonHelper')
       const currentVersion = getAppVersion()
       const migratedVersion = await redis.getMigratedVersion()
+
       if (versionGt(currentVersion, '1.1.250') && versionGt(currentVersion, migratedVersion)) {
         logger.info(`🔄 检测到新版本 ${currentVersion}，检查数据迁移...`)
         try {
@@ -91,6 +92,7 @@ class Application {
       try {
         const accountBalanceService = require('./services/account/accountBalanceService')
         const { registerAllProviders } = require('./services/balanceProviders')
+
         registerAllProviders(accountBalanceService)
         logger.info('✅ 账户余额查询服务已初始化')
       } catch (error) {
@@ -104,6 +106,7 @@ class Application {
       // 📋 初始化模型服务
       logger.info('🔄 Initializing model service...')
       const modelService = require('./services/modelService')
+
       await modelService.initialize()
 
       // 📊 初始化缓存监控
@@ -121,9 +124,11 @@ class Application {
       logger.info('💰 Checking cost data initialization...')
       const costInitService = require('./services/costInitService')
       const needsInit = await costInitService.needsInitialization()
+
       if (needsInit) {
         logger.info('💰 Initializing cost data for all API Keys...')
         const result = await costInitService.initializeAllCosts()
+
         logger.info(
           `💰 Cost initialization completed: ${result.processed} processed, ${result.errors} errors`
         )
@@ -133,6 +138,7 @@ class Application {
       try {
         logger.info('💰 Backfilling current-week Claude weekly cost...')
         const weeklyClaudeCostInitService = require('./services/weeklyClaudeCostInitService')
+
         await weeklyClaudeCostInitService.backfillCurrentWeekClaudeCosts()
       } catch (error) {
         logger.warn('⚠️ Weekly Claude cost backfill failed (startup continues):', error.message)
@@ -141,21 +147,25 @@ class Application {
       // 🕐 初始化Claude账户会话窗口
       logger.info('🕐 Initializing Claude account session windows...')
       const claudeAccountService = require('./services/account/claudeAccountService')
+
       await claudeAccountService.initializeSessionWindows()
 
       // 📊 初始化费用排序索引服务
       logger.info('📊 Initializing cost rank service...')
       const costRankService = require('./services/costRankService')
+
       await costRankService.initialize()
 
       // 🔍 初始化 API Key 索引服务（用于分页查询优化）
       logger.info('🔍 Initializing API Key index service...')
       const apiKeyIndexService = require('./services/apiKeyIndexService')
+
       apiKeyIndexService.init(redis)
       await apiKeyIndexService.checkAndRebuild()
 
       // 📁 确保账户分组反向索引存在（后台执行，不阻塞启动）
       const accountGroupService = require('./services/accountGroupService')
+
       accountGroupService.ensureReverseIndexes().catch((err) => {
         logger.error('📁 Account group reverse index migration failed:', err)
       })
@@ -169,9 +179,11 @@ class Application {
 
           if (fs.existsSync(indexPath)) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+
             return res.sendFile(indexPath)
           } else {
             logger.error('❌ index.html not found at:', indexPath)
+
             return res.status(404).send('index.html not found')
           }
         }
@@ -204,6 +216,7 @@ class Application {
             if (res.getHeader('Content-Type') === 'text/event-stream') {
               return false
             }
+
             // 使用默认的压缩判断
             return compression.filter(req, res)
           }
@@ -225,6 +238,7 @@ class Application {
       if (process.env.DEBUG_HTTP_TRAFFIC === 'true') {
         try {
           const { debugInterceptor } = require('./middleware/debugInterceptor')
+
           this.app.use(debugInterceptor)
           logger.info('🐛 HTTP调试拦截器已启用 - 日志输出到 logs/http-debug-*.log')
         } catch (error) {
@@ -264,6 +278,7 @@ class Application {
 
       // 🎨 新版管理界面静态文件服务（必须在其他路由之前）
       const adminSpaPath = path.join(__dirname, '..', 'web', 'admin-spa', 'dist')
+
       if (fs.existsSync(adminSpaPath)) {
         // 处理不带斜杠的路径，重定向到带斜杠的路径
         this.app.get('/admin-next', (req, res) => {
@@ -288,6 +303,7 @@ class Application {
           // 如果是根路径，跳过（应该由上面的路由处理）
           if (req.path === '/admin-next/') {
             logger.error('❌ ERROR: /admin-next/ should not reach here!')
+
             return res.status(500).send('Route configuration error')
           }
 
@@ -313,6 +329,7 @@ class Application {
             } else if (filePath.endsWith('.html')) {
               res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
             }
+
             return res.sendFile(filePath)
           }
 
@@ -394,9 +411,11 @@ class Application {
 
           // 获取版本号：优先使用环境变量，其次VERSION文件，再次package.json，最后使用默认值
           let version = process.env.APP_VERSION || process.env.VERSION
+
           if (!version) {
             try {
               const versionFile = path.join(__dirname, '..', 'VERSION')
+
               if (fs.existsSync(versionFile)) {
                 version = fs.readFileSync(versionFile, 'utf8').trim()
               }
@@ -407,6 +426,7 @@ class Application {
           if (!version) {
             try {
               const { version: pkgVersion } = require('../package.json')
+
               version = pkgVersion
             } catch (error) {
               version = '1.0.0'
@@ -487,6 +507,7 @@ class Application {
 
       if (!fs.existsSync(initFilePath)) {
         logger.warn('⚠️ No admin credentials found. Please run npm run setup first.')
+
         return
       }
 
@@ -533,6 +554,7 @@ class Application {
 
       for (let i = 0; i < sessionKeys.length; i++) {
         const key = sessionKeys[i]
+
         // 跳过 admin_credentials（系统凭据）
         if (key === 'session:admin_credentials') {
           continue
@@ -573,6 +595,7 @@ class Application {
   async checkRedisHealth() {
     try {
       const start = Date.now()
+
       await redis.getClient().ping()
       const latency = Date.now() - start
 
@@ -594,6 +617,7 @@ class Application {
   async checkLoggerHealth() {
     try {
       const health = logger.healthCheck()
+
       return {
         status: health.healthy ? 'healthy' : 'unhealthy',
         ...health
@@ -624,6 +648,7 @@ class Application {
       })
 
       const serverTimeout = 600000 // 默认10分钟
+
       this.server.timeout = serverTimeout
       this.server.keepAliveTimeout = serverTimeout + 5000 // keepAlive 稍长一点
       logger.info(`⏱️  Server timeout set to ${serverTimeout}ms (${serverTimeout / 1000}s)`)
@@ -658,6 +683,7 @@ class Application {
       for (const { name, service } of services) {
         if (service && (service._decryptCache || service.decryptCache)) {
           const cache = service._decryptCache || service.decryptCache
+
           cacheMonitor.registerCache(`${name}_decrypt`, cache)
           logger.info(`✅ Registered ${name} decrypt cache for monitoring`)
         }
@@ -666,6 +692,7 @@ class Application {
       // 初始化时打印一次统计
       setTimeout(() => {
         const stats = cacheMonitor.getGlobalStats()
+
         logger.info(`📊 Cache System - Registered: ${stats.cacheCount} caches`)
       }, 5000)
 
@@ -709,6 +736,7 @@ class Application {
     // 每5分钟检查一次过期的限流状态，确保账号能及时恢复调度
     const rateLimitCleanupService = require('./services/rateLimitCleanupService')
     const cleanupIntervalMinutes = config.system.rateLimitCleanupInterval || 5 // 默认5分钟
+
     rateLimitCleanupService.start(cleanupIntervalMinutes)
     logger.info(
       `🚨 Rate limit cleanup service started (checking every ${cleanupIntervalMinutes} minutes)`
@@ -719,6 +747,7 @@ class Application {
     setInterval(async () => {
       try {
         const keys = await redis.scanKeys('concurrency:*')
+
         if (keys.length === 0) {
           return
         }
@@ -777,6 +806,7 @@ class Application {
               key,
               now
             )
+
             if (result === 1) {
               totalCleaned++
             } else if (result === -1) {
@@ -802,6 +832,7 @@ class Application {
 
     // 📬 启动用户消息队列服务
     const userMessageQueueService = require('./services/userMessageQueueService')
+
     // 先清理服务重启后残留的锁，防止旧锁阻塞新请求
     userMessageQueueService.cleanupStaleLocks().then(() => {
       // 然后启动定时清理任务
@@ -812,6 +843,7 @@ class Application {
     // 多实例部署时建议关闭此开关，避免新实例启动时清空其他实例的队列计数
     // 可通过 DELETE /admin/concurrency/queue 接口手动清理
     const clearQueuesOnStartup = process.env.CLEAR_CONCURRENCY_QUEUES_ON_STARTUP !== 'false'
+
     if (clearQueuesOnStartup) {
       redis.clearAllConcurrencyQueues().catch((error) => {
         logger.error('❌ Error clearing concurrency queues on startup:', error)
@@ -827,8 +859,10 @@ class Application {
     const accountTestSchedulerEnabled =
       process.env.ACCOUNT_TEST_SCHEDULER_ENABLED !== 'false' &&
       config.accountTestScheduler?.enabled !== false
+
     if (accountTestSchedulerEnabled) {
       const accountTestSchedulerService = require('./services/accountTestSchedulerService')
+
       accountTestSchedulerService.start()
       logger.info('🧪 Account test scheduler service started')
     } else {
@@ -855,6 +889,7 @@ class Application {
           // 清理 model service 的文件监听器
           try {
             const modelService = require('./services/modelService')
+
             modelService.cleanup()
             logger.info('📋 Model service cleaned up')
           } catch (error) {
@@ -864,6 +899,7 @@ class Application {
           // 停止限流清理服务
           try {
             const rateLimitCleanupService = require('./services/rateLimitCleanupService')
+
             rateLimitCleanupService.stop()
             logger.info('🚨 Rate limit cleanup service stopped')
           } catch (error) {
@@ -873,6 +909,7 @@ class Application {
           // 停止用户消息队列清理服务
           try {
             const userMessageQueueService = require('./services/userMessageQueueService')
+
             userMessageQueueService.stopCleanupTask()
             logger.info('📬 User message queue service stopped')
           } catch (error) {
@@ -882,6 +919,7 @@ class Application {
           // 停止费用排序索引服务
           try {
             const costRankService = require('./services/costRankService')
+
             costRankService.shutdown()
             logger.info('📊 Cost rank service stopped')
           } catch (error) {
@@ -891,6 +929,7 @@ class Application {
           // 停止账户定时测试调度器
           try {
             const accountTestSchedulerService = require('./services/accountTestSchedulerService')
+
             accountTestSchedulerService.stop()
             logger.info('🧪 Account test scheduler service stopped')
           } catch (error) {
@@ -901,6 +940,7 @@ class Application {
           try {
             logger.info('🔢 Cleaning up all concurrency counters...')
             const keys = await redis.scanKeys('concurrency:*')
+
             if (keys.length > 0) {
               await redis.batchDelChunked(keys)
               logger.info(`✅ Cleaned ${keys.length} concurrency keys`)
@@ -952,6 +992,7 @@ class Application {
 // 启动应用
 if (require.main === module) {
   const app = new Application()
+
   app.start().catch((error) => {
     logger.error('💥 Application startup failed:', error)
     process.exit(1)

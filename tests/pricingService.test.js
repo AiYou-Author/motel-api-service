@@ -22,6 +22,7 @@ jest.mock('../src/utils/logger', () => ({
 // Mock fs to control pricing data
 jest.mock('fs', () => {
   const actual = jest.requireActual('fs')
+
   return {
     ...actual,
     existsSync: jest.fn(),

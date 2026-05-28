@@ -53,6 +53,7 @@ jest.mock('../src/services/requestBodyRuleService', () => ({
 
 const apiKeyService = require('../src/services/apiKeyService')
 const requestBodyRuleService = require('../src/services/requestBodyRuleService')
+
 require('../src/routes/admin/apiKeys')
 
 function createResponse() {
@@ -61,10 +62,12 @@ function createResponse() {
     body: null,
     json: jest.fn((payload) => {
       res.body = payload
+
       return res
     }),
     status: jest.fn((code) => {
       res.statusCode = code
+
       return res
     })
   }
@@ -74,6 +77,7 @@ function createResponse() {
 
 function findPutHandler(path) {
   const route = mockRouter.put.mock.calls.find((call) => call[0] === path)
+
   return route?.[2]
 }
 
@@ -107,6 +111,7 @@ describe('admin api keys route payload rule updates', () => {
     expect(requestBodyRuleService.validateAndNormalizeRules).not.toHaveBeenCalled()
 
     const updates = apiKeyService.updateApiKey.mock.calls[0][1]
+
     expect(updates).toEqual({
       name: 'Renamed Key',
       enableOpenAIResponsesPayloadRules: false

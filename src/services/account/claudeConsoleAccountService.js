@@ -39,11 +39,13 @@ class ClaudeConsoleAccountService {
 
   _getBlockedHandlingMinutes() {
     const raw = process.env.CLAUDE_CONSOLE_BLOCKED_HANDLING_MINUTES
+
     if (raw === undefined || raw === null || raw === '') {
       return 0
     }
 
     const parsed = Number.parseInt(raw, 10)
+
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return 0
     }
@@ -124,6 +126,7 @@ class ClaudeConsoleAccountService {
     }
 
     const client = redis.getClientSafe()
+
     logger.debug(
       `[DEBUG] Saving account data to Redis with key: ${this.ACCOUNT_KEY_PREFIX}${accountId}`
     )
@@ -181,6 +184,7 @@ class ClaudeConsoleAccountService {
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i]
         const accountData = dataList[i]
+
         if (accountData && Object.keys(accountData).length > 0) {
           if (!accountData.id) {
             logger.warn(`⚠️ 检测到缺少ID的Claude Console账户数据，执行清理: ${key}`)
@@ -246,11 +250,13 @@ class ClaudeConsoleAccountService {
   // 🔍 获取单个账户（内部使用，包含敏感信息）
   async getAccount(accountId) {
     const client = redis.getClientSafe()
+
     logger.debug(`[DEBUG] Getting account data for ID: ${accountId}`)
     const accountData = await client.hgetall(`${this.ACCOUNT_KEY_PREFIX}${accountId}`)
 
     if (!accountData || Object.keys(accountData).length === 0) {
       logger.debug(`[DEBUG] No account data found for ID: ${accountId}`)
+
       return null
     }
 
@@ -259,6 +265,7 @@ class ClaudeConsoleAccountService {
 
     // 解密敏感字段（只解密apiKey，apiUrl不加密）
     const decryptedKey = this._decryptSensitiveData(accountData.apiKey)
+
     logger.debug(
       `[DEBUG] URL exists: ${!!accountData.apiUrl}, Decrypted key exists: ${!!decryptedKey}`
     )
@@ -267,12 +274,14 @@ class ClaudeConsoleAccountService {
 
     // 解析JSON字段
     const parsedModels = JSON.parse(accountData.supportedModels || '[]')
+
     logger.debug(`[DEBUG] Parsed supportedModels: ${JSON.stringify(parsedModels)}`)
 
     accountData.supportedModels = parsedModels
     accountData.priority = parseInt(accountData.priority) || 50
     {
       const _parsedDuration = parseInt(accountData.rateLimitDuration)
+
       accountData.rateLimitDuration = Number.isNaN(_parsedDuration) ? 60 : _parsedDuration
     }
     accountData.isActive = accountData.isActive === 'true'
@@ -299,6 +308,7 @@ class ClaudeConsoleAccountService {
   async updateAccount(accountId, updates) {
     try {
       const existingAccount = await this.getAccount(accountId)
+
       if (!existingAccount) {
         throw new Error('Account not found')
       }
@@ -333,6 +343,7 @@ class ClaudeConsoleAccountService {
         logger.debug(`[DEBUG] Updating supportedModels: ${JSON.stringify(updates.supportedModels)}`)
         // 处理 supportedModels，确保向后兼容
         const processedModels = this._processModelMapping(updates.supportedModels)
+
         updatedData.supportedModels = JSON.stringify(processedModels)
       }
       if (updates.userAgent !== undefined) {
@@ -416,6 +427,7 @@ class ClaudeConsoleAccountService {
       if (updates.isActive === false && existingAccount.isActive === true) {
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: updatedData.name || existingAccount.name || 'Unknown Account',
@@ -492,6 +504,7 @@ class ClaudeConsoleAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-console', 429, 'rate_limit')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
@@ -500,6 +513,7 @@ class ClaudeConsoleAccountService {
         logger.info(
           `ℹ️ Claude Console account ${account.name} (${accountId}) has rate limiting disabled, skipping rate limit`
         )
+
         return { success: true, skipped: true }
       }
 
@@ -516,6 +530,7 @@ class ClaudeConsoleAccountService {
       // 只有当前状态不是quota_exceeded时才设置为rate_limited
       // 避免覆盖更重要的配额超限状态
       const currentStatus = await client.hget(`${this.ACCOUNT_KEY_PREFIX}${accountId}`, 'status')
+
       if (currentStatus !== 'quota_exceeded') {
         updates.status = 'rate_limited'
       }
@@ -526,6 +541,7 @@ class ClaudeConsoleAccountService {
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
         const { getISOStringWithTimezone } = require('../../utils/dateHelper')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: account.name || 'Claude Console Account',
@@ -542,6 +558,7 @@ class ClaudeConsoleAccountService {
       logger.warn(
         `🚫 Claude Console account marked as rate limited: ${account.name} (${accountId})`
       )
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark Claude Console account as rate limited: ${accountId}`, error)
@@ -620,6 +637,7 @@ class ClaudeConsoleAccountService {
   async isAccountRateLimited(accountId) {
     try {
       const account = await this.getAccount(accountId)
+
       if (!account) {
         return false
       }
@@ -642,6 +660,7 @@ class ClaudeConsoleAccountService {
 
         if (minutesSinceRateLimit >= rateLimitDuration) {
           await this.removeAccountRateLimit(accountId)
+
           return false
         }
 
@@ -654,6 +673,7 @@ class ClaudeConsoleAccountService {
         `❌ Failed to check rate limit status for Claude Console account: ${accountId}`,
         error
       )
+
       return false
     }
   }
@@ -662,12 +682,14 @@ class ClaudeConsoleAccountService {
   async isAccountQuotaExceeded(accountId) {
     try {
       const account = await this.getAccount(accountId)
+
       if (!account) {
         return false
       }
 
       // 如果没有设置额度限制，不会超额
       const dailyQuota = parseFloat(account.dailyQuota || '0')
+
       if (isNaN(dailyQuota) || dailyQuota <= 0) {
         return false
       }
@@ -680,6 +702,7 @@ class ClaudeConsoleAccountService {
       // 检查是否应该重置额度（到了新的重置时间点）
       if (this._shouldResetQuota(account)) {
         await this.resetDailyUsage(accountId)
+
         return false
       }
 
@@ -690,6 +713,7 @@ class ClaudeConsoleAccountService {
         `❌ Failed to check quota exceeded status for Claude Console account: ${accountId}`,
         error
       )
+
       return false
     }
   }
@@ -734,6 +758,7 @@ class ClaudeConsoleAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-console', 401, 'auth_error')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
@@ -750,6 +775,7 @@ class ClaudeConsoleAccountService {
       // 发送Webhook通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: account.name || 'Claude Console Account',
@@ -766,6 +792,7 @@ class ClaudeConsoleAccountService {
       logger.warn(
         `🚫 Claude Console account marked as unauthorized: ${account.name} (${accountId})`
       )
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark Claude Console account as unauthorized: ${accountId}`, error)
@@ -791,6 +818,7 @@ class ClaudeConsoleAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-console', 403, 'server_error')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
@@ -828,6 +856,7 @@ class ClaudeConsoleAccountService {
       // 发送Webhook通知，包含完整错误详情
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: account.name || 'Claude Console Account',
@@ -843,6 +872,7 @@ class ClaudeConsoleAccountService {
       }
 
       logger.warn(`🚫 Claude Console account temporarily blocked: ${account.name} (${accountId})`)
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark Claude Console account as blocked: ${accountId}`, error)
@@ -926,6 +956,7 @@ class ClaudeConsoleAccountService {
   async isAccountBlocked(accountId) {
     try {
       const account = await this.getAccount(accountId)
+
       if (!account) {
         return false
       }
@@ -935,6 +966,7 @@ class ClaudeConsoleAccountService {
 
         if (blockedDuration <= 0) {
           await this.removeAccountBlocked(accountId)
+
           return false
         }
 
@@ -945,6 +977,7 @@ class ClaudeConsoleAccountService {
         // 禁用时长过后自动恢复
         if (minutesSinceBlocked >= blockedDuration) {
           await this.removeAccountBlocked(accountId)
+
           return false
         }
 
@@ -957,6 +990,7 @@ class ClaudeConsoleAccountService {
         `❌ Failed to check blocked status for Claude Console account: ${accountId}`,
         error
       )
+
       return false
     }
   }
@@ -979,6 +1013,7 @@ class ClaudeConsoleAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-console', 529, 'overload')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
@@ -993,6 +1028,7 @@ class ClaudeConsoleAccountService {
       // 发送Webhook通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: account.name || 'Claude Console Account',
@@ -1007,6 +1043,7 @@ class ClaudeConsoleAccountService {
       }
 
       logger.warn(`🚫 Claude Console account marked as overloaded: ${account.name} (${accountId})`)
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark Claude Console account as overloaded: ${accountId}`, error)
@@ -1022,6 +1059,7 @@ class ClaudeConsoleAccountService {
       await client.hdel(`${this.ACCOUNT_KEY_PREFIX}${accountId}`, 'overloadedAt', 'overloadStatus')
 
       logger.success(`Overload status removed for Claude Console account: ${accountId}`)
+
       return { success: true }
     } catch (error) {
       logger.error(
@@ -1036,6 +1074,7 @@ class ClaudeConsoleAccountService {
   async isAccountOverloaded(accountId) {
     try {
       const account = await this.getAccount(accountId)
+
       if (!account) {
         return false
       }
@@ -1048,6 +1087,7 @@ class ClaudeConsoleAccountService {
         // 过载状态持续10分钟后自动恢复
         if (minutesSinceOverload >= 10) {
           await this.removeAccountOverload(accountId)
+
           return false
         }
 
@@ -1060,6 +1100,7 @@ class ClaudeConsoleAccountService {
         `❌ Failed to check overload status for Claude Console account: ${accountId}`,
         error
       )
+
       return false
     }
   }
@@ -1086,6 +1127,7 @@ class ClaudeConsoleAccountService {
       if (accountData && Object.keys(accountData).length > 0) {
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: accountData.name || 'Unknown Account',
@@ -1109,6 +1151,7 @@ class ClaudeConsoleAccountService {
   // 🌐 创建代理agent（使用统一的代理工具）
   _createProxyAgent(proxyConfig) {
     const proxyAgent = ProxyHelper.createProxyAgent(proxyConfig)
+
     if (proxyAgent) {
       logger.info(
         `🌐 Using proxy for Claude Console request: ${ProxyHelper.getProxyDescription(proxyConfig)}`
@@ -1118,6 +1161,7 @@ class ClaudeConsoleAccountService {
     } else {
       logger.debug('🌐 No proxy configured for Claude Console request')
     }
+
     return proxyAgent
   }
 
@@ -1133,11 +1177,13 @@ class ClaudeConsoleAccountService {
 
       const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
       let encrypted = cipher.update(data, 'utf8', 'hex')
+
       encrypted += cipher.final('hex')
 
       return `${iv.toString('hex')}:${encrypted}`
     } catch (error) {
       logger.error('❌ Encryption error:', error)
+
       return data
     }
   }
@@ -1151,6 +1197,7 @@ class ClaudeConsoleAccountService {
     // 🎯 检查缓存
     const cacheKey = crypto.createHash('sha256').update(encryptedData).digest('hex')
     const cached = this._decryptCache.get(cacheKey)
+
     if (cached !== undefined) {
       return cached
     }
@@ -1158,6 +1205,7 @@ class ClaudeConsoleAccountService {
     try {
       if (encryptedData.includes(':')) {
         const parts = encryptedData.split(':')
+
         if (parts.length === 2) {
           const key = this._generateEncryptionKey()
           const iv = Buffer.from(parts[0], 'hex')
@@ -1165,6 +1213,7 @@ class ClaudeConsoleAccountService {
 
           const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
           let decrypted = decipher.update(encrypted, 'hex', 'utf8')
+
           decrypted += decipher.final('utf8')
 
           // 💾 存入缓存（5分钟过期）
@@ -1182,6 +1231,7 @@ class ClaudeConsoleAccountService {
       return encryptedData
     } catch (error) {
       logger.error('❌ Decryption error:', error)
+
       return encryptedData
     }
   }
@@ -1201,6 +1251,7 @@ class ClaudeConsoleAccountService {
       )
       logger.info('🔑 Console encryption key derived and cached for performance optimization')
     }
+
     return this._encryptionKeyCache
   }
 
@@ -1212,6 +1263,7 @@ class ClaudeConsoleAccountService {
 
     try {
       const url = new URL(apiUrl)
+
       return `${url.protocol}//${url.hostname}/***`
     } catch {
       return '***'
@@ -1259,11 +1311,13 @@ class ClaudeConsoleAccountService {
     // 如果是数组格式（旧格式），转换为映射表
     if (Array.isArray(supportedModels)) {
       const mapping = {}
+
       supportedModels.forEach((model) => {
         if (model && typeof model === 'string') {
           mapping[model] = model // 映射到自身
         }
       })
+
       return mapping
     }
 
@@ -1285,6 +1339,7 @@ class ClaudeConsoleAccountService {
 
     // 尝试大小写不敏感匹配
     const requestedModelLower = requestedModel.toLowerCase()
+
     for (const key of Object.keys(modelMapping)) {
       if (key.toLowerCase() === requestedModelLower) {
         return true
@@ -1308,6 +1363,7 @@ class ClaudeConsoleAccountService {
 
     // 大小写不敏感匹配
     const requestedModelLower = requestedModel.toLowerCase()
+
     for (const [key, value] of Object.entries(modelMapping)) {
       if (key.toLowerCase() === requestedModelLower) {
         return value
@@ -1327,13 +1383,16 @@ class ClaudeConsoleAccountService {
 
       // 获取账户配置
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         logger.warn(`Account not found: ${accountId}`)
+
         return
       }
 
       // 解析额度配置，确保数值有效
       const dailyQuota = parseFloat(accountData.dailyQuota || '0')
+
       if (isNaN(dailyQuota) || dailyQuota <= 0) {
         // 没有设置有效额度，无需检查
         return
@@ -1352,6 +1411,7 @@ class ClaudeConsoleAccountService {
 
         // double-check locking pattern - 检查quotaStoppedAt而不是status
         const existingQuotaStop = await client.hget(accountKey, 'quotaStoppedAt')
+
         if (existingQuotaStop) {
           return // 已经被其他进程处理
         }
@@ -1375,6 +1435,7 @@ class ClaudeConsoleAccountService {
         // 发送webhook通知
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: accountData.name || 'Unknown Account',
@@ -1400,6 +1461,7 @@ class ClaudeConsoleAccountService {
   async resetDailyUsage(accountId) {
     try {
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         return
       }
@@ -1464,6 +1526,7 @@ class ClaudeConsoleAccountService {
 
       // 获取账户配置
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         return null
       }
@@ -1483,6 +1546,7 @@ class ClaudeConsoleAccountService {
       }
     } catch (error) {
       logger.error('Failed to get account usage stats:', error)
+
       return null
     }
   }
@@ -1491,6 +1555,7 @@ class ClaudeConsoleAccountService {
   async resetAccountStatus(accountId) {
     try {
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         throw new Error('Account not found')
       }
@@ -1530,6 +1595,7 @@ class ClaudeConsoleAccountService {
       // 发送 Webhook 通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name || accountId,
@@ -1560,6 +1626,7 @@ class ClaudeConsoleAccountService {
       return false // 未设置视为永不过期
     }
     const expiryDate = new Date(account.subscriptionExpiresAt)
+
     return expiryDate <= new Date()
   }
 
@@ -1571,10 +1638,12 @@ class ClaudeConsoleAccountService {
 
       // 检查账户是否存在
       const exists = await client.exists(accountKey)
+
       if (!exists) {
         logger.warn(
           `⚠️ Cannot mark count_tokens unavailable for non-existent account: ${accountId}`
         )
+
         return { success: false, reason: 'Account not found' }
       }
 
@@ -1586,6 +1655,7 @@ class ClaudeConsoleAccountService {
       logger.info(
         `🚫 Marked count_tokens endpoint as unavailable for Claude Console account: ${accountId}`
       )
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark count_tokens unavailable for account ${accountId}:`, error)
@@ -1604,6 +1674,7 @@ class ClaudeConsoleAccountService {
       logger.info(
         `✅ Removed count_tokens unavailable mark for Claude Console account: ${accountId}`
       )
+
       return { success: true }
     } catch (error) {
       logger.error(
@@ -1621,9 +1692,11 @@ class ClaudeConsoleAccountService {
       const accountKey = `${this.ACCOUNT_KEY_PREFIX}${accountId}`
 
       const value = await client.hget(accountKey, 'countTokensUnavailable')
+
       return value === 'true'
     } catch (error) {
       logger.error(`❌ Failed to check count_tokens availability for account ${accountId}:`, error)
+
       return false // 出错时默认返回可用，避免误阻断
     }
   }

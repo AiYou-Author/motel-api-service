@@ -34,6 +34,7 @@ async function testPricingFallback() {
 
     // 模拟网络失败，强制使用fallback
     const originalDownload = pricingService._downloadFromRemote
+
     pricingService._downloadFromRemote = function () {
       return Promise.reject(new Error('Simulated network failure for testing'))
     }
@@ -44,16 +45,19 @@ async function testPricingFallback() {
     // 4. 验证fallback是否工作
     console.log('\n📊 Verifying fallback data...')
     const status = pricingService.getStatus()
+
     console.log(`   - Initialized: ${status.initialized}`)
     console.log(`   - Model count: ${status.modelCount}`)
     console.log(`   - Last updated: ${status.lastUpdated}`)
 
     // 5. 测试获取模型定价
     const testModels = ['claude-3-opus-20240229', 'gpt-4', 'gemini-pro']
+
     console.log('\n💰 Testing model pricing retrieval:')
 
     for (const model of testModels) {
       const pricing = pricingService.getModelPricing(model)
+
       if (pricing) {
         console.log(`   ✅ ${model}: Found pricing data`)
       } else {
@@ -65,6 +69,7 @@ async function testPricingFallback() {
     if (fs.existsSync(pricingFile)) {
       console.log('\n✅ Fallback successfully created pricing file in data directory')
       const fileStats = fs.statSync(pricingFile)
+
       console.log(`   - File size: ${(fileStats.size / 1024).toFixed(2)} KB`)
     } else {
       console.log('\n❌ Fallback failed to create pricing file')

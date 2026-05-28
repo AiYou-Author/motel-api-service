@@ -16,6 +16,7 @@ const app = createApp(App)
 
 // 使用Pinia状态管理
 const pinia = createPinia()
+
 app.use(pinia)
 
 // 使用路由
@@ -28,6 +29,7 @@ app.use(ElementPlus, {
 
 // 设置axios拦截器
 const userStore = useUserStore()
+
 userStore.setupAxiosInterceptors()
 
 // 挂载应用

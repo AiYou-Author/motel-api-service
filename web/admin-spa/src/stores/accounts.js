@@ -48,8 +48,9 @@ export const useAccountsStore = defineStore('accounts', () => {
   const fetchAccounts = async (apiFunc, stateRef) => {
     loading.value = true
     const res = await apiFunc()
-    if (res.success) stateRef.value = res.data || []
-    else error.value = res.message
+
+    if (res.success) {stateRef.value = res.data || []}
+    else {error.value = res.message}
     loading.value = false
   }
 
@@ -57,9 +58,11 @@ export const useAccountsStore = defineStore('accounts', () => {
   const mutateAccount = async (apiFunc, fetchFunc, ...args) => {
     loading.value = true
     const res = await apiFunc(...args)
-    if (res.success) await fetchFunc()
-    else error.value = res.message
+
+    if (res.success) {await fetchFunc()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
@@ -134,27 +137,32 @@ export const useAccountsStore = defineStore('accounts', () => {
   // 切换账户状态
   const toggleAccount = async (platform, id) => {
     const config = PLATFORM_CONFIG[platform]
-    if (!config) return { success: false, message: '未知平台' }
+
+    if (!config) {return { success: false, message: '未知平台' }}
     loading.value = true
     const res = await httpApis.toggleAccountStatusApi(`/admin/${config.endpoint}/${id}/toggle`)
+
     if (res.success)
-      await fetchAccounts(
+      {await fetchAccounts(
         httpApis[
           `get${config.stateKey.charAt(0).toUpperCase() + config.stateKey.slice(1).replace('Accounts', '')}AccountsApi`
         ],
         stateMap[config.stateKey]
-      )
-    else error.value = res.message
+      )}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
   // 删除账户
   const deleteAccount = async (platform, id) => {
     const config = PLATFORM_CONFIG[platform]
-    if (!config) return { success: false, message: '未知平台' }
+
+    if (!config) {return { success: false, message: '未知平台' }}
     loading.value = true
     const res = await httpApis.deleteAccountByEndpointApi(`/admin/${config.endpoint}/${id}`)
+
     if (res.success) {
       const fetchMap = {
         claude: fetchClaudeAccounts,
@@ -166,11 +174,13 @@ export const useAccountsStore = defineStore('accounts', () => {
         'openai-responses': fetchOpenAIResponsesAccounts,
         droid: fetchDroidAccounts
       }
+
       await fetchMap[platform]()
     } else {
       error.value = res.message
     }
     loading.value = false
+
     return res
   }
 
@@ -178,76 +188,100 @@ export const useAccountsStore = defineStore('accounts', () => {
   const refreshClaudeToken = async (id) => {
     loading.value = true
     const res = await httpApis.refreshClaudeAccountApi(id)
-    if (res.success) await fetchClaudeAccounts()
-    else error.value = res.message
+
+    if (res.success) {await fetchClaudeAccounts()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
   // OAuth 相关
   const generateClaudeAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateClaudeAuthUrlApi(proxyConfig)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const exchangeClaudeCode = async (data) => {
     const res = await httpApis.exchangeClaudeCodeApi(data)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const generateClaudeSetupTokenUrl = async (proxyConfig) => {
     const res = await httpApis.generateClaudeSetupTokenUrlApi(proxyConfig)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const exchangeClaudeSetupTokenCode = async (data) => {
     const res = await httpApis.exchangeClaudeSetupTokenApi(data)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const oauthWithCookie = async (payload) => {
     const res = await httpApis.claudeOAuthWithCookieApi(payload)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const oauthSetupTokenWithCookie = async (payload) => {
     const res = await httpApis.claudeSetupTokenWithCookieApi(payload)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const generateGeminiAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateGeminiAuthUrlApi(proxyConfig)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const exchangeGeminiCode = async (data) => {
     const res = await httpApis.exchangeGeminiCodeApi(data)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const generateOpenAIAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateOpenAIAuthUrlApi(proxyConfig)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const exchangeOpenAICode = async (data) => {
     const res = await httpApis.exchangeOpenAICodeApi(data)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 
   const generateDroidAuthUrl = async (proxyConfig) => {
     const res = await httpApis.generateDroidAuthUrlApi(proxyConfig)
-    if (!res.success) error.value = res.message
+
+    if (!res.success) {error.value = res.message}
+
     return res.success ? res.data : null
   }
 

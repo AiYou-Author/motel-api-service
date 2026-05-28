@@ -29,6 +29,7 @@ class CostInitService {
     async function worker() {
       while (index < items.length) {
         const currentIndex = index++
+
         try {
           results[currentIndex] = await fn(items[currentIndex], currentIndex)
         } catch (error) {
@@ -38,6 +39,7 @@ class CostInitService {
     }
 
     await Promise.all(Array(Math.min(concurrency, items.length)).fill().map(worker))
+
     return results
   }
 
@@ -51,6 +53,7 @@ class CostInitService {
 
     do {
       const [newCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', count)
+
       cursor = newCursor
 
       for (const key of keys) {
@@ -92,6 +95,7 @@ class CostInitService {
 
         for (let j = 0; j < results.length; j++) {
           const [err, isDeleted] = results[j]
+
           if (!err && isDeleted !== 'true') {
             apiKeyIds.push(batch[j])
           }
@@ -127,6 +131,7 @@ class CostInitService {
       logger.success(
         `💰 Cost initialization completed! Processed: ${processedCount}, Errors: ${errorCount}`
       )
+
       return { processed: processedCount, errors: errorCount }
     } catch (error) {
       logger.error('❌ Failed to initialize costs:', error)
@@ -161,6 +166,7 @@ class CostInitService {
 
       for (let j = 0; j < results.length; j++) {
         const [err, values] = results[j]
+
         if (err) {
           continue
         }
@@ -168,6 +174,7 @@ class CostInitService {
         // 将数组转换为对象
         const data = {}
         let hasData = false
+
         for (let k = 0; k < USAGE_FIELDS.length; k++) {
           if (values[k] !== null) {
             data[USAGE_FIELDS[k]] = values[k]
@@ -190,6 +197,7 @@ class CostInitService {
       const match = key.match(
         /usage:(.+):model:(daily|monthly|hourly):(.+):(\d{4}-\d{2}(?:-\d{2})?(?::\d{2})?)$/
       )
+
       if (!match) {
         continue
       }
@@ -208,6 +216,7 @@ class CostInitService {
       // 添加 cache_creation 子对象以支持精确 ephemeral 定价
       const eph5m = parseInt(data.totalEphemeral5mTokens) || parseInt(data.ephemeral5mTokens) || 0
       const eph1h = parseInt(data.totalEphemeral1hTokens) || parseInt(data.ephemeral1hTokens) || 0
+
       if (eph5m > 0 || eph1h > 0) {
         usage.cache_creation = {
           ephemeral_5m_input_tokens: eph5m,
@@ -233,23 +242,27 @@ class CostInitService {
     // 写入每日费用（只补缺失）
     for (const [date, cost] of dailyCosts) {
       const key = `usage:cost:daily:${apiKeyId}:${date}`
+
       pipeline.set(key, cost.toString(), 'EX', 86400 * 30, 'NX')
     }
 
     // 写入每月费用（只补缺失）
     for (const [month, cost] of monthlyCosts) {
       const key = `usage:cost:monthly:${apiKeyId}:${month}`
+
       pipeline.set(key, cost.toString(), 'EX', 86400 * 90, 'NX')
     }
 
     // 写入每小时费用（只补缺失）
     for (const [hour, cost] of hourlyCosts) {
       const key = `usage:cost:hourly:${apiKeyId}:${hour}`
+
       pipeline.set(key, cost.toString(), 'EX', 86400 * 7, 'NX')
     }
 
     // 计算总费用
     let totalCost = 0
+
     for (const cost of dailyCosts.values()) {
       totalCost += cost
     }
@@ -264,6 +277,7 @@ class CostInitService {
         logger.info(`💰 Initialized total cost for API Key ${apiKeyId}: $${totalCost.toFixed(6)}`)
       } else {
         const existing = parseFloat(existingTotal)
+
         if (totalCost > existing * 1.1) {
           logger.warn(
             `💰 Total cost mismatch for API Key ${apiKeyId}: existing=$${existing.toFixed(6)}, calculated=$${totalCost.toFixed(6)} (from last 30 days). Keeping existing value.`
@@ -293,6 +307,7 @@ class CostInitService {
 
       do {
         const [newCursor, keys] = await client.scan(cursor, 'MATCH', 'usage:cost:*', 'COUNT', 100)
+
         cursor = newCursor
         if (keys.length > 0) {
           hasCostData = true
@@ -302,6 +317,7 @@ class CostInitService {
 
       if (!hasCostData) {
         logger.info('💰 No cost data found, initialization needed')
+
         return true
       }
 
@@ -318,6 +334,7 @@ class CostInitService {
           'COUNT',
           100
         )
+
         cursor = newCursor
 
         for (const usageKey of usageKeys) {
@@ -326,6 +343,7 @@ class CostInitService {
           }
 
           const match = usageKey.match(/usage:(.+):model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
           if (match) {
             const [, keyId, , date] = match
             const costKey = `usage:cost:daily:${keyId}:${date}`
@@ -335,6 +353,7 @@ class CostInitService {
               logger.info(
                 `💰 Found usage without cost data for key ${keyId} on ${date}, initialization needed`
               )
+
               return true
             }
             samplesChecked++
@@ -347,9 +366,11 @@ class CostInitService {
       } while (cursor !== '0')
 
       logger.info('💰 Cost data appears to be up to date')
+
       return false
     } catch (error) {
       logger.error('❌ Failed to check initialization status:', error)
+
       return false
     }
   }

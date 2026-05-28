@@ -9,6 +9,7 @@ const config = require('../../config/config')
 function formatDateWithTimezone(date, includeTimezone = true) {
   // 处理不同类型的输入
   let dateObj
+
   if (typeof date === 'number') {
     // 判断是秒还是毫秒时间戳
     // Unix时间戳（秒）通常小于 10^10，毫秒时间戳通常大于 10^12
@@ -43,6 +44,7 @@ function formatDateWithTimezone(date, includeTimezone = true) {
   // 添加时区信息
   if (includeTimezone) {
     const sign = timezoneOffset >= 0 ? '+' : ''
+
     formattedDate += ` (UTC${sign}${timezoneOffset})`
   }
 
@@ -81,14 +83,17 @@ function formatDuration(seconds) {
     return `${seconds}秒`
   } else if (seconds < 3600) {
     const minutes = Math.floor(seconds / 60)
+
     return `${minutes}分钟`
   } else if (seconds < 86400) {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
+
     return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`
   } else {
     const days = Math.floor(seconds / 86400)
     const hours = Math.floor((seconds % 86400) / 3600)
+
     return hours > 0 ? `${days}天${hours}小时` : `${days}天`
   }
 }

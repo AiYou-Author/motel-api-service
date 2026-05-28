@@ -20,24 +20,28 @@ class EncryptionKeyManager {
 
   getKey(version = 'current') {
     const cached = this.keyCache.get(version)
+
     if (cached && Date.now() - cached.timestamp < this.keyRotationInterval) {
       return cached.key
     }
 
     // 生成新密钥
     const key = crypto.scryptSync(config.security.encryptionKey, ENCRYPTION_SALT, 32)
+
     this.keyCache.set(version, {
       key,
       timestamp: Date.now()
     })
 
     logger.debug('🔑 Azure OpenAI encryption key generated/refreshed')
+
     return key
   }
 
   // 清理过期密钥
   cleanup() {
     const now = Date.now()
+
     for (const [version, cached] of this.keyCache.entries()) {
       if (now - cached.timestamp > this.keyRotationInterval) {
         this.keyCache.delete(version)
@@ -75,7 +79,9 @@ function encrypt(text) {
   const iv = crypto.randomBytes(IV_LENGTH)
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
   let encrypted = cipher.update(text)
+
   encrypted = Buffer.concat([encrypted, cipher.final()])
+
   return `${iv.toString('hex')}:${encrypted.toString('hex')}`
 }
 
@@ -99,12 +105,14 @@ function decrypt(text) {
     const encryptedText = Buffer.from(encryptedHex, 'hex')
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
     let decrypted = decipher.update(encryptedText)
+
     decrypted = Buffer.concat([decrypted, decipher.final()])
     const result = decrypted.toString()
 
     return result
   } catch (error) {
     logger.error('Azure OpenAI decryption error:', error.message)
+
     return ''
   }
 }
@@ -154,6 +162,7 @@ async function createAccount(accountData) {
   }
 
   const client = redisClient.getClientSafe()
+
   await client.hset(`${AZURE_OPENAI_ACCOUNT_KEY_PREFIX}${accountId}`, account)
   await redisClient.addToIndex('azure_openai:account:index', accountId)
 
@@ -163,6 +172,7 @@ async function createAccount(accountData) {
   }
 
   logger.info(`Created Azure OpenAI account: ${accountId}`)
+
   return account
 }
 
@@ -204,6 +214,7 @@ async function getAccount(accountId) {
 // 更新账户
 async function updateAccount(accountId, updates) {
   const existingAccount = await getAccount(accountId)
+
   if (!existingAccount) {
     throw new Error('Account not found')
   }
@@ -245,6 +256,7 @@ async function updateAccount(accountId, updates) {
 
   // 更新账户类型时处理共享账户集合
   const client = redisClient.getClientSafe()
+
   if (updates.accountType && updates.accountType !== existingAccount.accountType) {
     if (updates.accountType === 'shared') {
       await client.sadd(SHARED_AZURE_OPENAI_ACCOUNTS_KEY, accountId)
@@ -276,6 +288,7 @@ async function updateAccount(accountId, updates) {
 async function deleteAccount(accountId) {
   // 首先从所有分组中移除此账户
   const accountGroupService = require('../accountGroupService')
+
   await accountGroupService.removeAccountFromAllGroups(accountId)
 
   const client = redisClient.getClientSafe()
@@ -291,6 +304,7 @@ async function deleteAccount(accountId) {
   await client.srem(SHARED_AZURE_OPENAI_ACCOUNTS_KEY, accountId)
 
   logger.info(`Deleted Azure OpenAI account: ${accountId}`)
+
   return true
 }
 
@@ -312,6 +326,7 @@ async function getAllAccounts() {
 
   for (let i = 0; i < keys.length; i++) {
     const accountData = dataList[i]
+
     if (accountData && Object.keys(accountData).length > 0) {
       // 不返回敏感数据给前端
       delete accountData.apiKey
@@ -359,8 +374,10 @@ async function getSharedAccounts() {
   }
 
   const accounts = []
+
   for (const accountId of accountIds) {
     const account = await getAccount(accountId)
+
     if (account && account.isActive === 'true') {
       accounts.push(account)
     }
@@ -379,6 +396,7 @@ function isSubscriptionExpired(account) {
     return false // 未设置视为永不过期
   }
   const expiryDate = new Date(account.subscriptionExpiresAt)
+
   return expiryDate <= new Date()
 }
 
@@ -392,10 +410,13 @@ async function selectAvailableAccount(sessionId = null) {
 
     if (accountId) {
       const account = await getAccount(accountId)
+
       if (account && account.isActive === 'true' && account.schedulable === 'true') {
         const isTempUnavail = await upstreamErrorHelper.isTempUnavailable(accountId, 'azure-openai')
+
         if (!isTempUnavail) {
           logger.debug(`Reusing Azure OpenAI account ${accountId} for session ${sessionId}`)
+
           return account
         }
         logger.warn(
@@ -410,6 +431,7 @@ async function selectAvailableAccount(sessionId = null) {
 
   // 过滤出可用的账户（异步过滤，包含临时不可用检查）
   const availableAccounts = []
+
   for (const acc of sharedAccounts) {
     // 检查账户订阅是否过期
     if (isSubscriptionExpired(acc)) {
@@ -425,6 +447,7 @@ async function selectAvailableAccount(sessionId = null) {
 
     // 检查临时不可用状态
     const isTempUnavail = await upstreamErrorHelper.isTempUnavailable(acc.id, 'azure-openai')
+
     if (isTempUnavail) {
       logger.debug(`⏱️ Skipping temporarily unavailable Azure OpenAI account: ${acc.name}`)
       continue
@@ -445,10 +468,12 @@ async function selectAvailableAccount(sessionId = null) {
   if (sessionId && selectedAccount) {
     const client = redisClient.getClientSafe()
     const mappingKey = `${ACCOUNT_SESSION_MAPPING_PREFIX}${sessionId}`
+
     await client.setex(mappingKey, 3600, selectedAccount.id) // 1小时过期
   }
 
   logger.debug(`Selected Azure OpenAI account: ${selectedAccount.id}`)
+
   return selectedAccount
 }
 
@@ -468,6 +493,7 @@ async function updateAccountUsage(accountId, tokens) {
 async function healthCheckAccount(accountId) {
   try {
     const account = await getAccount(accountId)
+
     if (!account) {
       return { id: accountId, status: 'error', message: 'Account not found' }
     }
@@ -490,6 +516,7 @@ async function healthCheckAccount(accountId) {
     }
   } catch (error) {
     logger.error(`Health check failed for Azure OpenAI account ${accountId}:`, error)
+
     return {
       id: accountId,
       status: 'error',
@@ -505,6 +532,7 @@ async function performHealthChecks() {
 
   for (const account of accounts) {
     const result = await healthCheckAccount(account.id)
+
     results.push(result)
   }
 
@@ -514,11 +542,13 @@ async function performHealthChecks() {
 // 切换账户的可调度状态
 async function toggleSchedulable(accountId) {
   const account = await getAccount(accountId)
+
   if (!account) {
     throw new Error('Account not found')
   }
 
   const newSchedulable = account.schedulable === 'true' ? 'false' : 'true'
+
   await updateAccount(accountId, { schedulable: newSchedulable })
 
   return {
@@ -533,8 +563,10 @@ async function migrateApiKeysForAzureSupport() {
   const apiKeyIds = await client.smembers('api_keys')
 
   let migratedCount = 0
+
   for (const keyId of apiKeyIds) {
     const keyData = await client.hgetall(`api_key:${keyId}`)
+
     if (keyData && !keyData.azureOpenaiAccountId) {
       // 添加 Azure OpenAI 账户ID字段（初始为空）
       await client.hset(`api_key:${keyId}`, 'azureOpenaiAccountId', '')
@@ -543,6 +575,7 @@ async function migrateApiKeysForAzureSupport() {
   }
 
   logger.info(`Migrated ${migratedCount} API keys for Azure OpenAI support`)
+
   return migratedCount
 }
 
@@ -550,6 +583,7 @@ async function migrateApiKeysForAzureSupport() {
 async function resetAccountStatus(accountId) {
   try {
     const accountData = await getAccount(accountId)
+
     if (!accountData) {
       throw new Error('Account not found')
     }
@@ -586,6 +620,7 @@ async function resetAccountStatus(accountId) {
     // 异步发送 Webhook 通知（忽略错误）
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: accountData.name || accountId,

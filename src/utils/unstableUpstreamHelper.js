@@ -4,6 +4,7 @@ function parseList(envValue) {
   if (!envValue) {
     return []
   }
+
   return envValue
     .split(',')
     .map((s) => s.trim().toLowerCase())
@@ -44,6 +45,7 @@ function normalizeErrorPayload(payload) {
 
 function isUnstableUpstreamError(statusCode, payload) {
   const normalizedStatus = Number(statusCode)
+
   if (Number.isFinite(normalizedStatus) && normalizedStatus >= 500) {
     return true
   }

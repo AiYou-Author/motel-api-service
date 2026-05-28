@@ -89,6 +89,7 @@ export const useTestState = () => {
 
     while (!streamDone) {
       const { done, value } = await reader.read()
+
       if (done) {
         streamDone = true
         // 处理缓冲区中剩余的数据
@@ -100,6 +101,7 @@ export const useTestState = () => {
 
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split('\n')
+
       // 最后一行可能不完整，保留在缓冲区
       buffer = lines.pop() || ''
 
@@ -113,6 +115,7 @@ export const useTestState = () => {
     if (line.startsWith('data: ')) {
       try {
         const data = JSON.parse(line.substring(6))
+
         handleSSEEvent(data)
       } catch {
         // 忽略解析错误
@@ -147,6 +150,7 @@ export const useTestState = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+
         throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`)
       }
 
@@ -155,6 +159,7 @@ export const useTestState = () => {
       } else {
         // JSON 响应
         const data = await response.json()
+
         testDuration.value = Date.now() - testStartTime.value
         if (data.success) {
           testStatus.value = 'success'
@@ -165,7 +170,7 @@ export const useTestState = () => {
         }
       }
     } catch (err) {
-      if (err.name === 'AbortError') return
+      if (err.name === 'AbortError') {return}
       testStatus.value = 'error'
       errorMessage.value = err.message || '连接失败'
       testDuration.value = Date.now() - testStartTime.value

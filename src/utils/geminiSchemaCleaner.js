@@ -5,16 +5,19 @@ function appendHint(description, hint) {
   if (!description) {
     return hint
   }
+
   return `${description} (${hint})`
 }
 
 function getRefHint(refValue) {
   const ref = String(refValue || '')
+
   if (!ref) {
     return ''
   }
   const idx = ref.lastIndexOf('/')
   const name = idx >= 0 ? ref.slice(idx + 1) : ref
+
   return name ? `See: ${name}` : ''
 }
 
@@ -30,12 +33,14 @@ function normalizeType(typeValue) {
   const nonNull = raw.filter((t) => t !== 'null')
   const primary = nonNull[0] || 'string'
   const hintParts = []
+
   if (nonNull.length > 1) {
     hintParts.push(`Accepts: ${nonNull.join(' | ')}`)
   }
   if (hasNull) {
     hintParts.push('nullable')
   }
+
   return { type: primary, hint: hintParts.join('; ') }
 }
 
@@ -54,6 +59,7 @@ function scoreSchema(schema) {
     return { score: 0, type: '' }
   }
   const t = typeof schema.type === 'string' ? schema.type : ''
+
   if (t === 'object' || (schema.properties && typeof schema.properties === 'object')) {
     return { score: 3, type: t || 'object' }
   }
@@ -63,6 +69,7 @@ function scoreSchema(schema) {
   if (t && t !== 'null') {
     return { score: 1, type: t }
   }
+
   return { score: 0, type: t || 'null' }
 }
 
@@ -70,9 +77,11 @@ function pickBestFromAlternatives(alternatives) {
   let bestIndex = 0
   let bestScore = -1
   const types = []
+
   for (let i = 0; i < alternatives.length; i += 1) {
     const alt = alternatives[i]
     const { score, type } = scoreSchema(alt)
+
     if (type) {
       types.push(type)
     }
@@ -81,6 +90,7 @@ function pickBestFromAlternatives(alternatives) {
       bestIndex = i
     }
   }
+
   return { best: alternatives[bestIndex], types: Array.from(new Set(types)).filter(Boolean) }
 }
 
@@ -108,11 +118,13 @@ function cleanJsonSchemaForGemini(schema) {
   const anyOf = Array.isArray(schema.anyOf) ? schema.anyOf : null
   const oneOf = Array.isArray(schema.oneOf) ? schema.oneOf : null
   const alts = anyOf && anyOf.length ? anyOf : oneOf && oneOf.length ? oneOf : null
+
   if (alts) {
     const { best, types } = pickBestFromAlternatives(alts)
     const cleaned = cleanJsonSchemaForGemini(best)
     const mergedDescription = appendHint(cleaned.description || '', schema.description || '')
     const typeHint = types.length > 1 ? `Accepts: ${types.join(' || ')}` : ''
+
     return {
       ...cleaned,
       description: appendHint(mergedDescription, typeHint)
@@ -125,8 +137,10 @@ function cleanJsonSchemaForGemini(schema) {
     let mergedDesc = schema.description || ''
     const mergedReq = new Set()
     const mergedProps = {}
+
     for (const item of schema.allOf) {
       const cleaned = cleanJsonSchemaForGemini(item)
+
       if (cleaned.description) {
         mergedDesc = appendHint(mergedDesc, cleaned.description)
       }
@@ -154,6 +168,7 @@ function cleanJsonSchemaForGemini(schema) {
       merged.type = merged.type || 'object'
       merged.properties = mergedProps
       const req = Array.from(mergedReq).filter((r) => mergedProps[r])
+
       if (req.length) {
         merged.required = req
       }
@@ -161,6 +176,7 @@ function cleanJsonSchemaForGemini(schema) {
     if (mergedDesc) {
       merged.description = mergedDesc
     }
+
     return cleanJsonSchemaForGemini(merged)
   }
 
@@ -174,6 +190,7 @@ function cleanJsonSchemaForGemini(schema) {
 
   for (const key of CONSTRAINT_KEYS) {
     const value = schema[key]
+
     if (value === undefined || value === null || typeof value === 'object') {
       continue
     }
@@ -190,6 +207,7 @@ function cleanJsonSchemaForGemini(schema) {
     const en = schema.enum.filter(
       (v) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
     )
+
     if (en.length) {
       result.enum = en
     }
@@ -197,6 +215,7 @@ function cleanJsonSchemaForGemini(schema) {
 
   // type（flatten 数组 type）
   const { type: normalizedType, hint: typeHint } = normalizeType(schema.type)
+
   if (normalizedType) {
     result.type = normalizedType
   }
@@ -206,6 +225,7 @@ function cleanJsonSchemaForGemini(schema) {
 
   if (result.enum && result.enum.length > 1 && result.enum.length <= 10) {
     const list = result.enum.map((item) => String(item)).join(', ')
+
     result.description = appendHint(result.description || '', `Allowed: ${list}`)
   }
 
@@ -225,6 +245,7 @@ function cleanJsonSchemaForGemini(schema) {
     !Array.isArray(schema.properties)
   ) {
     const props = {}
+
     for (const [name, propSchema] of Object.entries(schema.properties)) {
       props[name] = cleanJsonSchemaForGemini(propSchema)
     }
@@ -244,6 +265,7 @@ function cleanJsonSchemaForGemini(schema) {
       (r) =>
         typeof r === 'string' && r && Object.prototype.hasOwnProperty.call(result.properties, r)
     )
+
     if (req.length) {
       result.required = req
     }
@@ -257,6 +279,7 @@ function cleanJsonSchemaForGemini(schema) {
   if (result.type === 'object' && !result.properties) {
     result.properties = {}
   }
+
   return result
 }
 

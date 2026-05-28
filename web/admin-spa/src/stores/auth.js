@@ -68,8 +68,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function verifyToken() {
     try {
       const userResult = await getAuthUserApi()
+
       if (!userResult.success || !userResult.user) {
         logout()
+
         return
       }
       username.value = userResult.user.username
@@ -82,11 +84,13 @@ export const useAuthStore = defineStore('auth', () => {
     oemLoading.value = true
     try {
       const result = await getOemSettingsApi()
+
       if (result.success && result.data) {
         oemSettings.value = { ...oemSettings.value, ...result.data }
 
         if (result.data.siteIconData || result.data.siteIcon) {
           const link = document.querySelector("link[rel*='icon']") || document.createElement('link')
+
           link.type = 'image/x-icon'
           link.rel = 'shortcut icon'
           link.href = result.data.siteIconData || result.data.siteIcon

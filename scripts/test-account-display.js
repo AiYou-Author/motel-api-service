@@ -15,6 +15,7 @@ async function testAccountDisplay() {
   try {
     // 读取管理员凭据
     const initPath = path.join(__dirname, '..', 'config', 'init.json')
+
     if (!fs.existsSync(initPath)) {
       console.error('❌ 找不到 init.json 文件，请运行 npm run setup')
       process.exit(1)
@@ -22,6 +23,7 @@ async function testAccountDisplay() {
 
     const initData = JSON.parse(fs.readFileSync(initPath, 'utf8'))
     const adminUser = initData.admins?.[0]
+
     if (!adminUser) {
       console.error('❌ 没有找到管理员账号')
       process.exit(1)
@@ -42,6 +44,7 @@ async function testAccountDisplay() {
     }
 
     const { token } = loginResp.data
+
     console.log('✅ 登录成功\n')
 
     // 设置请求头

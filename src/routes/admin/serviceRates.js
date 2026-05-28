@@ -11,6 +11,7 @@ const { authenticateAdmin } = require('../../middleware/auth')
 router.get('/service-rates', authenticateAdmin, async (req, res) => {
   try {
     const rates = await serviceRatesService.getRates()
+
     res.json({
       success: true,
       data: rates
@@ -56,6 +57,7 @@ router.put('/service-rates', authenticateAdmin, async (req, res) => {
 router.get('/service-rates/services', authenticateAdmin, async (req, res) => {
   try {
     const services = await serviceRatesService.getAvailableServices()
+
     res.json({
       success: true,
       data: services

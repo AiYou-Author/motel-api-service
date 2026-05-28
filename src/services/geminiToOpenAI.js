@@ -39,8 +39,10 @@ class GeminiToOpenAIConverter {
 
     // 按 \n\n 分割完整 SSE 事件
     let idx
+
     while ((idx = state.buffer.indexOf('\n\n')) !== -1) {
       const event = state.buffer.slice(0, idx)
+
       state.buffer = state.buffer.slice(idx + 2)
 
       if (!event.trim()) {
@@ -48,12 +50,14 @@ class GeminiToOpenAIConverter {
       }
 
       const lines = event.split('\n')
+
       for (const line of lines) {
         if (!line.startsWith('data: ')) {
           continue
         }
 
         const jsonStr = line.slice(6).trim()
+
         if (!jsonStr) {
           continue
         }
@@ -64,6 +68,7 @@ class GeminiToOpenAIConverter {
         }
 
         let geminiData
+
         try {
           geminiData = JSON.parse(jsonStr)
         } catch (e) {
@@ -79,6 +84,7 @@ class GeminiToOpenAIConverter {
         }
 
         const chunks = this._convertGeminiChunkToOpenAI(geminiData, model, state)
+
         for (const c of chunks) {
           output += `data: ${JSON.stringify(c)}\n\n`
         }
@@ -136,8 +142,10 @@ class GeminiToOpenAIConverter {
         } else if (part.inlineData || part.inline_data) {
           const inlineData = part.inlineData || part.inline_data
           const imgData = inlineData.data
+
           if (imgData) {
             const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png'
+
             images.push({
               type: 'image_url',
               index: images.length,
@@ -148,6 +156,7 @@ class GeminiToOpenAIConverter {
       }
 
       const message = { role: 'assistant' }
+
       if (textParts.length > 0) {
         message.content = textParts.join('')
       } else {
@@ -164,6 +173,7 @@ class GeminiToOpenAIConverter {
       }
 
       let finishReason = 'stop'
+
       if (toolCalls.length > 0) {
         finishReason = 'tool_calls'
       } else if (candidate.finishReason) {
@@ -186,6 +196,7 @@ class GeminiToOpenAIConverter {
     }
 
     const usage = this._mapUsage(data.usageMetadata)
+
     if (usage) {
       result.usage = usage
     }
@@ -208,21 +219,26 @@ class GeminiToOpenAIConverter {
     }
     if (data.createTime) {
       const ts = this._parseCreateTime(data.createTime)
+
       if (ts !== Math.floor(Date.now() / 1000)) {
         state.created = ts
       }
     }
 
     const candidates = data.candidates || []
+
     if (candidates.length === 0 && data.usageMetadata) {
       // 仅 usage 的最终 chunk
       const chunk = this._makeChunk(state, model)
+
       chunk.choices[0].finish_reason = 'stop'
       chunk.usage = this._mapUsage(data.usageMetadata)
+
       return [chunk]
     }
 
     const results = []
+
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i]
       const candidateIndex = candidate.index !== undefined ? candidate.index : i
@@ -240,6 +256,7 @@ class GeminiToOpenAIConverter {
         }
 
         const chunk = this._makeChunk(state, model)
+
         chunk.choices[0].index = candidateIndex
 
         if (part.functionCall) {
@@ -271,8 +288,10 @@ class GeminiToOpenAIConverter {
         } else if (part.inlineData || part.inline_data) {
           const inlineData = part.inlineData || part.inline_data
           const imgData = inlineData.data
+
           if (imgData) {
             const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png'
+
             chunk.choices[0].delta = {
               images: [
                 {
@@ -291,6 +310,7 @@ class GeminiToOpenAIConverter {
       // finish_reason
       if (candidate.finishReason) {
         const chunk = this._makeChunk(state, model)
+
         chunk.choices[0].index = candidateIndex
 
         if (state.candidatesWithFunctionCalls.has(candidateIndex)) {
@@ -313,6 +333,7 @@ class GeminiToOpenAIConverter {
   _mapFinishReason(geminiReason) {
     // 按 Gemini FinishReason 官方枚举完整映射
     const fr = geminiReason.toLowerCase()
+
     if (fr === 'stop') {
       return 'stop'
     }
@@ -339,6 +360,7 @@ class GeminiToOpenAIConverter {
     ) {
       return 'content_filter'
     }
+
     // FINISH_REASON_UNSPECIFIED, OTHER, 未知值 → stop
     return 'stop'
   }
@@ -366,6 +388,7 @@ class GeminiToOpenAIConverter {
     }
     // Gemini 官方文档：createTime 为 RFC3339 格式字符串
     const ts = Math.floor(new Date(createTime).getTime() / 1000)
+
     return isNaN(ts) ? Math.floor(Date.now() / 1000) : ts
   }
 
@@ -379,12 +402,14 @@ class GeminiToOpenAIConverter {
       completion_tokens: completionTokens,
       total_tokens: meta.totalTokenCount || 0
     }
+
     if (meta.thoughtsTokenCount > 0) {
       result.completion_tokens_details = { reasoning_tokens: meta.thoughtsTokenCount }
     }
     if (meta.cachedContentTokenCount > 0) {
       result.prompt_tokens_details = { cached_tokens: meta.cachedContentTokenCount }
     }
+
     return result
   }
 }

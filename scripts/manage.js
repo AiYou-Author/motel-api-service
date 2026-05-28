@@ -17,6 +17,7 @@ class ServiceManager {
 
   ensureLogDir() {
     const logDir = path.dirname(LOG_FILE)
+
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true })
     }
@@ -26,17 +27,20 @@ class ServiceManager {
     try {
       if (fs.existsSync(PID_FILE)) {
         const pid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim())
+
         return pid
       }
     } catch (error) {
       console.error('读取PID文件失败:', error.message)
     }
+
     return null
   }
 
   isProcessRunning(pid) {
     try {
       process.kill(pid, 0)
+
       return true
     } catch (error) {
       return false
@@ -65,16 +69,20 @@ class ServiceManager {
 
   getStatus() {
     const pid = this.getPid()
+
     if (pid && this.isProcessRunning(pid)) {
       return { running: true, pid }
     }
+
     return { running: false, pid: null }
   }
 
   start(daemon = false) {
     const status = this.getStatus()
+
     if (status.running) {
       console.log(`⚠️  服务已在运行中 (PID: ${status.pid})`)
+
       return false
     }
 
@@ -89,10 +97,12 @@ class ServiceManager {
       execChild(command, (error, stdout) => {
         if (error) {
           console.error('❌ 后台启动失败:', error.message)
+
           return
         }
 
         const pid = parseInt(stdout.trim())
+
         if (pid && !isNaN(pid)) {
           this.writePid(pid)
           console.log(`🔄 服务已在后台启动 (PID: ${pid})`)
@@ -137,9 +147,11 @@ class ServiceManager {
 
   stop() {
     const status = this.getStatus()
+
     if (!status.running) {
       console.log('⚠️  服务未在运行')
       this.removePidFile() // 清理可能存在的过期PID文件
+
       return false
     }
 
@@ -159,6 +171,7 @@ class ServiceManager {
           clearInterval(checkExit)
           console.log('✅ 服务已停止')
           this.removePidFile()
+
           return
         }
 
@@ -177,6 +190,7 @@ class ServiceManager {
     } catch (error) {
       console.error('❌ 停止服务失败:', error.message)
       this.removePidFile()
+
       return false
     }
 
@@ -196,6 +210,7 @@ class ServiceManager {
 
   status() {
     const status = this.getStatus()
+
     if (status.running) {
       console.log(`✅ 服务正在运行 (PID: ${status.pid})`)
 
@@ -210,6 +225,7 @@ class ServiceManager {
     } else {
       console.log('❌ 服务未运行')
     }
+
     return status.running
   }
 
@@ -219,6 +235,7 @@ class ServiceManager {
     exec(`tail -n ${lines} ${LOG_FILE}`, (error, stdout) => {
       if (error) {
         console.error('读取日志失败:', error.message)
+
         return
       }
       console.log(stdout)
@@ -310,6 +327,7 @@ function main() {
     case 'log':
     case 'l': {
       const lines = parseInt(args[1]) || 50
+
       manager.logs(lines)
       break
     }

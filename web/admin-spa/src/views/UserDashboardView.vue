@@ -684,6 +684,7 @@ const testOrder = ref(null)
 const openTest = (order) => {
   if (!order?.apiKeyValue) {
     showToast('该订单暂无可用 API Key', 'error')
+
     return
   }
   testOrder.value = order
@@ -717,6 +718,7 @@ const loadOrders = async () => {
   ordersLoading.value = true
   try {
     const res = await getUserOrdersApi()
+
     orders.value = res.data.orders || []
   } catch {
     showToast('加载订单失败', 'error')
@@ -753,6 +755,7 @@ const loadUserProfile = async () => {
 const loadApiKeysStats = async () => {
   try {
     const allApiKeys = await userStore.getUserApiKeys(true) // Include deleted keys
+
     console.log('All API Keys received:', allApiKeys)
 
     const activeKeys = allApiKeys.filter(

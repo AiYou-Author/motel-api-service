@@ -36,6 +36,7 @@ class CcrRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -59,6 +60,7 @@ class CcrRelayService {
             `📬 User message queue ${errorType} for CCR account ${accountId}`,
             isBackendError ? { backendError: queueResult.errorMessage } : {}
           )
+
           return {
             statusCode,
             headers: {
@@ -101,15 +103,18 @@ class CcrRelayService {
 
       // 处理模型前缀解析和映射
       const { baseModel } = parseVendorPrefixedModel(requestBody.model)
+
       logger.debug(`🔄 Parsed base model: ${baseModel} from original: ${requestBody.model}`)
 
       let mappedModel = baseModel
+
       if (
         account.supportedModels &&
         typeof account.supportedModels === 'object' &&
         !Array.isArray(account.supportedModels)
       ) {
         const newModel = ccrAccountService.getMappedModel(account.supportedModels, baseModel)
+
         if (newModel !== baseModel) {
           logger.info(`🔄 Mapping model from ${baseModel} to ${newModel}`)
           mappedModel = newModel
@@ -151,6 +156,7 @@ class CcrRelayService {
       if (options.customPath) {
         // 如果指定了自定义路径（如 count_tokens），使用它
         const baseUrl = cleanUrl.replace(/\/v1\/messages$/, '') // 移除已有的 /v1/messages
+
         apiEndpoint = `${baseUrl}${options.customPath}`
       } else {
         // 默认使用 messages 端点
@@ -163,6 +169,7 @@ class CcrRelayService {
 
       // 过滤客户端请求头
       const filteredHeaders = this._filterClientHeaders(clientHeaders)
+
       logger.debug(`[DEBUG] Filtered client headers: ${JSON.stringify(filteredHeaders)}`)
 
       // 决定使用的 User-Agent：优先使用账户自定义的，否则透传客户端的，最后才使用默认值
@@ -264,6 +271,7 @@ class CcrRelayService {
         logger.warn(`🚫 Unauthorized error detected for CCR account ${accountId}`)
         const autoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!autoProtectionDisabled) {
           await upstreamErrorHelper.markTempUnavailable(accountId, 'ccr', 401).catch(() => {})
         }
@@ -277,6 +285,7 @@ class CcrRelayService {
         await ccrAccountService.markAccountRateLimited(accountId)
         const autoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!autoProtectionDisabled) {
           await upstreamErrorHelper
             .markTempUnavailable(
@@ -292,6 +301,7 @@ class CcrRelayService {
         await ccrAccountService.markAccountOverloaded(accountId)
         const autoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!autoProtectionDisabled) {
           await upstreamErrorHelper.markTempUnavailable(accountId, 'ccr', 529).catch(() => {})
         }
@@ -299,6 +309,7 @@ class CcrRelayService {
         logger.warn(`🔥 Server error (${response.status}) detected for CCR account ${accountId}`)
         const autoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!autoProtectionDisabled) {
           await upstreamErrorHelper
             .markTempUnavailable(accountId, 'ccr', response.status)
@@ -307,10 +318,12 @@ class CcrRelayService {
       } else if (response.status === 200 || response.status === 201) {
         // 如果请求成功，检查并移除错误状态
         const isRateLimited = await ccrAccountService.isAccountRateLimited(accountId)
+
         if (isRateLimited) {
           await ccrAccountService.removeAccountRateLimit(accountId)
         }
         const isOverloaded = await ccrAccountService.isAccountOverloaded(accountId)
+
         if (isOverloaded) {
           await ccrAccountService.removeAccountOverload(accountId)
         }
@@ -321,6 +334,7 @@ class CcrRelayService {
 
       const responseBody =
         typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+
       logger.debug(`[DEBUG] Final response body to return: ${responseBody}`)
 
       return {
@@ -345,6 +359,7 @@ class CcrRelayService {
       if (accountId && !error.response) {
         const autoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!autoProtectionDisabled) {
           await upstreamErrorHelper.markTempUnavailable(accountId, 'ccr', 503).catch(() => {})
         }
@@ -395,6 +410,7 @@ class CcrRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -423,6 +439,7 @@ class CcrRelayService {
             const existingConnection = responseStream.getHeader
               ? responseStream.getHeader('Connection')
               : null
+
             responseStream.writeHead(statusCode, {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -438,9 +455,11 @@ class CcrRelayService {
               message: errorMessage
             }
           })}\n\n`
+
           responseStream.write(errorEvent)
           responseStream.write('data: [DONE]\n\n')
           responseStream.end()
+
           return
         }
         if (queueResult.acquired && !queueResult.skipped) {
@@ -465,15 +484,18 @@ class CcrRelayService {
 
       // 处理模型前缀解析和映射
       const { baseModel } = parseVendorPrefixedModel(requestBody.model)
+
       logger.debug(`🔄 Parsed base model: ${baseModel} from original: ${requestBody.model}`)
 
       let mappedModel = baseModel
+
       if (
         account.supportedModels &&
         typeof account.supportedModels === 'object' &&
         !Array.isArray(account.supportedModels)
       ) {
         const newModel = ccrAccountService.getMappedModel(account.supportedModels, baseModel)
+
         if (newModel !== baseModel) {
           logger.info(`🔄 [Stream] Mapping model from ${baseModel} to ${newModel}`)
           mappedModel = newModel
@@ -533,6 +555,7 @@ class CcrRelayService {
         if (accountId && !error.response) {
           const autoProtectionDisabled =
             account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
           if (!autoProtectionDisabled) {
             await upstreamErrorHelper.markTempUnavailable(accountId, 'ccr', 503).catch(() => {})
           }
@@ -581,6 +604,7 @@ class CcrRelayService {
 
       // 过滤客户端请求头
       const filteredHeaders = this._filterClientHeaders(clientHeaders)
+
       logger.debug(`[DEBUG] Filtered client headers: ${JSON.stringify(filteredHeaders)}`)
 
       // 决定使用的 User-Agent：优先使用账户自定义的，否则透传客户端的，最后才使用默认值
@@ -690,6 +714,7 @@ class CcrRelayService {
                 'Cache-Control': 'no-cache',
                 Connection: existingConnection || 'keep-alive'
               }
+
               // 避免 Transfer-Encoding 冲突，让 Express 自动处理
               delete errorHeaders['Transfer-Encoding']
               delete errorHeaders['Content-Length']
@@ -709,6 +734,7 @@ class CcrRelayService {
               }
               resolve() // 不抛出异常，正常完成流处理
             })
+
             return
           }
 
@@ -743,6 +769,7 @@ class CcrRelayService {
             const existingConnection = responseStream.getHeader
               ? responseStream.getHeader('Connection')
               : null
+
             if (existingConnection) {
               logger.debug(
                 `🔌 [CCR Stream] Preserving existing Connection header: ${existingConnection}`
@@ -755,6 +782,7 @@ class CcrRelayService {
               'Access-Control-Allow-Origin': '*',
               'Access-Control-Allow-Headers': 'Cache-Control'
             }
+
             responseStream.writeHead(200, headers)
           }
 
@@ -769,22 +797,26 @@ class CcrRelayService {
 
             try {
               const chunkStr = chunk.toString('utf8')
+
               rawBuffer += chunkStr
 
               // 按行分割处理 SSE 数据
               const lines = rawBuffer.split('\n')
+
               rawBuffer = lines.pop() // 保留最后一个可能不完整的行
 
               for (const line of lines) {
                 if (line.trim()) {
                   // 解析 SSE 数据并收集使用统计
                   const usageData = this._parseSSELineForUsage(line)
+
                   if (usageData) {
                     Object.assign(collectedUsage, usageData)
                   }
 
                   // 应用流转换器（如果提供）
                   let outputLine = line
+
                   if (streamTransformer && typeof streamTransformer === 'function') {
                     outputLine = streamTransformer(line)
                   }
@@ -888,6 +920,7 @@ class CcrRelayService {
     try {
       if (line.startsWith('data: ')) {
         const data = line.substring(6).trim()
+
         if (data === '[DONE]') {
           return null
         }
@@ -946,6 +979,7 @@ class CcrRelayService {
     // 只保留允许的头部信息
     for (const [key, value] of Object.entries(clientHeaders)) {
       const lowerKey = key.toLowerCase()
+
       if (allowedHeaders.includes(lowerKey)) {
         filteredHeaders[key] = value
       }
@@ -959,6 +993,7 @@ class CcrRelayService {
     try {
       const redis = require('../../models/redis')
       const client = redis.getClientSafe()
+
       await client.hset(`ccr_account:${accountId}`, 'lastUsedAt', new Date().toISOString())
     } catch (error) {
       logger.error(`❌ Failed to update last used time for CCR account ${accountId}:`, error)

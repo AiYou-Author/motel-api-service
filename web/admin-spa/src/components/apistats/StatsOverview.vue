@@ -316,6 +316,7 @@ const {
 
 const topContributors = computed(() => {
   if (!individualStats.value || individualStats.value.length === 0) return []
+
   return [...individualStats.value]
     .sort((a, b) => (b.usage?.allTokens || 0) - (a.usage?.allTokens || 0))
     .slice(0, 3)
@@ -329,12 +330,14 @@ const hasServiceRates = computed(() => {
 const calculateContribution = (stat) => {
   if (!aggregatedStats.value || !aggregatedStats.value.usage.allTokens) return 0
   const percentage = ((stat.usage?.allTokens || 0) / aggregatedStats.value.usage.allTokens) * 100
+
   return percentage.toFixed(1)
 }
 
 const formatExpireDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
+
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -346,6 +349,7 @@ const formatExpireDate = (dateString) => {
 
 const isApiKeyExpired = (expiresAt) => {
   if (!expiresAt) return false
+
   return new Date(expiresAt) < new Date()
 }
 
@@ -354,6 +358,7 @@ const isApiKeyExpiringSoon = (expiresAt) => {
   const expireDate = new Date(expiresAt)
   const now = new Date()
   const daysUntilExpire = (expireDate - now) / (1000 * 60 * 60 * 24)
+
   return daysUntilExpire > 0 && daysUntilExpire <= 7
 }
 
@@ -367,10 +372,12 @@ const formatPermissions = (permissions) => {
     azure: 'Azure',
     ccr: 'CCR'
   }
+
   // 空值 = 全部服务
   if (!permissions) return '全部服务'
   // 尝试解析字符串格式的数组
   let parsed = permissions
+
   if (typeof permissions === 'string') {
     if (permissions === 'all' || permissions === '[]') return '全部服务'
     try {
@@ -385,35 +392,42 @@ const formatPermissions = (permissions) => {
   if (Array.isArray(parsed)) {
     return parsed.map((p) => map[p] || p).join(', ')
   }
+
   return map[permissions] || permissions
 }
 
 const boundAccountList = computed(() => {
   const accounts = statsData.value?.accounts?.details
+
   if (!accounts) return []
   const result = []
+
   if (accounts.claude && accounts.claude.accountType === 'dedicated') {
     result.push({ key: 'claude', ...accounts.claude })
   }
   if (accounts.openai && accounts.openai.accountType === 'dedicated') {
     result.push({ key: 'openai', ...accounts.openai })
   }
+
   return result
 })
 
 const accountGridClass = computed(() => {
   const count = boundAccountList.value.length
+
   if (count <= 1) {
     return 'md:grid-cols-1 lg:grid-cols-1'
   }
   if (count === 2) {
     return 'md:grid-cols-2'
   }
+
   return 'md:grid-cols-2 xl:grid-cols-3'
 })
 
 const getAccountLabel = (account) => {
   if (!account) return '专属账号'
+
   return account.platform === 'openai' ? 'OpenAI 专属账号' : 'Claude 专属账号'
 }
 
@@ -423,8 +437,10 @@ const formatRateLimitTime = (minutes) => {
   const days = Math.floor(total / 1440)
   const hours = Math.floor((total % 1440) / 60)
   const mins = total % 60
+
   if (days > 0) return hours > 0 ? `${days}天${hours}小时` : `${days}天`
   if (hours > 0) return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`
+
   return `${mins}分钟`
 }
 
@@ -438,11 +454,13 @@ const getRateLimitDisplay = (status) => {
   if (status.isRateLimited) {
     const remaining = formatRateLimitTime(status.minutesRemaining)
     const suffix = remaining ? ` · 剩余约 ${remaining}` : ''
+
     return {
       text: `限流中${suffix}`,
       class: 'text-red-500 dark:text-red-400'
     }
   }
+
   return {
     text: '未限流',
     class: 'text-green-600 dark:text-emerald-400'
@@ -454,6 +472,7 @@ const formatSessionWindowRange = (start, end) => {
   const s = new Date(start)
   const e = new Date(end)
   const fmt = (d) => `${`${d.getHours()}`.padStart(2, '0')}:${`${d.getMinutes()}`.padStart(2, '0')}`
+
   return `${fmt(s)} - ${fmt(e)}`
 }
 
@@ -461,6 +480,7 @@ const formatSessionRemaining = (minutes) => {
   if (!minutes || minutes <= 0) return ''
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
+
   return hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`
 }
 
@@ -468,8 +488,10 @@ const getSessionProgressBarClass = (status, account) => {
   if (!status) return 'bg-gradient-to-r from-blue-500 to-indigo-500'
   if (account?.rateLimitStatus?.isRateLimited) return 'bg-gradient-to-r from-red-500 to-red-600'
   const normalized = String(status).toLowerCase()
+
   if (normalized === 'rejected') return 'bg-gradient-to-r from-red-500 to-red-600'
   if (normalized === 'allowed_warning') return 'bg-gradient-to-r from-yellow-500 to-orange-500'
+
   return 'bg-gradient-to-r from-blue-500 to-indigo-500'
 }
 
@@ -490,34 +512,43 @@ const normalizeCodexUsagePercent = (usageItem) => {
     resetAfterSeconds !== null &&
     ((remainingSeconds !== null && remainingSeconds <= 0) ||
       (resetAtMs !== null && !Number.isNaN(resetAtMs) && Date.now() >= resetAtMs))
+
   if (resetElapsed) return 0
   if (percent === null) return null
+
   return Math.max(0, Math.min(100, percent))
 }
 
 const getCodexUsageBarClass = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) return 'bg-gradient-to-r from-gray-300 to-gray-400'
   if (percent >= 90) return 'bg-gradient-to-r from-red-500 to-red-600'
   if (percent >= 75) return 'bg-gradient-to-r from-yellow-500 to-orange-500'
+
   return 'bg-gradient-to-r from-emerald-500 to-teal-500'
 }
 
 const getCodexUsageWidth = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) return '0%'
+
   return `${percent}%`
 }
 
 const formatCodexUsagePercent = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) return '--'
+
   return `${percent.toFixed(1)}%`
 }
 
 const formatCodexRemaining = (usageItem) => {
   if (!usageItem) return '--'
   let seconds = usageItem.remainingSeconds
+
   if (seconds === null || seconds === undefined) {
     seconds = usageItem.resetAfterSeconds
   }
@@ -529,9 +560,11 @@ const formatCodexRemaining = (usageItem) => {
   const hours = Math.floor((seconds % 86400) / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   const secs = seconds % 60
+
   if (days > 0) return hours > 0 ? `${days}天${hours}小时` : `${days}天`
   if (hours > 0) return minutes > 0 ? `${hours}小时${minutes}分钟` : `${hours}小时`
   if (minutes > 0) return `${minutes}分钟`
+
   return `${secs}秒`
 }
 

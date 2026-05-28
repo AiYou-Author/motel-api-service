@@ -155,6 +155,7 @@ const parsedApiKeys = computed(() => {
 
   // 去重并限制最多30个
   const uniqueKeys = [...new Set(keys)]
+
   return uniqueKeys.slice(0, 30)
 })
 
@@ -163,6 +164,7 @@ const hasValidInput = computed(() => {
   if (multiKeyMode.value) {
     return parsedApiKeys.value.length > 0
   }
+
   return apiKey.value && apiKey.value.trim().length > 0
 })
 </script>

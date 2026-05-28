@@ -182,6 +182,7 @@ const themeOptions = [
 // 计算属性
 const themeTooltip = computed(() => {
   const current = themeOptions.find((opt) => opt.value === themeStore.themeMode)
+
   return current ? `点击切换主题 - ${current.label}` : '切换主题'
 })
 

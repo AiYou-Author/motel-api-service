@@ -13,17 +13,20 @@ const { parse, extractSessionId, build, isValid } = require('../src/utils/metada
 function formatUuidFromSeed(seed) {
   const digest = crypto.createHash('sha256').update(String(seed)).digest()
   const bytes = Buffer.from(digest.subarray(0, 16))
+
   bytes[6] = (bytes[6] & 0x0f) | 0x40
   bytes[8] = (bytes[8] & 0x3f) | 0x80
   const hex = Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('')
+
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
 function normalizeAccountUuid(candidate) {
-  if (typeof candidate !== 'string') return null
+  if (typeof candidate !== 'string') {return null}
   const trimmed = candidate.trim()
+
   return trimmed || null
 }
 
@@ -32,14 +35,17 @@ const SESSION_PREFIX = 'session_'
 const ACCOUNT_MARKER = '_account_'
 
 function oldRewriteUserId(body, accountId, accountUuid) {
-  if (!body || typeof body !== 'object') return { nextBody: body, changed: false }
+  if (!body || typeof body !== 'object') {return { nextBody: body, changed: false }}
   const { metadata } = body
-  if (!metadata || typeof metadata !== 'object') return { nextBody: body, changed: false }
+
+  if (!metadata || typeof metadata !== 'object') {return { nextBody: body, changed: false }}
   const userId = metadata.user_id
-  if (typeof userId !== 'string') return { nextBody: body, changed: false }
+
+  if (typeof userId !== 'string') {return { nextBody: body, changed: false }}
 
   const pivot = userId.lastIndexOf(SESSION_PREFIX)
-  if (pivot === -1) return { nextBody: body, changed: false }
+
+  if (pivot === -1) {return { nextBody: body, changed: false }}
 
   const prefixBeforeSession = userId.slice(0, pivot)
   const sessionTail = userId.slice(pivot + SESSION_PREFIX.length)
@@ -48,23 +54,29 @@ function oldRewriteUserId(body, accountId, accountUuid) {
   const hashed = formatUuidFromSeed(`${effectiveScheduler}::${seedTail}`)
 
   let normalizedPrefix = prefixBeforeSession
+
   if (accountUuid) {
     const trimmedUuid = normalizeAccountUuid(accountUuid)
+
     if (trimmedUuid) {
       const accountIndex = normalizedPrefix.indexOf(ACCOUNT_MARKER)
+
       if (accountIndex === -1) {
         const base = normalizedPrefix.replace(/_+$/, '')
         const baseWithMarker = /_account$/.test(base) ? base : `${base}_account`
+
         normalizedPrefix = `${baseWithMarker}_${trimmedUuid}_`
       } else {
         const valueStart = accountIndex + ACCOUNT_MARKER.length
         let separatorIndex = normalizedPrefix.indexOf('_', valueStart)
-        if (separatorIndex === -1) separatorIndex = normalizedPrefix.length
+
+        if (separatorIndex === -1) {separatorIndex = normalizedPrefix.length}
         const head = normalizedPrefix.slice(0, valueStart)
         let tail = '_'
+
         if (separatorIndex < normalizedPrefix.length) {
           tail = normalizedPrefix.slice(separatorIndex)
-          if (/^_+$/.test(tail)) tail = '_'
+          if (/^_+$/.test(tail)) {tail = '_'}
         }
         normalizedPrefix = `${head}${trimmedUuid}${tail}`
       }
@@ -72,7 +84,9 @@ function oldRewriteUserId(body, accountId, accountUuid) {
   }
 
   const nextUserId = `${normalizedPrefix}${SESSION_PREFIX}${hashed}`
-  if (nextUserId === userId) return { nextBody: body, changed: false }
+
+  if (nextUserId === userId) {return { nextBody: body, changed: false }}
+
   return {
     nextBody: { ...body, metadata: { ...metadata, user_id: nextUserId } },
     changed: true
@@ -81,14 +95,17 @@ function oldRewriteUserId(body, accountId, accountUuid) {
 
 // ─── 新版 rewriteUserId（从 requestIdentityService 中提取的逻辑） ───
 function newRewriteUserId(body, accountId, accountUuid) {
-  if (!body || typeof body !== 'object') return { nextBody: body, changed: false }
+  if (!body || typeof body !== 'object') {return { nextBody: body, changed: false }}
   const { metadata } = body
-  if (!metadata || typeof metadata !== 'object') return { nextBody: body, changed: false }
+
+  if (!metadata || typeof metadata !== 'object') {return { nextBody: body, changed: false }}
   const userId = metadata.user_id
-  if (typeof userId !== 'string') return { nextBody: body, changed: false }
+
+  if (typeof userId !== 'string') {return { nextBody: body, changed: false }}
 
   const parsed = parse(userId)
-  if (!parsed) return { nextBody: body, changed: false }
+
+  if (!parsed) {return { nextBody: body, changed: false }}
 
   const seedTail = parsed.sessionId || 'default'
   const effectiveScheduler = accountId ? String(accountId) : 'unknown-scheduler'
@@ -102,7 +119,8 @@ function newRewriteUserId(body, accountId, accountUuid) {
     isJsonFormat: parsed.isJsonFormat
   })
 
-  if (nextUserId === userId) return { nextBody: body, changed: false }
+  if (nextUserId === userId) {return { nextBody: body, changed: false }}
+
   return {
     nextBody: { ...body, metadata: { ...metadata, user_id: nextUserId } },
     changed: true
@@ -111,9 +129,10 @@ function newRewriteUserId(body, accountId, accountUuid) {
 
 // ─── 旧版 _replaceClientId 精确副本 ───
 function oldReplaceClientId(body, unifiedClientId) {
-  if (!body || !body.metadata || !body.metadata.user_id || !unifiedClientId) return
+  if (!body || !body.metadata || !body.metadata.user_id || !unifiedClientId) {return}
   const userId = body.metadata.user_id
   const match = userId.match(/^user_[a-f0-9]{64}(_account__session_[a-f0-9-]{36})$/)
+
   if (match && match[1]) {
     body.metadata.user_id = `user_${unifiedClientId}${match[1]}`
   }
@@ -121,27 +140,31 @@ function oldReplaceClientId(body, unifiedClientId) {
 
 // ─── 新版 _replaceClientId ───
 function newReplaceClientId(body, unifiedClientId) {
-  if (!body?.metadata?.user_id || !unifiedClientId) return
+  if (!body?.metadata?.user_id || !unifiedClientId) {return}
   const parsed = parse(body.metadata.user_id)
-  if (!parsed) return
+
+  if (!parsed) {return}
   body.metadata.user_id = build({ ...parsed, deviceId: unifiedClientId })
 }
 
 // ─── 旧版 sessionHelper extractSessionId ───
 function oldExtractSessionFromMetadata(userId) {
   const sessionMatch = userId.match(/session_([a-f0-9-]{36})/)
+
   return sessionMatch && sessionMatch[1] ? sessionMatch[1] : null
 }
 
 // ─── 旧版 claudeRelayConfigService extractOriginalSessionId ───
 function oldExtractOriginalSessionId(userId) {
   const match = userId.match(/session_([a-f0-9-]{36})$/i)
+
   return match ? match[1] : null
 }
 
 // ─── 旧版 claudeCodeValidator 的 user_id 校验 ───
 function oldIsValidUserId(userId) {
   const userIdPattern = /^user_[a-fA-F0-9]{64}_account__session_[\w-]+$/
+
   return userIdPattern.test(userId)
 }
 
@@ -257,6 +280,7 @@ describe('JSON 格式正确性验证', () => {
     it('旧 rewriteUserId 产出垃圾数据', () => {
       const body = { metadata: { user_id: JSON_USERID } }
       const result = oldRewriteUserId(body, 'acct-1', null)
+
       // 旧代码 lastIndexOf('session_') 匹配到 JSON key "session_id" 中的 session_
       // 切割后产出损坏的字符串
       if (result.changed) {
@@ -267,6 +291,7 @@ describe('JSON 格式正确性验证', () => {
     it('旧 _replaceClientId 静默不生效', () => {
       const body = { metadata: { user_id: JSON_USERID } }
       const original = body.metadata.user_id
+
       oldReplaceClientId(body, 'a'.repeat(64))
       expect(body.metadata.user_id).toBe(original) // 未变化
     })
@@ -288,6 +313,7 @@ describe('JSON 格式正确性验证', () => {
       expect(result.changed).toBe(true)
       // 输出仍为合法 JSON
       const output = JSON.parse(result.nextBody.metadata.user_id)
+
       expect(output.device_id).toBe(JSON_DEVICE) // deviceId 不变
       expect(output.account_uuid).toBe('real-uuid') // 注入了真实 uuid
       expect(output.session_id).not.toBe(JSON_SESSION) // session 被哈希
@@ -303,15 +329,18 @@ describe('JSON 格式正确性验证', () => {
 
       expect(result.changed).toBe(true)
       const output = JSON.parse(result.nextBody.metadata.user_id)
+
       expect(output.account_uuid).toBe('')
     })
 
     it('新 _replaceClientId 正确替换 deviceId 并保留 JSON 格式', () => {
       const newDeviceId = 'b'.repeat(64)
       const body = { metadata: { user_id: JSON_USERID } }
+
       newReplaceClientId(body, newDeviceId)
 
       const output = JSON.parse(body.metadata.user_id)
+
       expect(output.device_id).toBe(newDeviceId)
       expect(output.account_uuid).toBe('')
       expect(output.session_id).toBe(JSON_SESSION) // session 不变
@@ -331,6 +360,7 @@ describe('rewriteUserId 哈希 seed 一致性', () => {
     const body2 = { metadata: { user_id: OLD_USERID } }
     const old = oldRewriteUserId(body1, 'acct-1', null)
     const neo = newRewriteUserId(body2, 'acct-1', null)
+
     expect(neo.nextBody.metadata.user_id).toBe(old.nextBody.metadata.user_id)
   })
 
@@ -339,6 +369,7 @@ describe('rewriteUserId 哈希 seed 一致性', () => {
     const result = newRewriteUserId(body, 'acct-1', null)
     const expected = formatUuidFromSeed(`acct-1::${JSON_SESSION}`)
     const output = JSON.parse(result.nextBody.metadata.user_id)
+
     expect(output.session_id).toBe(expected)
   })
 })
@@ -347,34 +378,40 @@ describe('边界条件', () => {
   it('非字符串 user_id → 新旧代码都不处理', () => {
     const body = { metadata: { user_id: 12345 } }
     const result = newRewriteUserId(body, 'acct-1', null)
+
     expect(result.changed).toBe(false)
   })
 
   it('无 metadata → 新旧代码都不处理', () => {
     const result = newRewriteUserId({ model: 'claude-3' }, 'acct-1', null)
+
     expect(result.changed).toBe(false)
   })
 
   it('无法解析的字符串 → 新代码不处理', () => {
     const body = { metadata: { user_id: 'random-garbage' } }
     const result = newRewriteUserId(body, 'acct-1', null)
+
     expect(result.changed).toBe(false)
   })
 
   it('空 body → 新代码不处理', () => {
     const result = newRewriteUserId(null, 'acct-1', null)
+
     expect(result.changed).toBe(false)
   })
 
   it('_replaceClientId 无 unifiedClientId → 不处理', () => {
     const body = { metadata: { user_id: OLD_USERID } }
     const original = body.metadata.user_id
+
     newReplaceClientId(body, null)
     expect(body.metadata.user_id).toBe(original)
   })
 
   it('_replaceClientId 无 user_id → 不处理', () => {
     const body = { metadata: {} }
+
     newReplaceClientId(body, 'abc')
     expect(body.metadata.user_id).toBeUndefined()
   })

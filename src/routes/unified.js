@@ -92,11 +92,14 @@ async function routeToBackend(req, res, requestedModel) {
         }
 
         const str = (typeof chunk === 'string' ? chunk : chunk.toString()).replace(/\r\n/g, '\n')
+
         sseBuffer.data += str
 
         let idx
+
         while ((idx = sseBuffer.data.indexOf('\n\n')) !== -1) {
           const event = sseBuffer.data.slice(0, idx)
+
           sseBuffer.data = sseBuffer.data.slice(idx + 2)
 
           if (!event.trim()) {
@@ -104,15 +107,18 @@ async function routeToBackend(req, res, requestedModel) {
           }
 
           const lines = event.split('\n')
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const jsonStr = line.slice(6)
+
               if (!jsonStr || jsonStr === '[DONE]') {
                 continue
               }
 
               try {
                 const eventData = JSON.parse(jsonStr)
+
                 if (eventData.error) {
                   originalWrite(`data: ${jsonStr}\n\n`)
                   continue
@@ -122,6 +128,7 @@ async function routeToBackend(req, res, requestedModel) {
                   requestedModel,
                   streamState
                 )
+
                 for (const c of converted) {
                   originalWrite(c)
                 }
@@ -135,6 +142,7 @@ async function routeToBackend(req, res, requestedModel) {
         if (typeof callback === 'function') {
           callback()
         }
+
         return true
       }
 
@@ -146,23 +154,28 @@ async function routeToBackend(req, res, requestedModel) {
               /\r\n/g,
               '\n'
             )
+
             sseBuffer.data += str
             chunk = undefined
           }
 
           if (sseBuffer.data.trim()) {
             const remaining = `${sseBuffer.data}\n\n`
+
             sseBuffer.data = ''
 
             const lines = remaining.split('\n')
+
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const jsonStr = line.slice(6)
+
                 if (!jsonStr || jsonStr === '[DONE]') {
                   continue
                 }
                 try {
                   const eventData = JSON.parse(jsonStr)
+
                   if (eventData.error) {
                     originalWrite(`data: ${jsonStr}\n\n`)
                   } else {
@@ -171,6 +184,7 @@ async function routeToBackend(req, res, requestedModel) {
                       requestedModel,
                       streamState
                     )
+
                     for (const c of converted) {
                       originalWrite(c)
                     }
@@ -184,6 +198,7 @@ async function routeToBackend(req, res, requestedModel) {
 
           originalWrite('data: [DONE]\n\n')
         }
+
         return originalEnd(chunk, encoding, callback)
       }
     }
@@ -200,9 +215,11 @@ async function routeToBackend(req, res, requestedModel) {
           return originalJson(codexConverter.convertResponse(data, requestedModel))
         } catch (e) {
           logger.debug('Codex response conversion failed, passing through:', e.message)
+
           return originalJson(data)
         }
       }
+
       return originalJson(data)
     }
 
@@ -268,12 +285,14 @@ async function routeToBackend(req, res, requestedModel) {
           requestedModel,
           geminiStreamState
         )
+
         if (converted) {
           return geminiOriginalWrite(converted, encoding, callback)
         }
         if (typeof callback === 'function') {
           callback()
         }
+
         return true
       }
 
@@ -286,6 +305,7 @@ async function routeToBackend(req, res, requestedModel) {
               requestedModel,
               geminiStreamState
             )
+
             if (converted) {
               geminiOriginalWrite(converted)
             }
@@ -298,12 +318,14 @@ async function routeToBackend(req, res, requestedModel) {
               requestedModel,
               geminiStreamState
             )
+
             if (remaining) {
               geminiOriginalWrite(remaining)
             }
           }
           geminiOriginalWrite('data: [DONE]\n\n')
         }
+
         return geminiOriginalEnd(chunk, encoding, callback)
       }
 
@@ -320,6 +342,7 @@ async function routeToBackend(req, res, requestedModel) {
         if (data && (data.candidates || data.response?.candidates)) {
           return geminiOriginalJson(geminiConverter.convertResponse(data, requestedModel))
         }
+
         return geminiOriginalJson(data)
       }
 
@@ -351,6 +374,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
     }
 
     const requestedModel = req.body.model || 'claude-3-5-sonnet-20241022'
+
     req.body.model = requestedModel // 确保模型已设置
 
     // 使用统一的后端路由处理器
@@ -432,6 +456,7 @@ function buildGeminiRequestFromOpenAI(body) {
 
   // 第一遍：收集 assistant tool_calls 的 id→name 映射（用于 tool response 关联）
   const toolCallNames = Object.create(null)
+
   for (const msg of messages) {
     if (msg.role === 'assistant' && msg.tool_calls) {
       for (const tc of msg.tool_calls) {
@@ -449,22 +474,26 @@ function buildGeminiRequestFromOpenAI(body) {
   for (const msg of messages) {
     if (msg.role === 'system' || msg.role === 'developer') {
       const text = extractTextContent(msg.content)
+
       if (text) {
         systemParts.push({ text })
       }
     } else if (msg.role === 'user') {
       const parts = buildContentParts(msg.content)
+
       if (parts.length > 0) {
         contents.push({ role: 'user', parts })
       }
     } else if (msg.role === 'assistant') {
       // 格式映射: assistant 内容保留 text + image（多模态）
       const parts = buildContentParts(msg.content)
+
       // tool_calls → functionCall parts
       if (msg.tool_calls) {
         for (const tc of msg.tool_calls) {
           if (tc.function) {
             let args
+
             try {
               args = JSON.parse(tc.function.arguments || '{}')
             } catch {
@@ -484,6 +513,7 @@ function buildGeminiRequestFromOpenAI(body) {
       // tool response → functionResponse（Gemini 用 user role）
       const name = toolCallNames[msg.tool_call_id] || msg.name || 'unknown'
       let responseContent
+
       try {
         responseContent =
           typeof msg.content === 'string' ? JSON.parse(msg.content) : msg.content || {}
@@ -512,6 +542,7 @@ function buildGeminiRequestFromOpenAI(body) {
     generationConfig.temperature = body.temperature
   }
   const maxTokens = body.max_completion_tokens || body.max_tokens
+
   if (maxTokens !== undefined) {
     generationConfig.maxOutputTokens = maxTokens
   }
@@ -532,6 +563,7 @@ function buildGeminiRequestFromOpenAI(body) {
   if (body.modalities && Array.isArray(body.modalities)) {
     const modalityMap = { text: 'TEXT', image: 'IMAGE', audio: 'AUDIO' }
     const mapped = body.modalities.map((m) => modalityMap[m.toLowerCase()]).filter(Boolean)
+
     if (mapped.length > 0) {
       generationConfig.responseModalities = mapped
     }
@@ -540,6 +572,7 @@ function buildGeminiRequestFromOpenAI(body) {
   // image_config → imageConfig（Gemini 格式：aspect_ratio→aspectRatio, image_size→imageSize）
   if (body.image_config) {
     const imageConfig = {}
+
     if (body.image_config.aspect_ratio) {
       imageConfig.aspectRatio = body.image_config.aspect_ratio
     }
@@ -554,6 +587,7 @@ function buildGeminiRequestFromOpenAI(body) {
   // reasoning_effort → thinkingConfig（Gemini 格式）
   if (body.reasoning_effort) {
     const effort = body.reasoning_effort.toLowerCase()
+
     if (effort === 'none') {
       generationConfig.thinkingConfig = { thinkingLevel: 'none', includeThoughts: false }
     } else if (effort === 'auto') {
@@ -585,15 +619,18 @@ function buildGeminiRequestFromOpenAI(body) {
   if (body.tools && body.tools.length > 0) {
     const functionDeclarations = []
     const extraTools = []
+
     for (const tool of body.tools) {
       if (tool.type === 'function' && tool.function) {
         const decl = {
           name: tool.function.name,
           description: tool.function.description || ''
         }
+
         if (tool.function.parameters) {
           // 格式映射: parameters → parametersJsonSchema, 删除 strict
           const schema = { ...tool.function.parameters }
+
           delete schema.strict
           decl.parametersJsonSchema = schema
         } else {
@@ -612,10 +649,12 @@ function buildGeminiRequestFromOpenAI(body) {
           url_context: 'urlContext'
         }
         const geminiType = typeMap[tool.type]
+
         extraTools.push({ [geminiType]: tool[tool.type] || {} })
       }
     }
     const toolsArray = []
+
     if (functionDeclarations.length > 0) {
       toolsArray.push({ functionDeclarations })
     }
@@ -667,6 +706,7 @@ function extractTextContent(content) {
       .map((c) => c.text)
       .join('')
   }
+
   return ''
 }
 
@@ -676,24 +716,29 @@ function buildContentParts(content) {
   }
   if (Array.isArray(content)) {
     const parts = []
+
     for (const item of content) {
       if (item.type === 'text') {
         parts.push({ text: item.text })
       } else if (item.type === 'image_url' && item.image_url?.url) {
         const { url } = item.image_url
+
         if (url.startsWith('data:')) {
           const match = url.match(/^data:([^;]+);base64,(.+)$/)
+
           if (match) {
             parts.push({ inlineData: { mimeType: match[1], data: match[2] } })
           }
         }
       }
     }
+
     return parts
   }
   if (!content) {
     return []
   }
+
   return [{ text: String(content) }]
 }
 

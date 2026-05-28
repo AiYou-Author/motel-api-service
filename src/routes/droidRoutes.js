@@ -30,6 +30,7 @@ router.post('/claude/v1/messages', authenticateApiKey, async (req, res) => {
       logger.security(
         `🚫 API Key ${req.apiKey?.id || 'unknown'} 缺少 Droid 权限，拒绝访问 ${req.originalUrl}`
       )
+
       return res.status(403).json({
         error: 'permission_denied',
         message: '此 API Key 未启用 Droid 权限'
@@ -79,6 +80,7 @@ router.post('/comm/v1/chat/completions', authenticateApiKey, async (req, res) =>
       logger.security(
         `🚫 API Key ${req.apiKey?.id || 'unknown'} 缺少 Droid 权限，拒绝访问 ${req.originalUrl}`
       )
+
       return res.status(403).json({
         error: 'permission_denied',
         message: '此 API Key 未启用 Droid 权限'
@@ -126,6 +128,7 @@ router.post(['/openai/v1/responses', '/openai/responses'], authenticateApiKey, a
       logger.security(
         `🚫 API Key ${req.apiKey?.id || 'unknown'} 缺少 Droid 权限，拒绝访问 ${req.originalUrl}`
       )
+
       return res.status(403).json({
         error: 'permission_denied',
         message: '此 API Key 未启用 Droid 权限'

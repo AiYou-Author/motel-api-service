@@ -33,6 +33,7 @@ class RuntimeAddonBus {
     }
 
     const handlers = this._handlers.get(eventId)
+
     if (!handlers || handlers.length === 0) {
       return payload
     }
@@ -42,6 +43,7 @@ class RuntimeAddonBus {
     for (const handler of handlers) {
       try {
         const result = handler(current)
+
         if (typeof result !== 'undefined') {
           current = result
         }
@@ -67,6 +69,7 @@ class RuntimeAddonBus {
       }
 
       let entries = []
+
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true })
       } catch (error) {
@@ -93,6 +96,7 @@ class RuntimeAddonBus {
 
         try {
           const registrar = require(targetPath)
+
           if (typeof registrar === 'function') {
             registrar(this)
           }

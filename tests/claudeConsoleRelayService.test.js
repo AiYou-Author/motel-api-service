@@ -43,10 +43,12 @@ describe('claudeConsoleRelayService.testAccountConnection', () => {
       model: 'claude-sonnet-4-6',
       stream: true
     }
+
     createClaudeTestPayload.mockReturnValue(payload)
     sendStreamTestRequest.mockResolvedValue(undefined)
 
     const res = {}
+
     await claudeConsoleRelayService.testAccountConnection('a1', res, 'claude-sonnet-4-6')
 
     expect(createClaudeTestPayload).toHaveBeenCalledWith('claude-sonnet-4-6', { stream: true })
@@ -72,14 +74,17 @@ describe('claudeConsoleRelayService.testAccountConnection', () => {
       model: 'claude-sonnet-4-6',
       stream: true
     }
+
     createClaudeTestPayload.mockReturnValue(payload)
     sendStreamTestRequest.mockResolvedValue(undefined)
 
     const res = {}
+
     await claudeConsoleRelayService.testAccountConnection('a1', res, 'claude-sonnet-4-6')
 
     expect(createClaudeTestPayload).toHaveBeenCalledWith('claude-sonnet-4-6', { stream: true })
     const requestOptions = sendStreamTestRequest.mock.calls[0][0]
+
     expect(requestOptions).toEqual(
       expect.objectContaining({
         payload,

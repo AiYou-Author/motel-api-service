@@ -77,6 +77,7 @@ class BedrockRelayService {
     // Bedrock API Key (ABSK) 模式：注入 Bearer Token 到 Authorization header
     if (bedrockAccount?.bearerToken) {
       const { bearerToken } = bedrockAccount
+
       client.middlewareStack.add(
         (next) => async (args) => {
           // 清除 SigV4 签名产生的所有 authorization header（大小写均删除）
@@ -89,6 +90,7 @@ class BedrockRelayService {
           delete args.request.headers['x-amz-date']
           delete args.request.headers['x-amz-security-token']
           delete args.request.headers['x-amz-content-sha256']
+
           return next(args)
         },
         { step: 'finalizeRequest', name: 'bedrockBearerTokenAuth', override: true, priority: 'low' }
@@ -101,6 +103,7 @@ class BedrockRelayService {
     logger.debug(
       `🔧 Created Bedrock client for region: ${targetRegion}, account: ${bedrockAccount?.name || 'default'}`
     )
+
     return client
   }
 
@@ -119,6 +122,7 @@ class BedrockRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -142,6 +146,7 @@ class BedrockRelayService {
             `📬 User message queue ${errorType} for Bedrock account ${accountId}`,
             isBackendError ? { backendError: queueResult.errorMessage } : {}
           )
+
           return {
             statusCode,
             headers: {
@@ -255,6 +260,7 @@ class BedrockRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -281,6 +287,7 @@ class BedrockRelayService {
           )
           if (!res.headersSent) {
             const existingConnection = res.getHeader ? res.getHeader('Connection') : null
+
             res.writeHead(statusCode, {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -296,9 +303,11 @@ class BedrockRelayService {
               message: errorMessage
             }
           })}\n\n`
+
           res.write(errorEvent)
           res.write('data: [DONE]\n\n')
           res.end()
+
           return { success: false, error: errorType }
         }
         if (queueResult.acquired && !queueResult.skipped) {
@@ -360,6 +369,7 @@ class BedrockRelayService {
       // 设置SSE响应头
       // ⚠️ 关键修复：尊重 auth.js 提前设置的 Connection: close
       const existingConnection = res.getHeader ? res.getHeader('Connection') : null
+
       if (existingConnection) {
         logger.debug(
           `🔌 [Bedrock Stream] Preserving existing Connection header: ${existingConnection}`
@@ -407,6 +417,7 @@ class BedrockRelayService {
       }
 
       const duration = Date.now() - startTime
+
       logger.info(`✅ Bedrock流式请求完成 - 模型: ${modelId}, 耗时: ${duration}ms`)
 
       // 发送结束事件
@@ -427,6 +438,7 @@ class BedrockRelayService {
         if (!res.writableEnded) {
           res.end()
         }
+
         return { success: false, aborted: true }
       }
 
@@ -495,6 +507,7 @@ class BedrockRelayService {
 
     // 如果是标准Claude模型名，需要映射为Bedrock格式
     const bedrockModel = this._mapToBedrockModel(selectedModel)
+
     if (bedrockModel !== selectedModel) {
       logger.info(`🔄 模型映射: ${selectedModel} → ${bedrockModel}`, {
         metadata: { originalModel: selectedModel, bedrockModel }
@@ -521,6 +534,7 @@ class BedrockRelayService {
     // 格式: {region}.anthropic.{model-name}-v{version}:{variant}
     // 或:   anthropic.{model-name}-v{version}:{variant}
     const match = bedrockModelId.match(/(?:.*\.)?anthropic\.(claude-.+?)(?:-v\d+)?(?::\d+)?$/)
+
     if (match) {
       return match[1]
     }
@@ -598,6 +612,7 @@ class BedrockRelayService {
 
     // 查找映射
     const mappedModel = modelMapping[cleanModelName]
+
     if (mappedModel) {
       return mappedModel
     }
@@ -606,6 +621,7 @@ class BedrockRelayService {
     logger.warn(`⚠️ 未找到模型映射: ${cleanModelName}，使用原始模型名`, {
       metadata: { originalModel: modelName }
     })
+
     return cleanModelName
   }
 
@@ -634,6 +650,7 @@ class BedrockRelayService {
 
     if (Array.isArray(obj)) {
       obj.forEach((item) => this._sanitizeCacheControl(item))
+
       return obj
     }
 
@@ -645,6 +662,7 @@ class BedrockRelayService {
     // Recurse into known nested structures (messages[].content, tool input_schema, etc.)
     for (const key of Object.keys(obj)) {
       const val = obj[key]
+
       if (val && typeof val === 'object') {
         this._sanitizeCacheControl(val)
       }
@@ -763,6 +781,7 @@ class BedrockRelayService {
     const autoProtectionDisabled =
       bedrockAccount?.disableAutoProtection === true ||
       bedrockAccount?.disableAutoProtection === 'true'
+
     if (accountId && !autoProtectionDisabled) {
       if (error.name === 'ThrottlingException') {
         upstreamErrorHelper.markTempUnavailable(accountId, 'bedrock', 429).catch(() => {})
@@ -839,9 +858,11 @@ class BedrockRelayService {
       ]
 
       logger.debug(`📋 返回Bedrock可用模型 ${models.length} 个, 区域: ${region}`)
+
       return models
     } catch (error) {
       logger.error('❌ 获取Bedrock模型列表失败:', error)
+
       return []
     }
   }

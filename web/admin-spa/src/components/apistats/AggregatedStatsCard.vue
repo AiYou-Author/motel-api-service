@@ -96,6 +96,7 @@ const topKeys = computed(() => {
     .sort((a, b) => {
       const aUsage = getStatUsage(a)
       const bUsage = getStatUsage(b)
+
       return (bUsage?.cost || 0) - (aUsage?.cost || 0)
     })
     .slice(0, 5)
@@ -104,6 +105,7 @@ const topKeys = computed(() => {
 // 计算其他Keys数量
 const otherKeysCount = computed(() => {
   if (!individualStats.value) return 0
+
   return Math.max(0, individualStats.value.length - 5)
 })
 
@@ -113,6 +115,7 @@ const otherPercentage = computed(() => {
 
   const topKeysCost = topKeys.value.reduce((sum, stat) => {
     const usage = getStatUsage(stat)
+
     return sum + (usage?.cost || 0)
   }, 0)
   const totalCost =
@@ -122,6 +125,7 @@ const otherPercentage = computed(() => {
 
   if (totalCost === 0) return 0
   const otherCost = totalCost - topKeysCost
+
   return Math.max(0, Math.round((otherCost / totalCost) * 100))
 })
 
@@ -137,12 +141,14 @@ const calculatePercentage = (stat) => {
   if (totalCost === 0) return 0
   const usage = getStatUsage(stat)
   const percentage = ((usage?.cost || 0) / totalCost) * 100
+
   return Math.round(percentage)
 }
 
 // 获取进度条颜色
 const getProgressColor = (index) => {
   const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500']
+
   return colors[index] || 'bg-gray-400'
 }
 

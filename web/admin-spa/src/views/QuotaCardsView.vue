@@ -854,6 +854,7 @@ const toggleSelectAll = () => {
 // 切换单个选择
 const toggleSelectCard = (cardId) => {
   const index = selectedCards.value.indexOf(cardId)
+
   if (index === -1) {
     selectedCards.value.push(cardId)
   } else {
@@ -916,6 +917,7 @@ const loadCards = async () => {
 
 const saveLimitsConfig = async () => {
   const result = await httpApis.updateQuotaCardLimitsApi(limitsConfig.value)
+
   if (result.success) {
     showToast('配置已保存', 'success')
   }
@@ -941,11 +943,13 @@ const changePageSize = () => {
 const createCard = async () => {
   creating.value = true
   const result = await httpApis.createQuotaCardApi(newCard.value)
+
   if (result.success) {
     showCreateModal.value = false
 
     // 处理返回的卡片数据
     const data = result.data
+
     if (Array.isArray(data)) {
       createdCards.value = data
     } else if (data) {
@@ -974,6 +978,7 @@ const downloadCards = () => {
   const content = createdCards.value
     .map((card) => {
       let label = ''
+
       if (card.type === 'quota' || card.type === 'combo') {
         label += `$${card.quotaAmount}`
       }
@@ -982,8 +987,10 @@ const downloadCards = () => {
       }
       if (card.type === 'time' || card.type === 'combo') {
         const unitMap = { hours: 'h', days: 'd', months: 'm' }
+
         label += `${card.timeAmount}${unitMap[card.timeUnit] || card.timeUnit}`
       }
+
       return `${label} ${card.code}`
     })
     .join('\n')
@@ -991,9 +998,11 @@ const downloadCards = () => {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
+
   link.href = url
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+
   link.download = `quota-cards-${timestamp}.txt`
 
   document.body.appendChild(link)
@@ -1027,6 +1036,7 @@ const deleteCard = async (card) => {
     '取消',
     'danger'
   )
+
   if (!confirmed) return
 
   await httpApis.deleteQuotaCardApi(card.id)
@@ -1042,6 +1052,7 @@ const deleteSelectedCards = async () => {
     '取消',
     'danger'
   )
+
   if (!confirmed) return
 
   await Promise.all(selectedCards.value.map((id) => httpApis.deleteQuotaCardApi(id)))

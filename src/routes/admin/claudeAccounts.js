@@ -37,6 +37,7 @@ const normalizeTempUnavailablePolicyPayload = (payload, options = {}) => {
 
     const rawValue = payload[field]
     const parsedValue = normalizeOptionalNonNegativeInteger(rawValue)
+
     if (!isEmptyValue(rawValue) && parsedValue === null) {
       return { error: `${field} must be a non-negative integer` }
     }
@@ -58,6 +59,7 @@ router.post('/claude-accounts/generate-auth-url', authenticateAdmin, async (req,
 
     // 将codeVerifier和state临时存储到Redis，用于后续验证
     const sessionId = require('crypto').randomUUID()
+
     await redis.setOAuthSession(sessionId, {
       codeVerifier: oauthParams.codeVerifier,
       state: oauthParams.state,
@@ -68,6 +70,7 @@ router.post('/claude-accounts/generate-auth-url', authenticateAdmin, async (req,
     })
 
     logger.success('Generated OAuth authorization URL with proxy support')
+
     return res.json({
       success: true,
       data: {
@@ -84,6 +87,7 @@ router.post('/claude-accounts/generate-auth-url', authenticateAdmin, async (req,
     })
   } catch (error) {
     logger.error('❌ Failed to generate OAuth URL:', error)
+
     return res.status(500).json({ error: 'Failed to generate OAuth URL', message: error.message })
   }
 })
@@ -101,6 +105,7 @@ router.post('/claude-accounts/exchange-code', authenticateAdmin, async (req, res
 
     // 从Redis获取OAuth会话信息
     const oauthSession = await redis.getOAuthSession(sessionId)
+
     if (!oauthSession) {
       return res.status(400).json({ error: 'Invalid or expired OAuth session' })
     }
@@ -108,6 +113,7 @@ router.post('/claude-accounts/exchange-code', authenticateAdmin, async (req, res
     // 检查会话是否过期
     if (new Date() > new Date(oauthSession.expiresAt)) {
       await redis.deleteOAuthSession(sessionId)
+
       return res
         .status(400)
         .json({ error: 'OAuth session has expired, please generate a new authorization URL' })
@@ -137,6 +143,7 @@ router.post('/claude-accounts/exchange-code', authenticateAdmin, async (req, res
     await redis.deleteOAuthSession(sessionId)
 
     logger.success('🎉 Successfully exchanged authorization code for tokens')
+
     return res.json({
       success: true,
       data: {
@@ -159,6 +166,7 @@ router.post('/claude-accounts/exchange-code', authenticateAdmin, async (req, res
           ? `${req.body.authorizationCode.substring(0, 10)}...`
           : 'N/A'
     })
+
     return res
       .status(500)
       .json({ error: 'Failed to exchange authorization code', message: error.message })
@@ -173,6 +181,7 @@ router.post('/claude-accounts/generate-setup-token-url', authenticateAdmin, asyn
 
     // 将codeVerifier和state临时存储到Redis，用于后续验证
     const sessionId = require('crypto').randomUUID()
+
     await redis.setOAuthSession(sessionId, {
       type: 'setup-token', // 标记为setup-token类型
       codeVerifier: setupTokenParams.codeVerifier,
@@ -184,6 +193,7 @@ router.post('/claude-accounts/generate-setup-token-url', authenticateAdmin, asyn
     })
 
     logger.success('Generated Setup Token authorization URL with proxy support')
+
     return res.json({
       success: true,
       data: {
@@ -199,6 +209,7 @@ router.post('/claude-accounts/generate-setup-token-url', authenticateAdmin, asyn
     })
   } catch (error) {
     logger.error('❌ Failed to generate Setup Token URL:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to generate Setup Token URL', message: error.message })
@@ -218,6 +229,7 @@ router.post('/claude-accounts/exchange-setup-token-code', authenticateAdmin, asy
 
     // 从Redis获取OAuth会话信息
     const oauthSession = await redis.getOAuthSession(sessionId)
+
     if (!oauthSession) {
       return res.status(400).json({ error: 'Invalid or expired OAuth session' })
     }
@@ -230,6 +242,7 @@ router.post('/claude-accounts/exchange-setup-token-code', authenticateAdmin, asy
     // 检查会话是否过期
     if (new Date() > new Date(oauthSession.expiresAt)) {
       await redis.deleteOAuthSession(sessionId)
+
       return res
         .status(400)
         .json({ error: 'OAuth session has expired, please generate a new authorization URL' })
@@ -259,6 +272,7 @@ router.post('/claude-accounts/exchange-setup-token-code', authenticateAdmin, asy
     await redis.deleteOAuthSession(sessionId)
 
     logger.success('🎉 Successfully exchanged setup token authorization code for tokens')
+
     return res.json({
       success: true,
       data: {
@@ -281,6 +295,7 @@ router.post('/claude-accounts/exchange-setup-token-code', authenticateAdmin, asy
           ? `${req.body.authorizationCode.substring(0, 10)}...`
           : 'N/A'
     })
+
     return res
       .status(500)
       .json({ error: 'Failed to exchange setup token authorization code', message: error.message })
@@ -406,8 +421,10 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
       if (groupId === 'ungrouped') {
         // 筛选未分组账户
         const filteredAccounts = []
+
         for (const account of accounts) {
           const groups = await accountGroupService.getAccountGroups(account.id)
+
           if (!groups || groups.length === 0) {
             filteredAccounts.push(account)
           }
@@ -416,6 +433,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
       } else {
         // 筛选特定分组的账户
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       }
     }
@@ -429,6 +447,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
 
           // 获取会话窗口使用统计（仅对有活跃窗口的账户）
           let sessionWindowUsage = null
+
           if (account.sessionWindow && account.sessionWindow.hasActiveWindow) {
             const windowUsage = await redis.getAccountSessionWindowUsage(
               account.id,
@@ -458,6 +477,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
 
               logger.debug(`💰 Calculating cost for model ${modelName}:`, JSON.stringify(usageData))
               const costResult = CostCalculator.calculateCost(usageData, modelName)
+
               logger.debug(`💰 Cost result for ${modelName}: total=${costResult.costs.total}`)
 
               modelCosts[modelName] = {
@@ -476,6 +496,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
           }
 
           const formattedAccount = formatAccountExpiry(account)
+
           return {
             ...formattedAccount,
             // 转换schedulable为布尔值
@@ -494,6 +515,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
           try {
             const groupInfos = await accountGroupService.getAccountGroups(account.id)
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos,
@@ -510,6 +532,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
               groupError.message
             )
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos: [],
@@ -528,6 +551,7 @@ router.get('/claude-accounts', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: accountsWithStats })
   } catch (error) {
     logger.error('❌ Failed to get Claude accounts:', error)
+
     return res.status(500).json({ error: 'Failed to get Claude accounts', message: error.message })
   }
 })
@@ -558,6 +582,7 @@ router.get('/claude-accounts/usage', authenticateAdmin, async (req, res) => {
           ? new Date(account.claudeUsageUpdatedAt).getTime()
           : 0
         const isCacheFresh = cachedUsage && lastUpdatedAt && now - lastUpdatedAt < usageCacheTtlMs
+
         if (isCacheFresh) {
           return {
             accountId: account.id,
@@ -567,20 +592,24 @@ router.get('/claude-accounts/usage', authenticateAdmin, async (req, res) => {
 
         try {
           const usageData = await claudeAccountService.fetchOAuthUsage(account.id)
+
           if (usageData) {
             await claudeAccountService.updateClaudeUsageSnapshot(account.id, usageData)
           }
           // 重新读取更新后的数据
           const updatedAccount = await redis.getClaudeAccount(account.id)
+
           return {
             accountId: account.id,
             claudeUsage: claudeAccountService.buildClaudeUsageSnapshot(updatedAccount)
           }
         } catch (error) {
           logger.debug(`Failed to fetch OAuth usage for ${account.id}:`, error.message)
+
           return { accountId: account.id, claudeUsage: null }
         }
       }
+
       // Setup Token 账户不调用 usage API，直接返回 null
       return { accountId: account.id, claudeUsage: null }
     })
@@ -589,6 +618,7 @@ router.get('/claude-accounts/usage', authenticateAdmin, async (req, res) => {
 
     // 转换为 { accountId: usage } 映射
     const usageMap = {}
+
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value) {
         usageMap[result.value.accountId] = result.value.claudeUsage
@@ -663,6 +693,7 @@ router.post('/claude-accounts', authenticateAdmin, async (req, res) => {
         tempUnavailable503TtlSeconds,
         tempUnavailable5xxTtlSeconds
       })
+
     if (tempUnavailablePolicyError) {
       return res.status(400).json({ error: tempUnavailablePolicyError })
     }
@@ -704,9 +735,11 @@ router.post('/claude-accounts', authenticateAdmin, async (req, res) => {
 
     logger.success(`🏢 Admin created new Claude account: ${name} (${accountType || 'shared'})`)
     const formattedAccount = formatAccountExpiry(newAccount)
+
     return res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('❌ Failed to create Claude account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to create Claude account', message: error.message })
@@ -734,6 +767,7 @@ router.put('/claude-accounts/:accountId', authenticateAdmin, async (req, res) =>
 
     const { normalized: normalizedTempUnavailablePolicy, error: tempUnavailablePolicyError } =
       normalizeTempUnavailablePolicyPayload(mappedUpdates, { partial: true })
+
     if (tempUnavailablePolicyError) {
       return res.status(400).json({ error: tempUnavailablePolicyError })
     }
@@ -762,6 +796,7 @@ router.put('/claude-accounts/:accountId', authenticateAdmin, async (req, res) =>
 
     // 获取账户当前信息以处理分组变更
     const currentAccount = await claudeAccountService.getAccount(accountId)
+
     if (!currentAccount) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -794,9 +829,11 @@ router.put('/claude-accounts/:accountId', authenticateAdmin, async (req, res) =>
     await claudeAccountService.updateAccount(accountId, mappedUpdates)
 
     logger.success(`📝 Admin updated Claude account: ${accountId}`)
+
     return res.json({ success: true, message: 'Claude account updated successfully' })
   } catch (error) {
     logger.error('❌ Failed to update Claude account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to update Claude account', message: error.message })
@@ -813,8 +850,10 @@ router.delete('/claude-accounts/:accountId', authenticateAdmin, async (req, res)
 
     // 获取账户信息以检查是否在分组中
     const account = await claudeAccountService.getAccount(accountId)
+
     if (account && account.accountType === 'group') {
       const groups = await accountGroupService.getAccountGroups(accountId)
+
       for (const group of groups) {
         await accountGroupService.removeAccountFromGroup(accountId, group.id)
       }
@@ -823,11 +862,13 @@ router.delete('/claude-accounts/:accountId', authenticateAdmin, async (req, res)
     await claudeAccountService.deleteAccount(accountId)
 
     let message = 'Claude账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
 
     logger.success(`🗑️ Admin deleted Claude account: ${accountId}, unbound ${unboundCount} keys`)
+
     return res.json({
       success: true,
       message,
@@ -835,6 +876,7 @@ router.delete('/claude-accounts/:accountId', authenticateAdmin, async (req, res)
     })
   } catch (error) {
     logger.error('❌ Failed to delete Claude account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to delete Claude account', message: error.message })
@@ -849,6 +891,7 @@ router.post('/claude-accounts/:accountId/update-profile', authenticateAdmin, asy
     const profileInfo = await claudeAccountService.fetchAndUpdateAccountProfile(accountId)
 
     logger.success(`Updated profile for Claude account: ${accountId}`)
+
     return res.json({
       success: true,
       message: 'Account profile updated successfully',
@@ -856,6 +899,7 @@ router.post('/claude-accounts/:accountId/update-profile', authenticateAdmin, asy
     })
   } catch (error) {
     logger.error('❌ Failed to update account profile:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to update account profile', message: error.message })
@@ -868,6 +912,7 @@ router.post('/claude-accounts/update-all-profiles', authenticateAdmin, async (re
     const result = await claudeAccountService.updateAllAccountProfiles()
 
     logger.success('Batch profile update completed')
+
     return res.json({
       success: true,
       message: 'Batch profile update completed',
@@ -875,6 +920,7 @@ router.post('/claude-accounts/update-all-profiles', authenticateAdmin, async (re
     })
   } catch (error) {
     logger.error('❌ Failed to update all account profiles:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to update all account profiles', message: error.message })
@@ -889,9 +935,11 @@ router.post('/claude-accounts/:accountId/refresh', authenticateAdmin, async (req
     const result = await claudeAccountService.refreshAccountToken(accountId)
 
     logger.success(`🔄 Admin refreshed token for Claude account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to refresh Claude account token:', error)
+
     return res.status(500).json({ error: 'Failed to refresh token', message: error.message })
   }
 })
@@ -904,9 +952,11 @@ router.post('/claude-accounts/:accountId/reset-status', authenticateAdmin, async
     const result = await claudeAccountService.resetAccountStatus(accountId)
 
     logger.success(`Admin reset status for Claude account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Claude account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })
@@ -927,6 +977,7 @@ router.put(
       }
 
       const newSchedulable = !account.schedulable
+
       await claudeAccountService.updateAccount(accountId, { schedulable: newSchedulable })
 
       // 如果账号被禁用，发送webhook通知
@@ -947,9 +998,11 @@ router.put(
           newSchedulable ? 'schedulable' : 'not schedulable'
         }`
       )
+
       return res.json({ success: true, schedulable: newSchedulable })
     } catch (error) {
       logger.error('❌ Failed to toggle Claude account schedulable status:', error)
+
       return res
         .status(500)
         .json({ error: 'Failed to toggle schedulable status', message: error.message })
@@ -980,6 +1033,7 @@ router.get('/claude-accounts/:accountId/test-history', authenticateAdmin, async 
 
   try {
     const history = await redis.getAccountTestHistory(accountId, 'claude')
+
     return res.json({
       success: true,
       data: {
@@ -990,6 +1044,7 @@ router.get('/claude-accounts/:accountId/test-history', authenticateAdmin, async 
     })
   } catch (error) {
     logger.error(`❌ Failed to get test history for account ${accountId}:`, error)
+
     return res.status(500).json({
       error: 'Failed to get test history',
       message: error.message
@@ -1003,6 +1058,7 @@ router.get('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
 
   try {
     const testConfig = await redis.getAccountTestConfig(accountId, 'claude')
+
     return res.json({
       success: true,
       data: {
@@ -1017,6 +1073,7 @@ router.get('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
     })
   } catch (error) {
     logger.error(`❌ Failed to get test config for account ${accountId}:`, error)
+
     return res.status(500).json({
       error: 'Failed to get test config',
       message: error.message
@@ -1048,6 +1105,7 @@ router.put('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
 
     // 限制 cronExpression 长度防止 DoS
     const MAX_CRON_LENGTH = 100
+
     if (cronExpression.length > MAX_CRON_LENGTH) {
       return res.status(400).json({
         error: 'Invalid parameter',
@@ -1065,6 +1123,7 @@ router.put('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
 
     // 验证模型参数
     const testModel = model || 'claude-sonnet-4-5-20250929'
+
     if (typeof testModel !== 'string' || testModel.length > 256) {
       return res.status(400).json({
         error: 'Invalid parameter',
@@ -1074,6 +1133,7 @@ router.put('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
 
     // 检查账户是否存在
     const account = await claudeAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({
         error: 'Account not found',
@@ -1103,6 +1163,7 @@ router.put('/claude-accounts/:accountId/test-config', authenticateAdmin, async (
     })
   } catch (error) {
     logger.error(`❌ Failed to update test config for account ${accountId}:`, error)
+
     return res.status(500).json({
       error: 'Failed to update test config',
       message: error.message
@@ -1117,6 +1178,7 @@ router.post('/claude-accounts/:accountId/test-sync', authenticateAdmin, async (r
   try {
     // 检查账户是否存在
     const account = await claudeAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({
         error: 'Account not found',
@@ -1143,6 +1205,7 @@ router.post('/claude-accounts/:accountId/test-sync', authenticateAdmin, async (r
     })
   } catch (error) {
     logger.error(`❌ Failed to run sync test for account ${accountId}:`, error)
+
     return res.status(500).json({
       error: 'Failed to run test',
       message: error.message
@@ -1178,6 +1241,7 @@ router.post('/claude-accounts/batch-test-history', authenticateAdmin, async (req
     })
   } catch (error) {
     logger.error('❌ Failed to get batch test history:', error)
+
     return res.status(500).json({
       error: 'Failed to get batch test history',
       message: error.message

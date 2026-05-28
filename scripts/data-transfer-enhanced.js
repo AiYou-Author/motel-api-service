@@ -19,6 +19,7 @@ const params = {}
 
 args.slice(1).forEach((arg) => {
   const [key, value] = arg.split('=')
+
   params[key.replace('--', '')] = value || true
 })
 
@@ -51,12 +52,16 @@ function decryptClaudeData(encryptedData) {
 
       const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
       let decrypted = decipher.update(encrypted, 'hex', 'utf8')
+
       decrypted += decipher.final('utf8')
+
       return decrypted
     }
+
     return encryptedData
   } catch (error) {
     logger.warn(`⚠️  Failed to decrypt data: ${error.message}`)
+
     return encryptedData
   }
 }
@@ -76,12 +81,16 @@ function decryptGeminiData(encryptedData) {
 
       const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv)
       let decrypted = decipher.update(encrypted, 'hex', 'utf8')
+
       decrypted += decipher.final('utf8')
+
       return decrypted
     }
+
     return encryptedData
   } catch (error) {
     logger.warn(`⚠️  Failed to decrypt data: ${error.message}`)
+
     return encryptedData
   }
 }
@@ -124,6 +133,7 @@ function encryptClaudeData(data) {
 
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
   let encrypted = cipher.update(data, 'utf8', 'hex')
+
   encrypted += cipher.final('hex')
 
   return `${iv.toString('hex')}:${encrypted}`
@@ -139,6 +149,7 @@ function encryptGeminiData(data) {
 
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv)
   let encrypted = cipher.update(data, 'utf8', 'hex')
+
   encrypted += cipher.final('hex')
 
   return `${iv.toString('hex')}:${encrypted}`
@@ -164,27 +175,32 @@ async function exportUsageStats(keyId) {
 
     // 导出总统计（Hash）
     const totalData = await redis.client.hgetall(`usage:${keyId}`)
+
     if (totalData && Object.keys(totalData).length > 0) {
       stats.total = totalData
     }
 
     // 导出费用总统计（String）
     const costTotal = await redis.client.get(`usage:cost:total:${keyId}`)
+
     if (costTotal) {
       stats.costTotal = costTotal
     }
 
     // 导出 Opus 费用总统计（String）
     const opusTotal = await redis.client.get(`usage:opus:total:${keyId}`)
+
     if (opusTotal) {
       stats.opusTotal = opusTotal
     }
 
     // 导出每日统计（扫描现有 key，避免时区问题）
     const dailyKeys = await redis.client.keys(`usage:daily:${keyId}:*`)
+
     for (const key of dailyKeys) {
       const date = key.split(':').pop()
       const data = await redis.client.hgetall(key)
+
       if (data && Object.keys(data).length > 0) {
         stats.daily[date] = data
       }
@@ -192,9 +208,11 @@ async function exportUsageStats(keyId) {
 
     // 导出每日费用（扫描现有 key）
     const costDailyKeys = await redis.client.keys(`usage:cost:daily:${keyId}:*`)
+
     for (const key of costDailyKeys) {
       const date = key.split(':').pop()
       const value = await redis.client.get(key)
+
       if (value) {
         stats.costDaily[date] = value
       }
@@ -202,9 +220,11 @@ async function exportUsageStats(keyId) {
 
     // 导出每月统计（扫描现有 key）
     const monthlyKeys = await redis.client.keys(`usage:monthly:${keyId}:*`)
+
     for (const key of monthlyKeys) {
       const month = key.split(':').pop()
       const data = await redis.client.hgetall(key)
+
       if (data && Object.keys(data).length > 0) {
         stats.monthly[month] = data
       }
@@ -212,9 +232,11 @@ async function exportUsageStats(keyId) {
 
     // 导出每月费用（扫描现有 key）
     const costMonthlyKeys = await redis.client.keys(`usage:cost:monthly:${keyId}:*`)
+
     for (const key of costMonthlyKeys) {
       const month = key.split(':').pop()
       const value = await redis.client.get(key)
+
       if (value) {
         stats.costMonthly[month] = value
       }
@@ -222,9 +244,11 @@ async function exportUsageStats(keyId) {
 
     // 导出 Opus 周费用（扫描现有 key）
     const opusWeeklyKeys = await redis.client.keys(`usage:opus:weekly:${keyId}:*`)
+
     for (const key of opusWeeklyKeys) {
       const week = key.split(':').pop()
       const value = await redis.client.get(key)
+
       if (value) {
         stats.opusWeekly[week] = value
       }
@@ -233,10 +257,12 @@ async function exportUsageStats(keyId) {
     // 导出小时统计（扫描现有 key）
     // key 格式: usage:hourly:{keyId}:{YYYY-MM-DD}:{HH}
     const hourlyKeys = await redis.client.keys(`usage:hourly:${keyId}:*`)
+
     for (const key of hourlyKeys) {
       const parts = key.split(':')
       const hourKey = `${parts[parts.length - 2]}:${parts[parts.length - 1]}` // YYYY-MM-DD:HH
       const data = await redis.client.hgetall(key)
+
       if (data && Object.keys(data).length > 0) {
         stats.hourly[hourKey] = data
       }
@@ -245,10 +271,12 @@ async function exportUsageStats(keyId) {
     // 导出小时费用（扫描现有 key）
     // key 格式: usage:cost:hourly:{keyId}:{YYYY-MM-DD}:{HH}
     const costHourlyKeys = await redis.client.keys(`usage:cost:hourly:${keyId}:*`)
+
     for (const key of costHourlyKeys) {
       const parts = key.split(':')
       const hourKey = `${parts[parts.length - 2]}:${parts[parts.length - 1]}` // YYYY-MM-DD:HH
       const value = await redis.client.get(key)
+
       if (value) {
         stats.costHourly[hourKey] = value
       }
@@ -256,12 +284,15 @@ async function exportUsageStats(keyId) {
 
     // 导出模型统计（每日）
     const modelDailyKeys = await redis.client.keys(`usage:${keyId}:model:daily:*`)
+
     for (const key of modelDailyKeys) {
       const match = key.match(/usage:.+:model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
       if (match) {
         const model = match[1]
         const date = match[2]
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           if (!stats.models[model]) {
             stats.models[model] = { daily: {}, monthly: {} }
@@ -273,12 +304,15 @@ async function exportUsageStats(keyId) {
 
     // 导出模型统计（每月）
     const modelMonthlyKeys = await redis.client.keys(`usage:${keyId}:model:monthly:*`)
+
     for (const key of modelMonthlyKeys) {
       const match = key.match(/usage:.+:model:monthly:(.+):(\d{4}-\d{2})$/)
+
       if (match) {
         const model = match[1]
         const month = match[2]
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           if (!stats.models[model]) {
             stats.models[model] = { daily: {}, monthly: {} }
@@ -291,6 +325,7 @@ async function exportUsageStats(keyId) {
     return stats
   } catch (error) {
     logger.warn(`⚠️  Failed to export usage stats for ${keyId}: ${error.message}`)
+
     return null
   }
 }
@@ -514,6 +549,7 @@ async function exportData() {
         }
 
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           // 获取该 API Key 的 ID
           const keyId = data.id
@@ -535,6 +571,7 @@ async function exportData() {
     if (types.includes('all') || types.includes('accounts')) {
       logger.info('📤 Exporting Claude accounts...')
       const keys = await redis.client.keys('claude:account:*')
+
       logger.info(`Found ${keys.length} Claude account keys in Redis`)
       const accounts = []
 
@@ -558,6 +595,7 @@ async function exportData() {
             }
             if (data.claudeAiOauth) {
               const decrypted = decryptClaudeData(data.claudeAiOauth)
+
               try {
                 data.claudeAiOauth = JSON.parse(decrypted)
               } catch (e) {
@@ -576,6 +614,7 @@ async function exportData() {
       // 导出 Gemini 账户
       logger.info('📤 Exporting Gemini accounts...')
       const geminiKeys = await redis.client.keys('gemini_account:*')
+
       logger.info(`Found ${geminiKeys.length} Gemini account keys in Redis`)
       const geminiAccounts = []
 
@@ -587,6 +626,7 @@ async function exportData() {
           if (shouldDecrypt && !shouldSanitize) {
             if (data.geminiOauth) {
               const decrypted = decryptGeminiData(data.geminiOauth)
+
               try {
                 data.geminiOauth = JSON.parse(decrypted)
               } catch (e) {
@@ -621,6 +661,7 @@ async function exportData() {
         }
 
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           admins.push(shouldSanitize ? sanitizeData(data, 'admin') : data)
         }
@@ -646,6 +687,7 @@ async function exportData() {
 
       // 导出月份索引
       const monthlyMonths = await redis.client.smembers('usage:model:monthly:months')
+
       if (monthlyMonths && monthlyMonths.length > 0) {
         globalStats.monthlyMonths = monthlyMonths
         logger.info(`📤 Found ${monthlyMonths.length} months in index`)
@@ -653,6 +695,7 @@ async function exportData() {
 
       // 导出全局统计
       const globalTotal = await redis.client.hgetall('usage:global:total')
+
       if (globalTotal && Object.keys(globalTotal).length > 0) {
         globalStats.globalTotal = globalTotal
         logger.info('📤 Found global total stats')
@@ -660,9 +703,11 @@ async function exportData() {
 
       // 导出全局每日统计
       const globalDailyKeys = await redis.client.keys('usage:global:daily:*')
+
       for (const key of globalDailyKeys) {
         const date = key.replace('usage:global:daily:', '')
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           globalStats.globalDaily[date] = data
         }
@@ -671,9 +716,11 @@ async function exportData() {
 
       // 导出全局每月统计
       const globalMonthlyKeys = await redis.client.keys('usage:global:monthly:*')
+
       for (const key of globalMonthlyKeys) {
         const month = key.replace('usage:global:monthly:', '')
         const data = await redis.client.hgetall(key)
+
         if (data && Object.keys(data).length > 0) {
           globalStats.globalMonthly[month] = data
         }
@@ -683,12 +730,15 @@ async function exportData() {
       // 导出全局每日模型统计
       const modelDailyPattern = 'usage:model:daily:*'
       const modelDailyKeys = await redis.client.keys(modelDailyPattern)
+
       for (const key of modelDailyKeys) {
         const match = key.match(/usage:model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
         if (match) {
           const model = match[1]
           const date = match[2]
           const data = await redis.client.hgetall(key)
+
           if (data && Object.keys(data).length > 0) {
             if (!globalStats.daily[date]) {
               globalStats.daily[date] = {}
@@ -701,12 +751,15 @@ async function exportData() {
       // 导出全局每月模型统计
       const modelMonthlyPattern = 'usage:model:monthly:*'
       const modelMonthlyKeys = await redis.client.keys(modelMonthlyPattern)
+
       for (const key of modelMonthlyKeys) {
         const match = key.match(/usage:model:monthly:(.+):(\d{4}-\d{2})$/)
+
         if (match) {
           const model = match[1]
           const month = match[2]
           const data = await redis.client.hgetall(key)
+
           if (data && Object.keys(data).length > 0) {
             if (!globalStats.monthly[month]) {
               globalStats.monthly[month] = {}
@@ -719,12 +772,15 @@ async function exportData() {
       // 导出全局每小时模型统计
       const globalHourlyPattern = 'usage:model:hourly:*'
       const globalHourlyKeys = await redis.client.keys(globalHourlyPattern)
+
       for (const key of globalHourlyKeys) {
         const match = key.match(/usage:model:hourly:(.+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
         if (match) {
           const model = match[1]
           const hour = match[2]
           const data = await redis.client.hgetall(key)
+
           if (data && Object.keys(data).length > 0) {
             if (!globalStats.hourly[hour]) {
               globalStats.hourly[hour] = {}
@@ -835,6 +891,7 @@ Examples:
 async function importData() {
   try {
     const inputFile = params.input
+
     if (!inputFile) {
       logger.error('❌ Please specify input file with --input=filename.json')
       process.exit(1)
@@ -866,8 +923,10 @@ async function importData() {
     if (importDataObj.metadata.sanitized) {
       logger.warn('⚠️  This backup contains sanitized data. Sensitive fields will be missing!')
       const proceed = await askConfirmation('Continue with sanitized data?')
+
       if (!proceed) {
         logger.info('❌ Import cancelled')
+
         return
       }
     }
@@ -892,8 +951,10 @@ async function importData() {
 
     // 确认导入
     const confirmed = await askConfirmation('⚠️  Proceed with import?')
+
     if (!confirmed) {
       logger.info('❌ Import cancelled')
+
       return
     }
 
@@ -923,6 +984,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `API Key "${apiKey.name}" (${apiKey.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -935,6 +997,7 @@ async function importData() {
 
           // 从apiKey对象中删除usageStats字段，避免存储到主键中
           const apiKeyData = { ...apiKey }
+
           delete apiKeyData.usageStats
 
           // 检查并处理API Key哈希
@@ -959,6 +1022,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(apiKeyData)) {
             pipeline.hset(`apikey:${apiKey.id}`, field, value)
           }
@@ -1002,6 +1066,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `Claude account "${account.name}" (${account.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -1034,12 +1099,14 @@ async function importData() {
                 typeof accountData.claudeAiOauth === 'object'
                   ? JSON.stringify(accountData.claudeAiOauth)
                   : accountData.claudeAiOauth
+
               accountData.claudeAiOauth = encryptClaudeData(oauthStr)
             }
           }
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(accountData)) {
             if (field === 'claudeAiOauth' && typeof value === 'object') {
               // 确保对象被序列化
@@ -1075,6 +1142,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `Gemini account "${account.name}" (${account.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -1094,6 +1162,7 @@ async function importData() {
                 typeof accountData.geminiOauth === 'object'
                   ? JSON.stringify(accountData.geminiOauth)
                   : accountData.geminiOauth
+
               accountData.geminiOauth = encryptGeminiData(oauthStr)
             }
             if (accountData.accessToken) {
@@ -1106,6 +1175,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(accountData)) {
             pipeline.hset(`gemini_account:${account.id}`, field, value)
           }
@@ -1136,6 +1206,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `Admin "${admin.username}" (${admin.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -1145,6 +1216,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(admin)) {
             pipeline.hset(`admin:${admin.id}`, field, value)
           }

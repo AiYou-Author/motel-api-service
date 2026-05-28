@@ -1212,6 +1212,7 @@ const quickAddRestrictedModel = (model) => {
 const addTag = () => {
   if (newTag.value && newTag.value.trim()) {
     const tag = newTag.value.trim()
+
     if (!form.tags.includes(tag)) {
       form.tags.push(tag)
     }
@@ -1260,6 +1261,7 @@ const buildPayloadRulesForSubmit = () => {
     if (rule.valueType === 'number') {
       if (!Number.isFinite(Number(rule.value))) {
         showToast(`字段 ${rule.path} 的值不是合法数字`, 'error')
+
         return null
       }
       continue
@@ -1267,8 +1269,10 @@ const buildPayloadRulesForSubmit = () => {
 
     if (rule.valueType === 'boolean') {
       const normalized = rule.value.trim().toLowerCase()
+
       if (normalized !== 'true' && normalized !== 'false') {
         showToast(`字段 ${rule.path} 的值必须是 true 或 false`, 'error')
+
         return null
       }
       continue
@@ -1279,6 +1283,7 @@ const buildPayloadRulesForSubmit = () => {
         JSON.parse(rule.value)
       } catch (error) {
         showToast(`字段 ${rule.path} 的值不是合法 JSON`, 'error')
+
         return null
       }
     }
@@ -1307,6 +1312,7 @@ const updateApiKey = async () => {
       '返回修改',
       'warning'
     )
+
     if (!confirmed) {
       return
     }
@@ -1318,6 +1324,7 @@ const updateApiKey = async () => {
     // 准备提交的数据
     // 过滤掉空值的服务倍率
     const filteredServiceRates = {}
+
     if (enableServiceRates.value) {
       for (const [key, value] of Object.entries(form.serviceRates)) {
         if (value !== null && value !== undefined && value !== '') {
@@ -1327,8 +1334,10 @@ const updateApiKey = async () => {
     }
 
     const payloadRules = buildPayloadRulesForSubmit()
+
     if (payloadRules === null) {
       loading.value = false
+
       return
     }
 
@@ -1572,6 +1581,7 @@ const refreshAccounts = async () => {
     // 处理分组数据
     if (groupsData.success) {
       const allGroups = groupsData.data || []
+
       localAccounts.value.claudeGroups = allGroups.filter((g) => g.platform === 'claude')
       localAccounts.value.geminiGroups = allGroups.filter((g) => g.platform === 'gemini')
       localAccounts.value.openaiGroups = allGroups.filter((g) => g.platform === 'openai')
@@ -1590,6 +1600,7 @@ const refreshAccounts = async () => {
 const loadUsers = async () => {
   try {
     const response = await httpApis.getUsersApi()
+
     if (response.success) {
       availableUsers.value = response.data || []
     }
@@ -1637,6 +1648,7 @@ onMounted(async () => {
 
     // props.accounts.openai 只包含 openai 类型，openaiResponses 需要单独处理
     const openaiAccounts = []
+
     if (props.accounts.openai) {
       props.accounts.openai.forEach((account) => {
         openaiAccounts.push({
@@ -1698,6 +1710,7 @@ onMounted(async () => {
   // 有效的权限值
   const VALID_PERMS = ['claude', 'gemini', 'openai', 'droid']
   let perms = props.apiKey.permissions
+
   // 如果是字符串，尝试 JSON.parse（Redis 可能返回 "[]" 或 "[\"gemini\"]"）
   if (typeof perms === 'string') {
     if (perms === 'all' || perms === '') {

@@ -39,6 +39,7 @@ class DroidRelayService {
     }
 
     const normalized = String(endpointType).toLowerCase()
+
     if (normalized === 'openai') {
       return 'openai'
     }
@@ -68,6 +69,7 @@ class DroidRelayService {
 
       if (lowerModel.includes('haiku')) {
         const mappedModel = 'claude-sonnet-4-20250514'
+
         if (originalModel !== mappedModel) {
           logger.info(`🔄 将请求模型从 ${originalModel} 映射为 ${mappedModel}`)
         }
@@ -82,6 +84,7 @@ class DroidRelayService {
 
       if (lowerModel === 'gpt-5') {
         const mappedModel = 'gpt-5-2025-08-07'
+
         if (originalModel !== mappedModel) {
           logger.info(`🔄 将请求模型从 ${originalModel} 映射为 ${mappedModel}`)
         }
@@ -131,17 +134,20 @@ class DroidRelayService {
     }
 
     const normalizedEndpoint = this._normalizeEndpointType(endpointType)
+
     return `${this.API_KEY_STICKY_PREFIX}:${accountId}:${normalizedEndpoint}:${sessionHash}`
   }
 
   async _selectApiKey(account, endpointType, sessionHash) {
     const entries = await droidAccountService.getDecryptedApiKeyEntries(account.id)
+
     if (!entries || entries.length === 0) {
       throw new Error(`Droid account ${account.id} 未配置任何 API Key`)
     }
 
     // 过滤掉异常状态的API Key
     const activeEntries = entries.filter((entry) => entry.status !== 'error')
+
     if (!activeEntries || activeEntries.length === 0) {
       throw new Error(`Droid account ${account.id} 没有可用的 API Key（所有API Key均已异常）`)
     }
@@ -150,12 +156,15 @@ class DroidRelayService {
 
     if (stickyKey) {
       const mappedKeyId = await redis.getSessionAccountMapping(stickyKey)
+
       if (mappedKeyId) {
         const mappedEntry = activeEntries.find((entry) => entry.id === mappedKeyId)
+
         if (mappedEntry) {
           await redis.extendSessionAccountMappingTTL(stickyKey)
           await droidAccountService.touchApiKeyUsage(account.id, mappedEntry.id)
           logger.info(`🔐 使用已绑定的 Droid API Key ${mappedEntry.id}（Account: ${account.id}）`)
+
           return mappedEntry
         }
 
@@ -164,6 +173,7 @@ class DroidRelayService {
     }
 
     const selectedEntry = activeEntries[Math.floor(Math.random() * activeEntries.length)]
+
     if (!selectedEntry) {
       throw new Error(`Droid account ${account.id} 没有可用的 API Key`)
     }
@@ -358,6 +368,7 @@ class DroidRelayService {
       const status = error?.response?.status
       const droidAutoProtectionDisabled =
         account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
       // 5xx 错误
       if (status >= 500 && account?.id && !droidAutoProtectionDisabled) {
         await upstreamErrorHelper.markTempUnavailable(account.id, 'droid', status).catch(() => {})
@@ -401,6 +412,7 @@ class DroidRelayService {
 
       // 网络错误或其他错误（统一返回 4xx）
       const mappedStatus = this._mapNetworkErrorStatus(error)
+
       return {
         statusCode: mappedStatus,
         headers: { 'Content-Type': 'application/json' },
@@ -477,6 +489,7 @@ class DroidRelayService {
               clientResponse.end()
             }
             resolveOnce({ statusCode: 200, streaming: true })
+
             return
           }
 
@@ -542,10 +555,12 @@ class DroidRelayService {
           res.on('end', () => {
             logger.info('✅ res.end() reached')
             const body = Buffer.concat(chunks).toString()
+
             logger.error(`❌ Factory.ai error response body: ${body || '(empty)'}`)
             if (res.statusCode >= 500) {
               const streamAutoProtectionDisabled =
                 account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
               if (!streamAutoProtectionDisabled) {
                 upstreamErrorHelper
                   .markTempUnavailable(account.id, 'droid', res.statusCode)
@@ -596,6 +611,7 @@ class DroidRelayService {
         // 处理 SSE 流
         res.on('data', (chunk) => {
           const chunkStr = chunk.toString()
+
           completionWindow = (completionWindow + chunkStr).slice(-1024)
           hasForwardedData = true
 
@@ -762,6 +778,7 @@ class DroidRelayService {
         if (line.startsWith('data: ') && line.length > 6) {
           try {
             const jsonStr = line.slice(6)
+
             if (jsonStr === '[DONE]') {
               continue
             }
@@ -801,6 +818,7 @@ class DroidRelayService {
             // 新 Response API 在 response.usage 中返回统计
             if (data.response && data.response.usage) {
               const { usage } = data.response
+
               currentUsageData.input_tokens =
                 usage.input_tokens || usage.prompt_tokens || usage.total_tokens || 0
               currentUsageData.total_tokens = usage.total_tokens || 0
@@ -854,6 +872,7 @@ class DroidRelayService {
       if (compact.includes('"type":"message_stop"')) {
         return true
       }
+
       return false
     }
 
@@ -887,6 +906,7 @@ class DroidRelayService {
   async _recordUsageFromStreamData(usageData, apiKeyData, account, model, requestMeta = null) {
     const normalizedUsage = this._normalizeUsageSnapshot(usageData)
     const costs = await this._recordUsage(apiKeyData, account, model, normalizedUsage, requestMeta)
+
     return { normalizedUsage, costs }
   }
 
@@ -899,9 +919,11 @@ class DroidRelayService {
         return 0
       }
       const num = Number(value)
+
       if (!Number.isFinite(num)) {
         return 0
       }
+
       return Math.max(0, num)
     }
 
@@ -917,6 +939,7 @@ class DroidRelayService {
     let outputTokens = toNumber(
       usageData.output_tokens ?? usageData.completion_tokens ?? usageData.outputTokens
     )
+
     // 如果 output_tokens 为 0 但有 total_tokens，从差值计算
     if (outputTokens === 0 && totalTokens > 0 && inputTokens >= 0) {
       outputTokens = Math.max(0, totalTokens - inputTokens)
@@ -971,9 +994,11 @@ class DroidRelayService {
         return 0
       }
       const num = Number(value)
+
       if (!Number.isFinite(num)) {
         return 0
       }
+
       return Math.max(0, num)
     }
 
@@ -992,6 +1017,7 @@ class DroidRelayService {
     if (!account || typeof account !== 'object') {
       return null
     }
+
     return account.id || account.accountId || account.account_id || null
   }
 
@@ -1058,6 +1084,7 @@ class DroidRelayService {
     // OpenAI 特定头 - 根据模型动态选择 provider
     if (endpointType === 'openai') {
       const model = (requestBody?.model || '').toLowerCase()
+
       // -max 模型使用 openai provider，其他使用 azure_openai
       if (model.includes('-max')) {
         headers['x-api-provider'] = 'openai'
@@ -1069,6 +1096,7 @@ class DroidRelayService {
     // Comm 端点根据模型动态设置 provider
     if (endpointType === 'comm') {
       const model = requestBody?.model
+
       headers['x-api-provider'] = this._inferProviderFromModel(model)
     }
 
@@ -1104,6 +1132,7 @@ class DroidRelayService {
    */
   _isThinkingRequested(requestBody) {
     const thinking = requestBody && typeof requestBody === 'object' ? requestBody.thinking : null
+
     if (!thinking) {
       return false
     }
@@ -1157,10 +1186,12 @@ class DroidRelayService {
     if (endpointType === 'anthropic') {
       if (this.systemPrompt) {
         const promptBlock = { type: 'text', text: this.systemPrompt }
+
         if (Array.isArray(processedBody.system)) {
           const hasPrompt = processedBody.system.some(
             (item) => item && item.type === 'text' && item.text === this.systemPrompt
           )
+
           if (!hasPrompt) {
             processedBody.system = [promptBlock, ...processedBody.system]
           }
@@ -1191,8 +1222,10 @@ class DroidRelayService {
         if (hasSystemMessage) {
           // 如果已有 system 消息，在第一个 system 消息的 content 前追加
           const firstSystemIndex = processedBody.messages.findIndex((m) => m && m.role === 'system')
+
           if (firstSystemIndex !== -1) {
             const existingContent = processedBody.messages[firstSystemIndex].content || ''
+
             if (
               typeof existingContent === 'string' &&
               !existingContent.startsWith(this.systemPrompt)
@@ -1276,6 +1309,7 @@ class DroidRelayService {
           : endpointType === 'comm'
             ? ' [comm]'
             : ' [openai]'
+
       await this._applyRateLimitTracking(
         clientRequest?.rateLimitInfo,
         usageSummary,
@@ -1309,6 +1343,7 @@ class DroidRelayService {
 
     if (totalTokens <= 0) {
       logger.debug('🪙 Droid usage 数据为空，跳过记录')
+
       return { realCost: 0, ratedCost: 0 }
     }
 
@@ -1341,6 +1376,7 @@ class DroidRelayService {
         )
       } else {
         logger.warn('⚠️ 无法记录 Droid usage：缺少 API Key 和账户标识')
+
         return { realCost: 0, ratedCost: 0 }
       }
 
@@ -1351,6 +1387,7 @@ class DroidRelayService {
       return costs
     } catch (error) {
       logger.error('❌ Failed to record Droid usage:', error)
+
       return { realCost: 0, ratedCost: 0 }
     }
   }
@@ -1372,8 +1409,10 @@ class DroidRelayService {
     } = context
 
     const accountId = this._extractAccountId(account)
+
     if (!accountId) {
       logger.warn('⚠️ 上游 4xx 处理被跳过：缺少有效的账户信息')
+
       return
     }
 
@@ -1441,11 +1480,13 @@ class DroidRelayService {
       )
       await this._stopDroidAccountScheduling(accountId, statusCode, '缺少可用 API Key')
       await this._clearAccountStickyMapping(normalizedEndpoint, sessionHash, clientApiKeyId)
+
       return
     }
 
     const clientErrorAutoProtectionDisabled =
       account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
     if (!clientErrorAutoProtectionDisabled) {
       await upstreamErrorHelper.markTempUnavailable(accountId, 'droid', statusCode)
     }
@@ -1504,6 +1545,7 @@ class DroidRelayService {
 
     try {
       const stickyKey = this._composeApiKeyStickyKey(accountId, endpointType, sessionHash)
+
       if (stickyKey) {
         await redis.deleteSessionAccountMapping(stickyKey)
         logger.debug(`🧹 已清理 Droid API Key 粘性映射：${stickyKey}`)
@@ -1533,6 +1575,7 @@ class DroidRelayService {
 
     if (typeof error === 'object' && error !== null) {
       const message = (error.message || '').toLowerCase()
+
       if (message.includes('timeout')) {
         return 408
       }
@@ -1565,6 +1608,7 @@ class DroidRelayService {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = (Math.random() * 16) | 0
       const v = c === 'x' ? r : (r & 0x3) | 0x8
+
       return v.toString(16)
     })
   }

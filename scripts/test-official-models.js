@@ -57,12 +57,14 @@ console.log('📌 官方 Opus 模型:')
 for (const m of officialModels) {
   const result = isOpus45OrNewer(m.name)
   const status = result === m.expectPro ? '✅ PASS' : '❌ FAIL'
+
   if (result === m.expectPro) {
     passed++
   } else {
     failed++
   }
   const proSupport = result ? 'Pro 可用 ✅' : 'Pro 不可用 ❌'
+
   console.log(`  ${status} | ${m.name.padEnd(32)} | ${m.desc.padEnd(18)} | ${proSupport}`)
 }
 
@@ -70,6 +72,7 @@ console.log()
 console.log('📌 非 Opus 模型 (不受此函数影响):')
 for (const m of nonOpusModels) {
   const result = isOpus45OrNewer(m.name)
+
   console.log(
     `  ➖      | ${m.name.padEnd(32)} | ${m.desc.padEnd(18)} | ${result ? '⚠️ 异常' : '正确跳过'}`
   )
@@ -83,12 +86,14 @@ console.log('📌 其他格式测试:')
 for (const m of otherFormats) {
   const result = isOpus45OrNewer(m.name)
   const status = result === m.expected ? '✅ PASS' : '❌ FAIL'
+
   if (result === m.expected) {
     passed++
   } else {
     failed++
   }
   const display = m.name === null ? 'null' : m.name === '' ? '""' : m.name
+
   console.log(
     `  ${status} | ${display.padEnd(25)} | ${m.desc.padEnd(18)} | ${result ? 'Pro 可用' : 'Pro 不可用'}`
   )

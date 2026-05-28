@@ -27,6 +27,7 @@ class RateLimitCleanupService {
   start(intervalMinutes = 5) {
     if (this.cleanupInterval) {
       logger.warn('⚠️ Rate limit cleanup service is already running')
+
       return
     }
 
@@ -60,6 +61,7 @@ class RateLimitCleanupService {
   async performCleanup() {
     if (this.isRunning) {
       logger.debug('⏭️ Cleanup already in progress, skipping this cycle')
+
       return
     }
 
@@ -140,6 +142,7 @@ class RateLimitCleanupService {
         ...results.quotaExceeded.errors,
         ...results.tokenRefresh.errors
       ]
+
       if (allErrors.length > 0) {
         logger.warn(`⚠️ Encountered ${allErrors.length} errors during cleanup:`, allErrors)
       }
@@ -452,18 +455,21 @@ class RateLimitCleanupService {
         const isWaitingForReset =
           account.rateLimitAutoStopped === 'true' || // 429 限流
           account.fiveHourAutoStopped === 'true' // 5小时限制自动停止
+
         if (!isWaitingForReset) {
           continue
         }
 
         // 4. 【优化】如果最近 5 分钟内已刷新，跳过（避免重复刷新）
         const lastRefreshAt = account.lastRefreshAt ? new Date(account.lastRefreshAt).getTime() : 0
+
         if (now - lastRefreshAt < recentRefreshMs) {
           continue
         }
 
         // 5. 检查 Token 是否即将过期（30分钟内）
         const expiresAt = parseInt(account.expiresAt)
+
         if (expiresAt && now < expiresAt - refreshAheadMs) {
           continue
         }
@@ -504,6 +510,7 @@ class RateLimitCleanupService {
     try {
       // 按平台分组账户
       const groupedAccounts = {}
+
       for (const account of this.clearedAccounts) {
         if (!groupedAccounts[account.platform]) {
           groupedAccounts[account.platform] = []
@@ -519,6 +526,7 @@ class RateLimitCleanupService {
 
       for (const platform of platforms) {
         const accounts = groupedAccounts[platform]
+
         message += `**${platform}** (${accounts.length} 个):\n`
         for (const account of accounts) {
           message += `• ${account.accountName} (ID: ${account.accountId})\n`

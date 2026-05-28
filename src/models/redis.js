@@ -19,6 +19,7 @@ function getDateInTimezone(date = new Date()) {
 // 获取配置时区的日期字符串 (YYYY-MM-DD)
 function getDateStringInTimezone(date = new Date()) {
   const tzDate = getDateInTimezone(date)
+
   // 使用UTC方法获取偏移后的日期部分
   return `${tzDate.getUTCFullYear()}-${String(tzDate.getUTCMonth() + 1).padStart(2, '0')}-${String(
     tzDate.getUTCDate()
@@ -28,6 +29,7 @@ function getDateStringInTimezone(date = new Date()) {
 // 获取配置时区的小时 (0-23)
 function getHourInTimezone(date = new Date()) {
   const tzDate = getDateInTimezone(date)
+
   return tzDate.getUTCHours()
 }
 
@@ -42,6 +44,7 @@ function getWeekStringInTimezone(date = new Date()) {
   const dateObj = new Date(tzDate)
   const dayOfWeek = dateObj.getUTCDay() || 7 // 将周日(0)转换为7
   const firstThursday = new Date(dateObj)
+
   firstThursday.setUTCDate(dateObj.getUTCDate() + 4 - dayOfWeek) // 找到这周的周四
 
   const yearStart = new Date(firstThursday.getUTCFullYear(), 0, 1)
@@ -62,6 +65,7 @@ function getPeriodString(resetDay = 1, resetHour = 0, date = new Date()) {
 
   // 计算距上次重置已过的天数
   let daysSinceReset = (currentDay - resetDay + 7) % 7
+
   // 如果同一天但还没到重置时间，视为上一个周期
   if (daysSinceReset === 0 && currentHour < resetHour) {
     daysSinceReset = 7
@@ -69,6 +73,7 @@ function getPeriodString(resetDay = 1, resetHour = 0, date = new Date()) {
 
   // 回退到周期起始日
   const periodStart = new Date(tzDate)
+
   periodStart.setUTCDate(tzDate.getUTCDate() - daysSinceReset)
   periodStart.setUTCHours(resetHour, 0, 0, 0)
 
@@ -91,6 +96,7 @@ function getNextResetTime(resetDay = 1, resetHour = 0) {
   const currentHour = tzDate.getUTCHours()
 
   let daysUntilReset = (resetDay - currentDay + 7) % 7
+
   // 如果同一天但已过重置时间，等到下周
   if (daysUntilReset === 0 && currentHour >= resetHour) {
     daysUntilReset = 7
@@ -98,11 +104,13 @@ function getNextResetTime(resetDay = 1, resetHour = 0) {
 
   // 构造时区下的重置时间
   const resetTz = new Date(tzDate)
+
   resetTz.setUTCDate(tzDate.getUTCDate() + daysUntilReset)
   resetTz.setUTCHours(resetHour, 0, 0, 0)
 
   // 转换回真实 UTC：减去时区偏移
   const resetUtc = new Date(resetTz.getTime() - offset * 3600000)
+
   return resetUtc
 }
 
@@ -115,11 +123,13 @@ function getPeriodStartDate(resetDay = 1, resetHour = 0, date = new Date()) {
   const currentHour = tzDate.getUTCHours()
 
   let daysSinceReset = (currentDay - resetDay + 7) % 7
+
   if (daysSinceReset === 0 && currentHour < resetHour) {
     daysSinceReset = 7
   }
 
   const periodStart = new Date(tzDate)
+
   periodStart.setUTCDate(tzDate.getUTCDate() - daysSinceReset)
   periodStart.setUTCHours(resetHour, 0, 0, 0)
 
@@ -191,6 +201,7 @@ class RedisClient {
           }
         })
       }
+
       return this.client
     } catch (error) {
       logger.error('💥 Failed to connect to Redis:', error)
@@ -202,8 +213,10 @@ class RedisClient {
   async migrateUsageIndex() {
     const migrationKey = 'system:migration:usage_index_v2' // v2: 添加 keymodel 迁移
     const migrated = await this.client.get(migrationKey)
+
     if (migrated) {
       logger.debug('📊 Usage index migration already completed')
+
       return
     }
 
@@ -213,6 +226,7 @@ class RedisClient {
     try {
       // 迁移 usage:daily
       let cursor = '0'
+
       do {
         const [newCursor, keys] = await this.client.scan(
           cursor,
@@ -221,10 +235,13 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           const match = key.match(/^usage:daily:([^:]+):(\d{4}-\d{2}-\d{2})$/)
+
           if (match) {
             pipeline.sadd(`usage:daily:index:${match[2]}`, match[1])
             pipeline.expire(`usage:daily:index:${match[2]}`, 86400 * 32)
@@ -246,10 +263,13 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           const match = key.match(/^usage:hourly:([^:]+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
           if (match) {
             pipeline.sadd(`usage:hourly:index:${match[2]}`, match[1])
             pipeline.expire(`usage:hourly:index:${match[2]}`, 86400 * 7)
@@ -271,10 +291,13 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           const match = key.match(/^usage:model:daily:([^:]+):(\d{4}-\d{2}-\d{2})$/)
+
           if (match) {
             pipeline.sadd(`usage:model:daily:index:${match[2]}`, match[1])
             pipeline.expire(`usage:model:daily:index:${match[2]}`, 86400 * 32)
@@ -296,10 +319,13 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           const match = key.match(/^usage:model:hourly:([^:]+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
           if (match) {
             pipeline.sadd(`usage:model:hourly:index:${match[2]}`, match[1])
             pipeline.expire(`usage:model:hourly:index:${match[2]}`, 86400 * 7)
@@ -321,13 +347,17 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           // usage:{keyId}:model:daily:{model}:{date}
           const match = key.match(/^usage:([^:]+):model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
           if (match) {
             const [, keyId, model, date] = match
+
             pipeline.sadd(`usage:keymodel:daily:index:${date}`, `${keyId}:${model}`)
             pipeline.expire(`usage:keymodel:daily:index:${date}`, 86400 * 32)
             stats.keymodelDaily = (stats.keymodelDaily || 0) + 1
@@ -348,13 +378,17 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
         const pipeline = this.client.pipeline()
+
         for (const key of keys) {
           // usage:{keyId}:model:hourly:{model}:{hour}
           const match = key.match(/^usage:([^:]+):model:hourly:(.+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
           if (match) {
             const [, keyId, model, hour] = match
+
             pipeline.sadd(`usage:keymodel:hourly:index:${hour}`, `${keyId}:${model}`)
             pipeline.expire(`usage:keymodel:hourly:index:${hour}`, 86400 * 7)
             stats.keymodelHourly = (stats.keymodelHourly || 0) + 1
@@ -379,8 +413,10 @@ class RedisClient {
   async migrateAlltimeModelStats() {
     const migrationKey = 'system:migration:alltime_model_stats_v1'
     const migrated = await this.client.get(migrationKey)
+
     if (migrated) {
       logger.debug('📊 Alltime model stats migration already completed')
+
       return
     }
 
@@ -401,17 +437,20 @@ class RedisClient {
           'COUNT',
           500
         )
+
         cursor = newCursor
 
         for (const key of keys) {
           // usage:{keyId}:model:monthly:{model}:{month}
           const match = key.match(/^usage:([^:]+):model:monthly:(.+):(\d{4}-\d{2})$/)
+
           if (match) {
             const [, keyId, model] = match
             const aggregateKey = `${keyId}:${model}`
 
             // 获取该月的数据
             const data = await this.client.hgetall(key)
+
             if (data && Object.keys(data).length > 0) {
               if (!aggregatedData.has(aggregateKey)) {
                 aggregatedData.set(aggregateKey, {
@@ -426,6 +465,7 @@ class RedisClient {
               }
 
               const agg = aggregatedData.get(aggregateKey)
+
               agg.inputTokens += parseInt(data.inputTokens) || 0
               agg.outputTokens += parseInt(data.outputTokens) || 0
               agg.cacheCreateTokens += parseInt(data.cacheCreateTokens) || 0
@@ -439,8 +479,10 @@ class RedisClient {
 
       // 写入聚合后的 alltime 数据
       const pipeline = this.client.pipeline()
+
       for (const [, agg] of aggregatedData) {
         const alltimeKey = `usage:${agg.keyId}:model:alltime:${agg.model}`
+
         pipeline.hset(alltimeKey, {
           inputTokens: agg.inputTokens.toString(),
           outputTokens: agg.outputTokens.toString(),
@@ -476,8 +518,10 @@ class RedisClient {
   getClient() {
     if (!this.client || !this.isConnected) {
       logger.warn('⚠️ Redis client is not connected')
+
       return null
     }
+
     return this.client
   }
 
@@ -486,6 +530,7 @@ class RedisClient {
     if (!this.client || !this.isConnected) {
       throw new Error('Redis client is not connected')
     }
+
     return this.client
   }
 
@@ -506,6 +551,7 @@ class RedisClient {
 
   async getApiKey(keyId) {
     const key = `apikey:${keyId}`
+
     return await this.client.hgetall(key)
   }
 
@@ -514,6 +560,7 @@ class RedisClient {
 
     // 获取要删除的API Key哈希值，以便从映射表中移除
     const keyData = await this.client.hgetall(key)
+
     if (keyData && keyData.apiKey) {
       // keyData.apiKey现在存储的是哈希值，直接从映射表删除
       await this.client.hdel('apikey:hash_map', keyData.apiKey)
@@ -529,16 +576,19 @@ class RedisClient {
 
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
+
       // 过滤掉hash_map，它不是真正的API Key
       if (key === 'apikey:hash_map') {
         continue
       }
 
       const keyData = dataList[i]
+
       if (keyData && Object.keys(keyData).length > 0) {
         apiKeys.push({ id: key.replace('apikey:', ''), ...keyData })
       }
     }
+
     return apiKeys
   }
 
@@ -560,6 +610,7 @@ class RedisClient {
 
     do {
       const [newCursor, keys] = await this.client.scan(cursor, 'MATCH', 'apikey:*', 'COUNT', 100)
+
       cursor = newCursor
 
       for (const key of keys) {
@@ -605,6 +656,7 @@ class RedisClient {
     if (isIndexReady) {
       // 方案1：直接读取索引服务维护的标签集合
       const cachedTags = await this.client.smembers('apikey:tags:all')
+
       if (cachedTags && cachedTags.length > 0) {
         // 保持 trim 一致性
         return cachedTags
@@ -615,6 +667,7 @@ class RedisClient {
 
       // 方案2：使用索引的 key ID 列表 + pipeline
       const indexedKeyIds = await this.client.smembers('apikey:idx:all')
+
       if (indexedKeyIds && indexedKeyIds.length > 0) {
         return this._extractTagsFromKeyIds(indexedKeyIds)
       }
@@ -630,6 +683,7 @@ class RedisClient {
   async _checkIndexReady() {
     try {
       const version = await this.client.get('apikey:index:version')
+
       // 版本号 >= 2 表示索引就绪
       return parseInt(version) >= 2
     } catch {
@@ -640,11 +694,13 @@ class RedisClient {
   async _extractTagsFromKeyIds(keyIds) {
     const tagSet = new Set()
     const pipeline = this.client.pipeline()
+
     for (const keyId of keyIds) {
       pipeline.hmget(`apikey:${keyId}`, 'tags', 'isDeleted')
     }
 
     const results = await pipeline.exec()
+
     if (!results) {
       return []
     }
@@ -654,16 +710,19 @@ class RedisClient {
         continue
       }
       const [err, values] = result
+
       if (err || !values) {
         continue
       }
       const [tags, isDeleted] = values
+
       if (isDeleted === 'true' || !tags) {
         continue
       }
 
       try {
         const parsed = JSON.parse(tags)
+
         if (Array.isArray(parsed)) {
           for (const tag of parsed) {
             if (tag && typeof tag === 'string' && tag.trim()) {
@@ -675,6 +734,7 @@ class RedisClient {
         // 忽略解析错误
       }
     }
+
     return Array.from(tagSet).sort()
   }
 
@@ -684,19 +744,23 @@ class RedisClient {
 
     do {
       const [newCursor, keys] = await this.client.scan(cursor, 'MATCH', 'apikey:*', 'COUNT', 100)
+
       cursor = newCursor
 
       const validKeys = keys.filter((k) => k !== 'apikey:hash_map' && k.split(':').length === 2)
+
       if (validKeys.length === 0) {
         continue
       }
 
       const pipeline = this.client.pipeline()
+
       for (const key of validKeys) {
         pipeline.hmget(key, 'tags', 'isDeleted')
       }
 
       const results = await pipeline.exec()
+
       if (!results) {
         continue
       }
@@ -706,16 +770,19 @@ class RedisClient {
           continue
         }
         const [err, values] = result
+
         if (err || !values) {
           continue
         }
         const [tags, isDeleted] = values
+
         if (isDeleted === 'true' || !tags) {
           continue
         }
 
         try {
           const parsed = JSON.parse(tags)
+
           if (Array.isArray(parsed)) {
             for (const tag of parsed) {
               if (tag && typeof tag === 'string' && tag.trim()) {
@@ -743,6 +810,7 @@ class RedisClient {
     }
 
     const pipeline = this.client.pipeline()
+
     for (const keyId of keyIds) {
       pipeline.hgetall(`apikey:${keyId}`)
     }
@@ -752,6 +820,7 @@ class RedisClient {
 
     for (let i = 0; i < results.length; i++) {
       const [err, data] = results[i]
+
       if (!err && data && Object.keys(data).length > 0) {
         apiKeys.push({ id: keyIds[i], ...this._parseApiKeyData(data) })
       }
@@ -781,6 +850,7 @@ class RedisClient {
       'enableOpenAIResponsesPayloadRules',
       'isDeleted'
     ]
+
     for (const field of boolFields) {
       if (parsed[field] !== undefined) {
         parsed[field] = parsed[field] === 'true'
@@ -806,6 +876,7 @@ class RedisClient {
       'maxConcurrency',
       'activationDuration'
     ]
+
     for (const field of numFields) {
       if (parsed[field] !== undefined && parsed[field] !== '') {
         parsed[field] = parseFloat(parsed[field]) || 0
@@ -819,6 +890,7 @@ class RedisClient {
       'allowedClients',
       'openaiResponsesPayloadRules'
     ]
+
     for (const field of arrayFields) {
       if (parsed[field]) {
         try {
@@ -835,6 +907,7 @@ class RedisClient {
 
     // 对象字段（JSON 解析）
     const objectFields = ['serviceRates']
+
     for (const field of objectFields) {
       if (parsed[field]) {
         try {
@@ -917,6 +990,7 @@ class RedisClient {
     // 状态筛选
     if (isActive !== '' && isActive !== undefined && isActive !== null) {
       const activeValue = isActive === 'true' || isActive === true
+
       filteredKeys = filteredKeys.filter((k) => k.isActive === activeValue)
     }
 
@@ -924,6 +998,7 @@ class RedisClient {
     if (tag) {
       filteredKeys = filteredKeys.filter((k) => {
         const tags = Array.isArray(k.tags) ? k.tags : []
+
         return tags.includes(tag)
       })
     }
@@ -931,6 +1006,7 @@ class RedisClient {
     // 搜索
     if (search) {
       const lowerSearch = search.toLowerCase().trim()
+
       if (searchMode === 'apiKey') {
         // apiKey 模式：搜索名称和拥有者
         filteredKeys = filteredKeys.filter(
@@ -941,6 +1017,7 @@ class RedisClient {
       } else if (searchMode === 'bindingAccount') {
         // bindingAccount 模式：直接在Redis层处理，避免路由层加载10000条
         const accountNameCacheService = require('../services/accountNameCacheService')
+
         filteredKeys = accountNameCacheService.searchByBindingAccount(filteredKeys, lowerSearch)
       }
     }
@@ -951,6 +1028,7 @@ class RedisClient {
         filteredKeys.map((k) => k.id),
         modelFilter
       )
+
       filteredKeys = filteredKeys.filter((k) => keyIdsWithModels.has(k.id))
     }
 
@@ -985,13 +1063,16 @@ class RedisClient {
       if (aVal > bVal) {
         return sortOrder === 'asc' ? 1 : -1
       }
+
       return 0
     })
 
     // 5. 收集所有可用标签（在分页之前）
     const allTags = new Set()
+
     for (const key of apiKeys) {
       const tags = Array.isArray(key.tags) ? key.tags : []
+
       tags.forEach((t) => allTags.add(t))
     }
     const availableTags = [...allTags].sort()
@@ -1023,6 +1104,7 @@ class RedisClient {
     // 回退：查旧结构 apikey_hash:*（启动回填未完成时兼容）
     if (!keyId) {
       const oldData = await this.client.hgetall(`apikey_hash:${hashedKey}`)
+
       if (oldData && oldData.id) {
         keyId = oldData.id
         // 回填到 hash_map
@@ -1035,12 +1117,14 @@ class RedisClient {
     }
 
     const keyData = await this.client.hgetall(`apikey:${keyId}`)
+
     if (keyData && Object.keys(keyData).length > 0) {
       return { id: keyId, ...keyData }
     }
 
     // 如果数据不存在，清理映射表
     await this.client.hdel('apikey:hash_map', hashedKey)
+
     return null
   }
 
@@ -1056,8 +1140,10 @@ class RedisClient {
       // 匹配所有AWS区域格式：region.anthropic.model-name-v1:0 -> claude-model-name
       // 支持所有AWS区域格式，如：us-east-1, eu-west-1, ap-southeast-1, ca-central-1等
       let normalized = model.replace(/^[a-z0-9-]+\./, '') // 去掉任何区域前缀（更通用）
+
       normalized = normalized.replace('anthropic.', '') // 去掉anthropic前缀
       normalized = normalized.replace(/-v\d+:\d+$/, '') // 去掉版本后缀（如-v1:0, -v2:1等）
+
       return normalized
     }
 
@@ -1236,6 +1322,7 @@ class RedisClient {
 
     // API Key级别的模型统计 - 所有时间（无 TTL）
     const keyModelAlltime = `usage:${keyId}:model:alltime:${normalizedModel}`
+
     pipeline.hincrby(keyModelAlltime, 'inputTokens', finalInputTokens)
     pipeline.hincrby(keyModelAlltime, 'outputTokens', finalOutputTokens)
     pipeline.hincrby(keyModelAlltime, 'cacheCreateTokens', finalCacheCreateTokens)
@@ -1315,6 +1402,7 @@ class RedisClient {
     // 系统级分钟统计的过期时间（窗口时间的2倍，默认5分钟）
     const configLocal = require('../../config/config')
     const metricsWindow = configLocal.system?.metricsWindow || 5
+
     pipeline.expire(systemMinuteKey, metricsWindow * 60 * 2)
 
     // 添加索引（用于快速查询，避免 SCAN）
@@ -1346,6 +1434,7 @@ class RedisClient {
     // 全局预聚合统计
     const globalDaily = `usage:global:daily:${today}`
     const globalMonthly = `usage:global:monthly:${currentMonth}`
+
     pipeline.hincrby('usage:global:total', 'requests', 1)
     pipeline.hincrby('usage:global:total', 'inputTokens', finalInputTokens)
     pipeline.hincrby('usage:global:total', 'outputTokens', finalOutputTokens)
@@ -1597,6 +1686,7 @@ class RedisClient {
     for (const keyId of keyIds) {
       for (const model of models) {
         const key = `usage:${keyId}:model:alltime:${model}`
+
         checkKeys.push(key)
         keyIdMap.set(key, keyId)
       }
@@ -1606,6 +1696,7 @@ class RedisClient {
     for (let i = 0; i < checkKeys.length; i += BATCH_SIZE) {
       const batch = checkKeys.slice(i, i + BATCH_SIZE)
       const pipeline = client.pipeline()
+
       for (const key of batch) {
         pipeline.exists(key)
       }
@@ -1613,6 +1704,7 @@ class RedisClient {
 
       for (let j = 0; j < batch.length; j++) {
         const [err, exists] = results[j]
+
         if (!err && exists) {
           result.add(keyIdMap.get(batch[j]))
         }
@@ -1623,6 +1715,7 @@ class RedisClient {
     if (result.size === 0 && keyIds.length > 0) {
       // 多抽样检查：抽取最多 3 个 keyId 检查是否有 alltime 数据
       const sampleIndices = new Set()
+
       sampleIndices.add(0) // 始终包含第一个
       if (keyIds.length > 1) {
         sampleIndices.add(keyIds.length - 1)
@@ -1632,9 +1725,11 @@ class RedisClient {
       } // 包含中间一个
 
       let hasAnyAlltimeData = false
+
       for (const idx of sampleIndices) {
         const samplePattern = `usage:${keyIds[idx]}:model:alltime:*`
         const sampleKeys = await this.scanKeys(samplePattern)
+
         if (sampleKeys.length > 0) {
           hasAnyAlltimeData = true
           break
@@ -1648,6 +1743,7 @@ class RedisClient {
           for (const model of models) {
             const pattern = `usage:${keyId}:model:*:${model}:*`
             const keys = await this.scanKeys(pattern)
+
             if (keys.length > 0) {
               result.add(keyId)
               break
@@ -1670,12 +1766,15 @@ class RedisClient {
     // 扫描所有模型使用记录
     const pattern = 'usage:*:model:daily:*'
     let cursor = '0'
+
     do {
       const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 1000)
+
       cursor = nextCursor
       for (const key of keys) {
         // 从 key 中提取模型名: usage:{keyId}:model:daily:{model}:{date}
         const match = key.match(/usage:[^:]+:model:daily:([^:]+):/)
+
         if (match) {
           models.add(match[1])
         }
@@ -1804,18 +1903,21 @@ class RedisClient {
 
     try {
       const rawRecords = await client.lrange(listKey, 0, Math.max(0, limit - 1))
+
       return rawRecords
         .map((entry) => {
           try {
             return JSON.parse(entry)
           } catch (error) {
             logger.warn('⚠️ Failed to parse usage record entry:', error)
+
             return null
           }
         })
         .filter(Boolean)
     } catch (error) {
       logger.error(`❌ Failed to load usage records for key ${keyId}:`, error)
+
       return []
     }
   }
@@ -1826,9 +1928,11 @@ class RedisClient {
     const costKey = `usage:cost:daily:${keyId}:${today}`
     const cost = await this.client.get(costKey)
     const result = parseFloat(cost || 0)
+
     logger.debug(
       `💰 Getting daily cost for ${keyId}, date: ${today}, key: ${costKey}, value: ${cost}, result: ${result}`
     )
+
     return result
   }
 
@@ -1910,9 +2014,11 @@ class RedisClient {
     const costKey = `usage:opus:weekly:${keyId}:${periodStr}`
     const cost = await this.client.get(costKey)
     const result = parseFloat(cost || 0)
+
     logger.debug(
       `💰 Getting weekly Opus cost for ${keyId}, period: ${periodStr}, key: ${costKey}, value: ${cost}, result: ${result}`
     )
+
     return result
   }
 
@@ -1933,6 +2039,7 @@ class RedisClient {
 
     // 使用 pipeline 批量执行，提高性能
     const pipeline = this.client.pipeline()
+
     pipeline.incrbyfloat(weeklyKey, amount)
     pipeline.incrbyfloat(totalKey, amount)
     pipeline.incrbyfloat(realWeeklyKey, actualRealAmount)
@@ -1942,6 +2049,7 @@ class RedisClient {
     pipeline.expire(realWeeklyKey, 14 * 24 * 3600)
 
     const results = await pipeline.exec()
+
     logger.debug(`💰 Opus cost incremented successfully, new weekly total: $${results[0][1]}`)
   }
 
@@ -1976,12 +2084,14 @@ class RedisClient {
 
     // Pipeline 批量获取所有模型数据
     const pipeline = this.client.pipeline()
+
     for (const model of accountModels) {
       pipeline.hgetall(`account_usage:model:daily:${accountId}:${model}:${today}`)
     }
     const results = await pipeline.exec()
 
     let totalCost = 0
+
     for (let i = 0; i < accountModels.length; i++) {
       const model = accountModels[i]
       const [err, modelUsage] = results[i]
@@ -1997,6 +2107,7 @@ class RedisClient {
         // 添加 cache_creation 子对象以支持精确 ephemeral 定价
         const eph5m = parseInt(modelUsage.ephemeral5mTokens) || 0
         const eph1h = parseInt(modelUsage.ephemeral1hTokens) || 0
+
         if (eph5m > 0 || eph1h > 0) {
           usage.cache_creation = {
             ephemeral_5m_input_tokens: eph5m,
@@ -2005,6 +2116,7 @@ class RedisClient {
         }
 
         const costResult = CostCalculator.calculateCost(usage, model)
+
         totalCost += costResult.costs.total
 
         logger.debug(
@@ -2014,6 +2126,7 @@ class RedisClient {
     }
 
     logger.debug(`💰 Account ${accountId} total daily cost: $${totalCost}`)
+
     return totalCost
   }
 
@@ -2033,13 +2146,16 @@ class RedisClient {
     // 按 accountId 分组
     const accountIdSet = new Set(accountIds)
     const entriesByAccount = new Map()
+
     for (const entry of allEntries) {
       const colonIndex = entry.indexOf(':')
+
       if (colonIndex === -1) {
         continue
       }
       const accountId = entry.substring(0, colonIndex)
       const model = entry.substring(colonIndex + 1)
+
       if (accountIdSet.has(accountId)) {
         if (!entriesByAccount.has(accountId)) {
           entriesByAccount.set(accountId, [])
@@ -2056,17 +2172,20 @@ class RedisClient {
       for (const accountId of accountIds) {
         try {
           const cost = await this.getAccountDailyCostFallback(accountId, today, CostCalculator)
+
           costMap.set(accountId, cost)
         } catch {
           // 忽略单个账户的错误
         }
       }
+
       return costMap
     }
 
     // Pipeline 批量获取所有模型数据
     const pipeline = this.client.pipeline()
     const queryOrder = []
+
     for (const [accountId, models] of entriesByAccount) {
       for (const model of models) {
         pipeline.hgetall(`account_usage:model:daily:${accountId}:${model}:${today}`)
@@ -2095,6 +2214,7 @@ class RedisClient {
         // 添加 cache_creation 子对象以支持精确 ephemeral 定价
         const eph5m = parseInt(modelUsage.ephemeral5mTokens) || 0
         const eph1h = parseInt(modelUsage.ephemeral1hTokens) || 0
+
         if (eph5m > 0 || eph1h > 0) {
           usage.cache_creation = {
             ephemeral_5m_input_tokens: eph5m,
@@ -2103,6 +2223,7 @@ class RedisClient {
         }
 
         const costResult = CostCalculator.calculateCost(usage, model)
+
         costMap.set(accountId, costMap.get(accountId) + costResult.costs.total)
       }
     }
@@ -2121,6 +2242,7 @@ class RedisClient {
 
     let totalCost = 0
     const pipeline = this.client.pipeline()
+
     for (const key of modelKeys) {
       pipeline.hgetall(key)
     }
@@ -2129,6 +2251,7 @@ class RedisClient {
     for (let i = 0; i < modelKeys.length; i++) {
       const key = modelKeys[i]
       const [err, modelUsage] = results[i]
+
       if (err || !modelUsage) {
         continue
       }
@@ -2147,6 +2270,7 @@ class RedisClient {
         // 添加 cache_creation 子对象以支持精确 ephemeral 定价
         const eph5m = parseInt(modelUsage.ephemeral5mTokens) || 0
         const eph1h = parseInt(modelUsage.ephemeral1hTokens) || 0
+
         if (eph5m > 0 || eph1h > 0) {
           usage.cache_creation = {
             ephemeral_5m_input_tokens: eph5m,
@@ -2155,6 +2279,7 @@ class RedisClient {
         }
 
         const costResult = CostCalculator.calculateCost(usage, model)
+
         totalCost += costResult.costs.total
       }
     }
@@ -2182,6 +2307,7 @@ class RedisClient {
 
     // 获取账户创建时间来计算平均值 - 支持不同类型的账号
     let accountData = {}
+
     if (accountType === 'droid') {
       accountData = await this.client.hgetall(`droid:account:${accountId}`)
     } else if (accountType === 'openai') {
@@ -2291,6 +2417,7 @@ class RedisClient {
 
         if (accountData && accountData.name) {
           const stats = await this.getAccountUsageStats(accountId)
+
           accountStats.push({
             id: accountId,
             name: accountData.name,
@@ -2308,6 +2435,7 @@ class RedisClient {
       return accountStats
     } catch (error) {
       logger.error('❌ Failed to get all accounts usage stats:', error)
+
       return []
     }
   }
@@ -2331,21 +2459,26 @@ class RedisClient {
 
       // 2. 批量删除总体使用统计
       const usageKeys = apiKeyIds.map((id) => `usage:${id}`)
+
       stats.deletedKeys = await this.batchDelChunked(usageKeys)
 
       // 3. 使用 scanKeys 获取并批量删除 daily 统计
       const dailyKeys = await this.scanKeys('usage:daily:*')
+
       stats.deletedDailyKeys = await this.batchDelChunked(dailyKeys)
 
       // 4. 使用 scanKeys 获取并批量删除 monthly 统计
       const monthlyKeys = await this.scanKeys('usage:monthly:*')
+
       stats.deletedMonthlyKeys = await this.batchDelChunked(monthlyKeys)
 
       // 5. 批量重置 lastUsedAt（仅对存在的 key 操作，避免重建空 hash）
       const BATCH_SIZE = 500
+
       for (let i = 0; i < apiKeyIds.length; i += BATCH_SIZE) {
         const batch = apiKeyIds.slice(i, i + BATCH_SIZE)
         const existsPipeline = client.pipeline()
+
         for (const keyId of batch) {
           existsPipeline.exists(`apikey:${keyId}`)
         }
@@ -2353,8 +2486,10 @@ class RedisClient {
 
         const updatePipeline = client.pipeline()
         let updateCount = 0
+
         for (let j = 0; j < batch.length; j++) {
           const [err, exists] = existsResults[j]
+
           if (!err && exists) {
             updatePipeline.hset(`apikey:${batch[j]}`, 'lastUsedAt', '')
             updateCount++
@@ -2369,6 +2504,7 @@ class RedisClient {
       // 6. 清理所有 usage 相关键（使用 scanKeys + batchDelChunked）
       const allUsageKeys = await this.scanKeys('usage:*')
       const additionalDeleted = await this.batchDelChunked(allUsageKeys)
+
       stats.deletedKeys += additionalDeleted
 
       return stats
@@ -2380,6 +2516,7 @@ class RedisClient {
   // 🏢 Claude 账户管理
   async setClaudeAccount(accountId, accountData) {
     const key = `claude:account:${accountId}`
+
     await this.client.hset(key, accountData)
     await this.client.sadd('claude:account:index', accountId)
     await this.client.del('claude:account:index:empty')
@@ -2387,6 +2524,7 @@ class RedisClient {
 
   async getClaudeAccount(accountId) {
     const key = `claude:account:${accountId}`
+
     return await this.client.hgetall(key)
   }
 
@@ -2396,33 +2534,40 @@ class RedisClient {
       'claude:account:*',
       /^claude:account:(.+)$/
     )
+
     if (accountIds.length === 0) {
       return []
     }
 
     const keys = accountIds.map((id) => `claude:account:${id}`)
     const pipeline = this.client.pipeline()
+
     keys.forEach((key) => pipeline.hgetall(key))
     const results = await pipeline.exec()
 
     const accounts = []
+
     results.forEach(([err, accountData], index) => {
       if (!err && accountData && Object.keys(accountData).length > 0) {
         accounts.push({ id: accountIds[index], ...accountData })
       }
     })
+
     return accounts
   }
 
   async deleteClaudeAccount(accountId) {
     const key = `claude:account:${accountId}`
+
     await this.client.srem('claude:account:index', accountId)
+
     return await this.client.del(key)
   }
 
   // 🤖 Droid 账户相关操作
   async setDroidAccount(accountId, accountData) {
     const key = `droid:account:${accountId}`
+
     await this.client.hset(key, accountData)
     await this.client.sadd('droid:account:index', accountId)
     await this.client.del('droid:account:index:empty')
@@ -2430,6 +2575,7 @@ class RedisClient {
 
   async getDroidAccount(accountId) {
     const key = `droid:account:${accountId}`
+
     return await this.client.hgetall(key)
   }
 
@@ -2439,44 +2585,54 @@ class RedisClient {
       'droid:account:*',
       /^droid:account:(.+)$/
     )
+
     if (accountIds.length === 0) {
       return []
     }
 
     const keys = accountIds.map((id) => `droid:account:${id}`)
     const pipeline = this.client.pipeline()
+
     keys.forEach((key) => pipeline.hgetall(key))
     const results = await pipeline.exec()
 
     const accounts = []
+
     results.forEach(([err, accountData], index) => {
       if (!err && accountData && Object.keys(accountData).length > 0) {
         accounts.push({ id: accountIds[index], ...accountData })
       }
     })
+
     return accounts
   }
 
   async deleteDroidAccount(accountId) {
     const key = `droid:account:${accountId}`
+
     // 从索引中移除
     await this.client.srem('droid:account:index', accountId)
+
     return await this.client.del(key)
   }
 
   async setOpenAiAccount(accountId, accountData) {
     const key = `openai:account:${accountId}`
+
     await this.client.hset(key, accountData)
     await this.client.sadd('openai:account:index', accountId)
     await this.client.del('openai:account:index:empty')
   }
   async getOpenAiAccount(accountId) {
     const key = `openai:account:${accountId}`
+
     return await this.client.hgetall(key)
   }
   async deleteOpenAiAccount(accountId) {
     const key = `openai:account:${accountId}`
+
     await this.client.srem('openai:account:index', accountId)
+
     return await this.client.del(key)
   }
 
@@ -2486,38 +2642,45 @@ class RedisClient {
       'openai:account:*',
       /^openai:account:(.+)$/
     )
+
     if (accountIds.length === 0) {
       return []
     }
 
     const keys = accountIds.map((id) => `openai:account:${id}`)
     const pipeline = this.client.pipeline()
+
     keys.forEach((key) => pipeline.hgetall(key))
     const results = await pipeline.exec()
 
     const accounts = []
+
     results.forEach(([err, accountData], index) => {
       if (!err && accountData && Object.keys(accountData).length > 0) {
         accounts.push({ id: accountIds[index], ...accountData })
       }
     })
+
     return accounts
   }
 
   // 🔐 会话管理（用于管理员登录等）
   async setSession(sessionId, sessionData, ttl = 86400) {
     const key = `session:${sessionId}`
+
     await this.client.hset(key, sessionData)
     await this.client.expire(key, ttl)
   }
 
   async getSession(sessionId) {
     const key = `session:${sessionId}`
+
     return await this.client.hgetall(key)
   }
 
   async deleteSession(sessionId) {
     const key = `session:${sessionId}`
+
     return await this.client.del(key)
   }
 
@@ -2525,6 +2688,7 @@ class RedisClient {
   async setApiKeyHash(hashedKey, keyData, ttl = 0) {
     // 写入旧结构（兼容）
     const key = `apikey_hash:${hashedKey}`
+
     await this.client.hset(key, keyData)
     if (ttl > 0) {
       await this.client.expire(key, ttl)
@@ -2537,12 +2701,14 @@ class RedisClient {
 
   async getApiKeyHash(hashedKey) {
     const key = `apikey_hash:${hashedKey}`
+
     return await this.client.hgetall(key)
   }
 
   async deleteApiKeyHash(hashedKey) {
     // 同时清理旧结构和新结构，确保 Key 轮换/删除后旧 Key 失效
     const oldKey = `apikey_hash:${hashedKey}`
+
     await this.client.del(oldKey)
     // 从新的 hash_map 中移除（认证使用此结构）
     await this.client.hdel('apikey:hash_map', hashedKey)
@@ -2555,6 +2721,7 @@ class RedisClient {
 
     // 序列化复杂对象，特别是 proxy 配置
     const serializedData = {}
+
     for (const [dataKey, value] of Object.entries(sessionData)) {
       if (typeof value === 'object' && value !== null) {
         serializedData[dataKey] = JSON.stringify(value)
@@ -2586,6 +2753,7 @@ class RedisClient {
 
   async deleteOAuthSession(sessionId) {
     const key = `oauth:${sessionId}`
+
     return await this.client.del(key)
   }
 
@@ -2620,6 +2788,7 @@ class RedisClient {
     }
 
     let rawData = null
+
     if (data.rawData) {
       try {
         rawData = JSON.parse(data.rawData)
@@ -2629,6 +2798,7 @@ class RedisClient {
     }
 
     let quota = null
+
     if (data.quota) {
       try {
         quota = JSON.parse(data.quota)
@@ -2679,18 +2849,21 @@ class RedisClient {
   async deleteAccountBalance(platform, accountId) {
     const key = `account_balance:${platform}:${accountId}`
     const localKey = `account_balance_local:${platform}:${accountId}`
+
     await this.client.del(key, localKey)
   }
 
   // 🧩 账户余额脚本配置
   async setBalanceScriptConfig(platform, accountId, scriptConfig) {
     const key = `account_balance_script:${platform}:${accountId}`
+
     await this.client.set(key, JSON.stringify(scriptConfig || {}))
   }
 
   async getBalanceScriptConfig(platform, accountId) {
     const key = `account_balance_script:${platform}:${accountId}`
     const raw = await this.client.get(key)
+
     if (!raw) {
       return null
     }
@@ -2703,6 +2876,7 @@ class RedisClient {
 
   async deleteBalanceScriptConfig(platform, accountId) {
     const key = `account_balance_script:${platform}:${accountId}`
+
     return await this.client.del(key)
   }
 
@@ -2729,18 +2903,22 @@ class RedisClient {
   // 🔍 通过索引获取 key 列表（替代 SCAN）
   async getKeysByIndex(indexKey, keyPattern) {
     const members = await this.client.smembers(indexKey)
+
     if (!members || members.length === 0) {
       return []
     }
+
     return members.map((id) => keyPattern.replace('{id}', id))
   }
 
   // 🔍 批量通过索引获取数据
   async getDataByIndex(indexKey, keyPattern) {
     const keys = await this.getKeysByIndex(indexKey, keyPattern)
+
     if (keys.length === 0) {
       return []
     }
+
     return await this.batchHgetallChunked(keys)
   }
 
@@ -2752,6 +2930,7 @@ class RedisClient {
       let dailyKeys = []
       const indexKey = `usage:daily:index:${today}`
       const indexMembers = await this.client.smembers(indexKey)
+
       if (indexMembers && indexMembers.length > 0) {
         dailyKeys = indexMembers.map((keyId) => `usage:daily:${keyId}:${today}`)
       } else {
@@ -2777,6 +2956,7 @@ class RedisClient {
 
           totalRequestsToday += parseInt(dailyData.requests) || 0
           const currentDayTokens = parseInt(dailyData.tokens) || 0
+
           totalTokensToday += currentDayTokens
 
           // 处理旧数据兼容性：如果有总token但没有输入输出分离，则使用总token作为输出token
@@ -2808,6 +2988,7 @@ class RedisClient {
 
       if (allApiKeys.length > 0) {
         const pipeline = this.client.pipeline()
+
         allApiKeys.forEach((key) => pipeline.hget(key, 'createdAt'))
         const results = await pipeline.exec()
 
@@ -2829,6 +3010,7 @@ class RedisClient {
       }
     } catch (error) {
       console.error('Error getting today stats:', error)
+
       return {
         requestsToday: 0,
         tokensToday: 0,
@@ -2874,6 +3056,7 @@ class RedisClient {
         totalOutputTokens += parseInt(totalData.totalOutputTokens) || 0
 
         const createdAt = keyData.createdAt ? new Date(keyData.createdAt) : new Date()
+
         if (createdAt < oldestCreatedAt) {
           oldestCreatedAt = createdAt
         }
@@ -2896,6 +3079,7 @@ class RedisClient {
       }
     } catch (error) {
       console.error('Error getting system averages:', error)
+
       return {
         systemRPM: 0,
         systemTPM: 0,
@@ -2923,8 +3107,10 @@ class RedisClient {
       // 使用Pipeline批量获取窗口内的所有分钟数据
       const pipeline = this.client.pipeline()
       const minuteKeys = []
+
       for (let i = 0; i < windowMinutes; i++) {
         const minuteKey = `system:metrics:minute:${currentMinute - i}`
+
         minuteKeys.push(minuteKey)
         pipeline.hgetall(minuteKey)
       }
@@ -2988,6 +3174,7 @@ class RedisClient {
       console.error('Error getting realtime system metrics:', error)
       // 如果出错，返回历史平均值作为降级方案
       const historicalMetrics = await this.getSystemAverages()
+
       return {
         realtimeRPM: historicalMetrics.systemRPM,
         realtimeTPM: historicalMetrics.systemTPM,
@@ -3008,11 +3195,13 @@ class RedisClient {
     // 从配置读取TTL（小时），转换为秒，默认1小时
     const defaultTTL = ttl !== null ? ttl : (appConfig.session?.stickyTtlHours || 1) * 60 * 60
     const key = `sticky_session:${sessionHash}`
+
     await this.client.set(key, accountId, 'EX', defaultTTL)
   }
 
   async getSessionAccountMapping(sessionHash) {
     const key = `sticky_session:${sessionHash}`
+
     return await this.client.get(key)
   }
 
@@ -3055,6 +3244,7 @@ class RedisClient {
             remainingTTL / 60
           )}min, renewed to ${ttlHours}h)`
         )
+
         return true
       }
 
@@ -3064,15 +3254,18 @@ class RedisClient {
           remainingTTL / 60
         )}min)`
       )
+
       return true
     } catch (error) {
       logger.error('❌ Failed to extend session TTL:', error)
+
       return false
     }
   }
 
   async deleteSessionAccountMapping(sessionHash) {
     const key = `sticky_session:${sessionHash}`
+
     return await this.client.del(key)
   }
 
@@ -3087,6 +3280,7 @@ class RedisClient {
 
         for (const key of keys) {
           const ttl = await this.client.ttl(key)
+
           if (ttl === -1) {
             // 没有设置过期时间的键
             if (key.startsWith('oauth:')) {
@@ -3121,6 +3315,7 @@ class RedisClient {
 
     const normalizeNumber = (value, fallback, options = {}) => {
       const parsed = Number(value)
+
       if (!Number.isFinite(parsed)) {
         return fallback
       }
@@ -3192,9 +3387,11 @@ class RedisClient {
       `
 
       const count = await this.client.eval(luaScript, 1, key, requestId, expireAt, now, ttl)
+
       logger.database(
         `🔢 Incremented concurrency for key ${apiKeyId}: ${count} (request ${requestId})`
       )
+
       return count
     } catch (error) {
       logger.error('❌ Failed to increment concurrency:', error)
@@ -3240,12 +3437,15 @@ class RedisClient {
       `
 
       const refreshed = await this.client.eval(luaScript, 1, key, requestId, expireAt, now, ttl)
+
       if (refreshed === 1) {
         logger.debug(`🔄 Refreshed concurrency lease for key ${apiKeyId} (request ${requestId})`)
       }
+
       return refreshed
     } catch (error) {
       logger.error('❌ Failed to refresh concurrency lease:', error)
+
       return 0
     }
   }
@@ -3277,9 +3477,11 @@ class RedisClient {
       `
 
       const count = await this.client.eval(luaScript, 1, key, requestId || '', now)
+
       logger.database(
         `🔢 Decremented concurrency for key ${apiKeyId}: ${count} (request ${requestId || 'n/a'})`
       )
+
       return count
     } catch (error) {
       logger.error('❌ Failed to decrement concurrency:', error)
@@ -3302,9 +3504,11 @@ class RedisClient {
       `
 
       const count = await this.client.eval(luaScript, 1, key, now)
+
       return parseInt(count || 0)
     } catch (error) {
       logger.error('❌ Failed to get concurrency:', error)
+
       return 0
     }
   }
@@ -3317,6 +3521,7 @@ class RedisClient {
     }
     // 使用特殊的 key 前缀区分 Console 账户并发
     const compositeKey = `console_account:${accountId}`
+
     return await this.incrConcurrency(compositeKey, requestId, leaseSeconds)
   }
 
@@ -3326,18 +3531,21 @@ class RedisClient {
       return 0
     }
     const compositeKey = `console_account:${accountId}`
+
     return await this.refreshConcurrencyLease(compositeKey, requestId, leaseSeconds)
   }
 
   // 减少 Console 账户并发计数
   async decrConsoleAccountConcurrency(accountId, requestId) {
     const compositeKey = `console_account:${accountId}`
+
     return await this.decrConcurrency(compositeKey, requestId)
   }
 
   // 获取 Console 账户当前并发数
   async getConsoleAccountConcurrency(accountId) {
     const compositeKey = `console_account:${accountId}`
+
     return await this.getConcurrency(compositeKey)
   }
 
@@ -3371,6 +3579,7 @@ class RedisClient {
 
         // 检查键类型，只处理 Sorted Set
         const keyType = await client.type(key)
+
         if (keyType !== 'zset') {
           logger.debug(`🔢 getAllConcurrencyStatus skipped non-zset key: ${key} (type: ${keyType})`)
           continue
@@ -3384,10 +3593,12 @@ class RedisClient {
 
         // 解析成员和过期时间
         const activeRequests = []
+
         for (let i = 0; i < members.length; i += 2) {
           const requestId = members[i]
           const expireAt = parseInt(members[i + 1])
           const remainingSeconds = Math.max(0, Math.round((expireAt - now) / 1000))
+
           activeRequests.push({
             requestId,
             expireAt: new Date(expireAt).toISOString(),
@@ -3427,6 +3638,7 @@ class RedisClient {
 
       // 检查 key 是否存在
       const exists = await client.exists(key)
+
       if (!exists) {
         return {
           apiKeyId,
@@ -3440,10 +3652,12 @@ class RedisClient {
 
       // 检查键类型，只处理 Sorted Set
       const keyType = await client.type(key)
+
       if (keyType !== 'zset') {
         logger.warn(
           `⚠️ getConcurrencyStatus: key ${key} has unexpected type: ${keyType}, expected zset`
         )
+
         return {
           apiKeyId,
           key,
@@ -3563,8 +3777,10 @@ class RedisClient {
 
         // 检查键类型
         const keyType = await client.type(key)
+
         if (keyType === 'zset') {
           const count = await client.zcard(key)
+
           await client.del(key)
           totalCleared += count
           clearedKeys.push({
@@ -3631,6 +3847,7 @@ class RedisClient {
 
         // 检查键类型
         const keyType = await client.type(key)
+
         if (keyType !== 'zset') {
           // 非 zset 类型的遗留键，直接删除
           await client.del(key)
@@ -3646,6 +3863,7 @@ class RedisClient {
 
         // 只清理过期的条目
         const cleaned = await client.zremrangebyscore(key, '-inf', now)
+
         if (cleaned > 0) {
           totalCleaned += cleaned
           cleanedKeys.push({
@@ -3656,6 +3874,7 @@ class RedisClient {
 
         // 如果 key 为空，删除它
         const remaining = await client.zcard(key)
+
         if (remaining === 0) {
           await client.del(key)
         }
@@ -3682,26 +3901,31 @@ class RedisClient {
   // 🔧 Basic Redis operations wrapper methods for convenience
   async get(key) {
     const client = this.getClientSafe()
+
     return await client.get(key)
   }
 
   async set(key, value, ...args) {
     const client = this.getClientSafe()
+
     return await client.set(key, value, ...args)
   }
 
   async setex(key, ttl, value) {
     const client = this.getClientSafe()
+
     return await client.setex(key, ttl, value)
   }
 
   async del(...keys) {
     const client = this.getClientSafe()
+
     return await client.del(...keys)
   }
 
   async keys(pattern) {
     const client = this.getClientSafe()
+
     return await client.keys(pattern)
   }
 
@@ -3732,6 +3956,7 @@ class RedisClient {
       // 重要：需要使用配置的时区来构建键名，因为数据存储时使用的是配置时区
       const hourlyKeys = []
       const currentHour = new Date(startDate)
+
       currentHour.setMinutes(0)
       currentHour.setSeconds(0)
       currentHour.setMilliseconds(0)
@@ -3749,6 +3974,7 @@ class RedisClient {
 
       // 批量获取所有小时的数据
       const pipeline = this.client.pipeline()
+
       for (const key of hourlyKeys) {
         pipeline.hgetall(key)
       }
@@ -3794,6 +4020,7 @@ class RedisClient {
           // 查找模型相关的键（格式: model:{modelName}:{metric}）
           if (key.startsWith('model:')) {
             const parts = key.split(':')
+
             if (parts.length >= 3) {
               const modelName = parts[1]
               const metric = parts.slice(2).join(':')
@@ -3852,6 +4079,7 @@ class RedisClient {
       }
     } catch (error) {
       logger.error(`❌ Failed to get session window usage for account ${accountId}:`, error)
+
       return {
         totalInputTokens: 0,
         totalOutputTokens: 0,
@@ -3873,9 +4101,11 @@ redisClient.setAccountLock = async function (lockKey, lockValue, ttlMs) {
     // 使用SET NX PX实现原子性的锁获取
     // ioredis语法: set(key, value, 'PX', milliseconds, 'NX')
     const result = await this.client.set(lockKey, lockValue, 'PX', ttlMs, 'NX')
+
     return result === 'OK'
   } catch (error) {
     logger.error(`Failed to acquire lock ${lockKey}:`, error)
+
     return false
   }
 }
@@ -3892,9 +4122,11 @@ redisClient.releaseAccountLock = async function (lockKey, lockValue) {
     `
     // ioredis语法: eval(script, numberOfKeys, key1, key2, ..., arg1, arg2, ...)
     const result = await this.client.eval(script, 1, lockKey, lockValue)
+
     return result === 1
   } catch (error) {
     logger.error(`Failed to release lock ${lockKey}:`, error)
+
     return false
   }
 }
@@ -3967,12 +4199,14 @@ redisClient.acquireUserMessageLock = async function (accountId, requestId, lockT
       lockTtlMs,
       delayMs
     )
+
     return {
       acquired: result[0] === 1,
       waitMs: result[1]
     }
   } catch (error) {
     logger.error(`Failed to acquire user message lock for account ${accountId}:`, error)
+
     // 返回 redisError 标记，让上层能区分 Redis 故障和正常锁占用
     return { acquired: false, waitMs: -1, redisError: true, errorMessage: error.message }
   }
@@ -4010,9 +4244,11 @@ redisClient.releaseUserMessageLock = async function (accountId, requestId) {
 
   try {
     const result = await this.client.eval(script, 2, lockKey, lastTimeKey, requestId)
+
     return result === 1
   } catch (error) {
     logger.error(`Failed to release user message lock for account ${accountId}:`, error)
+
     return false
   }
 }
@@ -4027,9 +4263,11 @@ redisClient.forceReleaseUserMessageLock = async function (accountId) {
 
   try {
     await this.client.del(lockKey)
+
     return true
   } catch (error) {
     logger.error(`Failed to force release user message lock for account ${accountId}:`, error)
+
     return false
   }
 }
@@ -4060,6 +4298,7 @@ redisClient.getUserMessageQueueStats = async function (accountId) {
     }
   } catch (error) {
     logger.error(`Failed to get user message queue stats for account ${accountId}:`, error)
+
     return {
       accountId,
       isLocked: false,
@@ -4090,11 +4329,13 @@ redisClient.scanUserMessageQueueLocks = async function () {
         'COUNT',
         100
       )
+
       cursor = newCursor
       iterations++
 
       for (const key of keys) {
         const accountId = key.replace('user_msg_queue_lock:', '')
+
         accountIds.push(accountId)
       }
 
@@ -4117,6 +4358,7 @@ redisClient.scanUserMessageQueueLocks = async function () {
     return accountIds
   } catch (error) {
     logger.error('Failed to scan user message queue locks:', error)
+
     return []
   }
 }
@@ -4133,6 +4375,7 @@ redisClient.scanUserMessageQueueLocks = async function () {
  */
 redisClient.incrConcurrencyQueue = async function (apiKeyId, timeoutMs = 60000) {
   const key = `concurrency:queue:${apiKeyId}`
+
   try {
     // 使用 Lua 脚本确保 INCR 和 EXPIRE 原子执行，防止进程崩溃导致计数器泄漏
     // TTL = 超时时间 + 缓冲时间（确保键不会在请求还在等待时过期）
@@ -4143,9 +4386,11 @@ redisClient.incrConcurrencyQueue = async function (apiKeyId, timeoutMs = 60000) 
       return count
     `
     const count = await this.client.eval(script, 1, key, String(ttlSeconds))
+
     logger.database(
       `🚦 Incremented queue count for key ${apiKeyId}: ${count} (TTL: ${ttlSeconds}s)`
     )
+
     return parseInt(count)
   } catch (error) {
     logger.error(`Failed to increment concurrency queue for ${apiKeyId}:`, error)
@@ -4160,6 +4405,7 @@ redisClient.incrConcurrencyQueue = async function (apiKeyId, timeoutMs = 60000) 
  */
 redisClient.decrConcurrencyQueue = async function (apiKeyId) {
   const key = `concurrency:queue:${apiKeyId}`
+
   try {
     // 使用 Lua 脚本确保 DECR 和 DEL 原子执行，防止进程崩溃导致计数器残留
     const script = `
@@ -4172,11 +4418,13 @@ redisClient.decrConcurrencyQueue = async function (apiKeyId) {
     `
     const count = await this.client.eval(script, 1, key)
     const result = parseInt(count)
+
     if (result === 0) {
       logger.database(`🚦 Queue count for key ${apiKeyId} is 0, removed key`)
     } else {
       logger.database(`🚦 Decremented queue count for key ${apiKeyId}: ${result}`)
     }
+
     return result
   } catch (error) {
     logger.error(`Failed to decrement concurrency queue for ${apiKeyId}:`, error)
@@ -4191,11 +4439,14 @@ redisClient.decrConcurrencyQueue = async function (apiKeyId) {
  */
 redisClient.getConcurrencyQueueCount = async function (apiKeyId) {
   const key = `concurrency:queue:${apiKeyId}`
+
   try {
     const count = await this.client.get(key)
+
     return parseInt(count || 0)
   } catch (error) {
     logger.error(`Failed to get concurrency queue count for ${apiKeyId}:`, error)
+
     return 0
   }
 }
@@ -4207,12 +4458,15 @@ redisClient.getConcurrencyQueueCount = async function (apiKeyId) {
  */
 redisClient.clearConcurrencyQueue = async function (apiKeyId) {
   const key = `concurrency:queue:${apiKeyId}`
+
   try {
     await this.client.del(key)
     logger.database(`🚦 Cleared queue count for key ${apiKeyId}`)
+
     return true
   } catch (error) {
     logger.error(`Failed to clear concurrency queue for ${apiKeyId}:`, error)
+
     return false
   }
 }
@@ -4236,6 +4490,7 @@ redisClient.scanConcurrencyQueueKeys = async function () {
         'COUNT',
         100
       )
+
       cursor = newCursor
       iterations++
 
@@ -4248,6 +4503,7 @@ redisClient.scanConcurrencyQueueKeys = async function () {
           continue
         }
         const apiKeyId = key.replace('concurrency:queue:', '')
+
         apiKeyIds.push(apiKeyId)
       }
 
@@ -4263,6 +4519,7 @@ redisClient.scanConcurrencyQueueKeys = async function () {
     return apiKeyIds
   } catch (error) {
     logger.error('Failed to scan concurrency queue keys:', error)
+
     return []
   }
 }
@@ -4286,6 +4543,7 @@ redisClient.clearAllConcurrencyQueues = async function () {
         'COUNT',
         100
       )
+
       cursor = newCursor
       iterations++
 
@@ -4309,9 +4567,11 @@ redisClient.clearAllConcurrencyQueues = async function () {
     if (cleared > 0) {
       logger.info(`🚦 Cleared ${cleared} concurrency queue counter(s) on startup`)
     }
+
     return cleared
   } catch (error) {
     logger.error('Failed to clear all concurrency queues:', error)
+
     return 0
   }
 }
@@ -4324,6 +4584,7 @@ redisClient.clearAllConcurrencyQueues = async function () {
  */
 redisClient.incrConcurrencyQueueStats = async function (apiKeyId, field) {
   const key = `concurrency:queue:stats:${apiKeyId}`
+
   try {
     // 使用 Lua 脚本确保 HINCRBY 和 EXPIRE 原子执行
     // 防止在两者之间崩溃导致统计键没有 TTL（内存泄漏）
@@ -4333,9 +4594,11 @@ redisClient.incrConcurrencyQueueStats = async function (apiKeyId, field) {
       return count
     `
     const count = await this.client.eval(script, 1, key, field, String(QUEUE_STATS_TTL_SECONDS))
+
     return parseInt(count)
   } catch (error) {
     logger.error(`Failed to increment queue stats ${field} for ${apiKeyId}:`, error)
+
     return 0
   }
 }
@@ -4347,8 +4610,10 @@ redisClient.incrConcurrencyQueueStats = async function (apiKeyId, field) {
  */
 redisClient.getConcurrencyQueueStats = async function (apiKeyId) {
   const key = `concurrency:queue:stats:${apiKeyId}`
+
   try {
     const stats = await this.client.hgetall(key)
+
     return {
       entered: parseInt(stats?.entered || 0),
       success: parseInt(stats?.success || 0),
@@ -4359,6 +4624,7 @@ redisClient.getConcurrencyQueueStats = async function (apiKeyId) {
     }
   } catch (error) {
     logger.error(`Failed to get queue stats for ${apiKeyId}:`, error)
+
     return {
       entered: 0,
       success: 0,
@@ -4378,6 +4644,7 @@ redisClient.getConcurrencyQueueStats = async function (apiKeyId) {
  */
 redisClient.recordQueueWaitTime = async function (apiKeyId, waitTimeMs) {
   const key = `concurrency:queue:wait_times:${apiKeyId}`
+
   try {
     // 使用 Lua 脚本确保原子性，同时设置 TTL 防止内存泄漏
     const script = `
@@ -4386,6 +4653,7 @@ redisClient.recordQueueWaitTime = async function (apiKeyId, waitTimeMs) {
       redis.call('EXPIRE', KEYS[1], ARGV[3])
       return 1
     `
+
     await this.client.eval(
       script,
       1,
@@ -4406,6 +4674,7 @@ redisClient.recordQueueWaitTime = async function (apiKeyId, waitTimeMs) {
  */
 redisClient.recordGlobalQueueWaitTime = async function (waitTimeMs) {
   const key = 'concurrency:queue:wait_times:global'
+
   try {
     // 使用 Lua 脚本确保原子性，同时设置 TTL 防止内存泄漏
     const script = `
@@ -4414,6 +4683,7 @@ redisClient.recordGlobalQueueWaitTime = async function (waitTimeMs) {
       redis.call('EXPIRE', KEYS[1], ARGV[3])
       return 1
     `
+
     await this.client.eval(
       script,
       1,
@@ -4433,11 +4703,14 @@ redisClient.recordGlobalQueueWaitTime = async function (waitTimeMs) {
  */
 redisClient.getGlobalQueueWaitTimes = async function () {
   const key = 'concurrency:queue:wait_times:global'
+
   try {
     const samples = await this.client.lrange(key, 0, -1)
+
     return samples.map(Number)
   } catch (error) {
     logger.error('Failed to get global queue wait times:', error)
+
     return []
   }
 }
@@ -4449,11 +4722,14 @@ redisClient.getGlobalQueueWaitTimes = async function () {
  */
 redisClient.getQueueWaitTimes = async function (apiKeyId) {
   const key = `concurrency:queue:wait_times:${apiKeyId}`
+
   try {
     const samples = await this.client.lrange(key, 0, -1)
+
     return samples.map(Number)
   } catch (error) {
     logger.error(`Failed to get queue wait times for ${apiKeyId}:`, error)
+
     return []
   }
 }
@@ -4477,11 +4753,13 @@ redisClient.scanConcurrencyQueueStatsKeys = async function () {
         'COUNT',
         100
       )
+
       cursor = newCursor
       iterations++
 
       for (const key of keys) {
         const apiKeyId = key.replace('concurrency:queue:stats:', '')
+
         apiKeyIds.push(apiKeyId)
       }
 
@@ -4493,6 +4771,7 @@ redisClient.scanConcurrencyQueueStatsKeys = async function () {
     return apiKeyIds
   } catch (error) {
     logger.error('Failed to scan concurrency queue stats keys:', error)
+
     return []
   }
 }
@@ -4518,6 +4797,7 @@ const ACCOUNT_TEST_CONFIG_TTL = 86400 * 365 // 测试配置保留1年（用户�
  */
 redisClient.saveAccountTestResult = async function (accountId, platform, testResult) {
   const key = `account:test_history:${platform}:${accountId}`
+
   try {
     const record = JSON.stringify({
       ...testResult,
@@ -4526,6 +4806,7 @@ redisClient.saveAccountTestResult = async function (accountId, platform, testRes
 
     // 使用 LPUSH + LTRIM 保持最近5条记录
     const client = this.getClientSafe()
+
     await client.lpush(key, record)
     await client.ltrim(key, 0, ACCOUNT_TEST_HISTORY_MAX - 1)
     await client.expire(key, ACCOUNT_TEST_HISTORY_TTL)
@@ -4544,12 +4825,15 @@ redisClient.saveAccountTestResult = async function (accountId, platform, testRes
  */
 redisClient.getAccountTestHistory = async function (accountId, platform) {
   const key = `account:test_history:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
     const records = await client.lrange(key, 0, -1)
+
     return records.map((r) => JSON.parse(r))
   } catch (error) {
     logger.error(`Failed to get test history for ${accountId}:`, error)
+
     return []
   }
 }
@@ -4562,12 +4846,15 @@ redisClient.getAccountTestHistory = async function (accountId, platform) {
  */
 redisClient.getAccountLatestTestResult = async function (accountId, platform) {
   const key = `account:test_history:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
     const record = await client.lindex(key, 0)
+
     return record ? JSON.parse(record) : null
   } catch (error) {
     logger.error(`Failed to get latest test result for ${accountId}:`, error)
+
     return null
   }
 }
@@ -4579,12 +4866,14 @@ redisClient.getAccountLatestTestResult = async function (accountId, platform) {
  */
 redisClient.getAccountsTestHistory = async function (accounts) {
   const result = {}
+
   try {
     const client = this.getClientSafe()
     const pipeline = client.pipeline()
 
     for (const { accountId, platform } of accounts) {
       const key = `account:test_history:${platform}:${accountId}`
+
       pipeline.lrange(key, 0, -1)
     }
 
@@ -4592,6 +4881,7 @@ redisClient.getAccountsTestHistory = async function (accounts) {
 
     accounts.forEach(({ accountId }, index) => {
       const [err, records] = responses[index]
+
       if (!err && records) {
         result[accountId] = records.map((r) => JSON.parse(r))
       } else {
@@ -4601,6 +4891,7 @@ redisClient.getAccountsTestHistory = async function (accounts) {
   } catch (error) {
     logger.error('Failed to get batch test history:', error)
   }
+
   return result
 }
 
@@ -4615,8 +4906,10 @@ redisClient.getAccountsTestHistory = async function (accounts) {
  */
 redisClient.saveAccountTestConfig = async function (accountId, platform, testConfig) {
   const key = `account:test_config:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
+
     await client.hset(key, {
       enabled: testConfig.enabled ? 'true' : 'false',
       cronExpression: testConfig.cronExpression || '0 8 * * *', // 默认每天早上8点
@@ -4638,18 +4931,23 @@ redisClient.saveAccountTestConfig = async function (accountId, platform, testCon
  */
 redisClient.getAccountTestConfig = async function (accountId, platform) {
   const key = `account:test_config:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
     const testConfig = await client.hgetall(key)
+
     if (!testConfig || Object.keys(testConfig).length === 0) {
       return null
     }
     // 向后兼容：如果存在旧的 testHour 字段，转换为 cron 表达式
     let { cronExpression } = testConfig
+
     if (!cronExpression && testConfig.testHour) {
       const hour = parseInt(testConfig.testHour, 10)
+
       cronExpression = `0 ${hour} * * *`
     }
+
     return {
       enabled: testConfig.enabled === 'true',
       cronExpression: cronExpression || '0 8 * * *',
@@ -4658,6 +4956,7 @@ redisClient.getAccountTestConfig = async function (accountId, platform) {
     }
   } catch (error) {
     logger.error(`Failed to get test config for ${accountId}:`, error)
+
     return null
   }
 }
@@ -4673,6 +4972,7 @@ redisClient.getEnabledTestAccounts = async function (platform) {
 
   try {
     const client = this.getClientSafe()
+
     do {
       const [newCursor, keys] = await client.scan(
         cursor,
@@ -4681,16 +4981,20 @@ redisClient.getEnabledTestAccounts = async function (platform) {
         'COUNT',
         100
       )
+
       cursor = newCursor
 
       for (const key of keys) {
         const testConfig = await client.hgetall(key)
+
         if (testConfig && testConfig.enabled === 'true') {
           const accountId = key.replace(`account:test_config:${platform}:`, '')
           // 向后兼容：如果存在旧的 testHour 字段，转换为 cron 表达式
           let { cronExpression } = testConfig
+
           if (!cronExpression && testConfig.testHour) {
             const hour = parseInt(testConfig.testHour, 10)
+
             cronExpression = `0 ${hour} * * *`
           }
           accountIds.push({
@@ -4705,6 +5009,7 @@ redisClient.getEnabledTestAccounts = async function (platform) {
     return accountIds
   } catch (error) {
     logger.error(`Failed to get enabled test accounts for ${platform}:`, error)
+
     return []
   }
 }
@@ -4716,8 +5021,10 @@ redisClient.getEnabledTestAccounts = async function (platform) {
  */
 redisClient.setAccountLastTestTime = async function (accountId, platform) {
   const key = `account:last_test:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
+
     await client.set(key, Date.now().toString(), 'EX', 86400 * 7) // 7天过期
   } catch (error) {
     logger.error(`Failed to set last test time for ${accountId}:`, error)
@@ -4732,12 +5039,15 @@ redisClient.setAccountLastTestTime = async function (accountId, platform) {
  */
 redisClient.getAccountLastTestTime = async function (accountId, platform) {
   const key = `account:last_test:${platform}:${accountId}`
+
   try {
     const client = this.getClientSafe()
     const timestamp = await client.get(key)
+
     return timestamp ? parseInt(timestamp, 10) : null
   } catch (error) {
     logger.error(`Failed to get last test time for ${accountId}:`, error)
+
     return null
   }
 }
@@ -4755,6 +5065,7 @@ redisClient.scanKeys = async function (pattern, batchSize = 200) {
 
   do {
     const [newCursor, batch] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', batchSize)
+
     cursor = newCursor
     keys.push(...batch)
   } while (cursor !== '0')
@@ -4775,6 +5086,7 @@ redisClient.batchHgetall = async function (keys) {
 
   const client = this.getClientSafe()
   const pipeline = client.pipeline()
+
   keys.forEach((k) => pipeline.hgetall(k))
   const results = await pipeline.exec()
 
@@ -4789,11 +5101,13 @@ redisClient.batchHgetall = async function (keys) {
  */
 redisClient.scanAndGetAll = async function (pattern, batchSize = 200) {
   const keys = await this.scanKeys(pattern, batchSize)
+
   if (keys.length === 0) {
     return []
   }
 
   const dataList = await this.batchHgetall(keys)
+
   return keys.map((key, i) => ({ key, data: dataList[i] })).filter((item) => item.data !== null)
 }
 
@@ -4906,11 +5220,14 @@ redisClient.batchHgetallChunked = async function (keys, chunkSize = 500) {
   }
 
   const results = []
+
   for (let i = 0; i < keys.length; i += chunkSize) {
     const chunk = keys.slice(i, i + chunkSize)
     const chunkResults = await this.batchHgetall(chunk)
+
     results.push(...chunkResults)
   }
+
   return results
 }
 
@@ -4926,21 +5243,28 @@ redisClient.batchGetChunked = async function (keys, chunkSize = 500) {
   }
 
   const client = this.getClientSafe()
+
   if (keys.length <= chunkSize) {
     const pipeline = client.pipeline()
+
     keys.forEach((k) => pipeline.get(k))
     const results = await pipeline.exec()
+
     return results.map(([err, val]) => (err ? null : val))
   }
 
   const results = []
+
   for (let i = 0; i < keys.length; i += chunkSize) {
     const chunk = keys.slice(i, i + chunkSize)
     const pipeline = client.pipeline()
+
     chunk.forEach((k) => pipeline.get(k))
     const chunkResults = await pipeline.exec()
+
     results.push(...chunkResults.map(([err, val]) => (err ? null : val)))
   }
+
   return results
 }
 
@@ -4968,6 +5292,7 @@ redisClient.scanAndProcess = async function (pattern, processor, options = {}) {
 
     // 过滤已处理的 key
     const uniqueKeys = keys.filter((k) => !processedKeys.has(k))
+
     if (uniqueKeys.length === 0) {
       return
     }
@@ -4975,12 +5300,15 @@ redisClient.scanAndProcess = async function (pattern, processor, options = {}) {
     uniqueKeys.forEach((k) => processedKeys.add(k))
 
     let dataList = []
+
     if (fetchType === 'hgetall') {
       dataList = await this.batchHgetall(uniqueKeys)
     } else if (fetchType === 'get') {
       const pipeline = client.pipeline()
+
       uniqueKeys.forEach((k) => pipeline.get(k))
       const results = await pipeline.exec()
+
       dataList = results.map(([err, val]) => (err ? null : val))
     } else {
       dataList = uniqueKeys.map(() => null) // fetchType === 'none'
@@ -4991,12 +5319,14 @@ redisClient.scanAndProcess = async function (pattern, processor, options = {}) {
 
   do {
     const [newCursor, batch] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', scanBatchSize)
+
     cursor = newCursor
     pendingKeys.push(...batch)
 
     // 达到处理批次大小时处理
     while (pendingKeys.length >= processBatchSize) {
       const toProcess = pendingKeys.slice(0, processBatchSize)
+
       pendingKeys = pendingKeys.slice(processBatchSize)
       await processBatch(toProcess)
     }
@@ -5016,6 +5346,7 @@ redisClient.scanAndProcess = async function (pattern, processor, options = {}) {
  */
 redisClient.scanAndGetAllChunked = async function (pattern, options = {}) {
   const results = []
+
   await this.scanAndProcess(
     pattern,
     (keys, dataList) => {
@@ -5027,6 +5358,7 @@ redisClient.scanAndGetAllChunked = async function (pattern, options = {}) {
     },
     { ...options, fetchType: 'hgetall' }
   )
+
   return results
 }
 
@@ -5047,8 +5379,10 @@ redisClient.batchDelChunked = async function (keys, chunkSize = 500) {
   for (let i = 0; i < keys.length; i += chunkSize) {
     const chunk = keys.slice(i, i + chunkSize)
     const pipeline = client.pipeline()
+
     chunk.forEach((k) => pipeline.del(k))
     const results = await pipeline.exec()
+
     deleted += results.filter(([err, val]) => !err && val > 0).length
   }
 
@@ -5066,23 +5400,28 @@ redisClient.getAllIdsByIndex = async function (indexKey, scanPattern, extractReg
   const client = this.getClientSafe()
   // 检查是否已标记为空（避免重复 SCAN）
   const emptyMarker = await client.get(`${indexKey}:empty`)
+
   if (emptyMarker === '1') {
     return []
   }
   let ids = await client.smembers(indexKey)
+
   if (ids && ids.length > 0) {
     return ids
   }
   // 回退到 SCAN（仅首次）
   const keys = await this.scanKeys(scanPattern)
+
   if (keys.length === 0) {
     // 标记为空，避免重复 SCAN（1小时过期，允许新数据写入后重新检测）
     await client.setex(`${indexKey}:empty`, 3600, '1')
+
     return []
   }
   ids = keys
     .map((k) => {
       const match = k.match(extractRegex)
+
       return match ? match[1] : null
     })
     .filter(Boolean)
@@ -5090,6 +5429,7 @@ redisClient.getAllIdsByIndex = async function (indexKey, scanPattern, extractReg
   if (ids.length > 0) {
     await client.sadd(indexKey, ...ids)
   }
+
   return ids
 }
 
@@ -5098,6 +5438,7 @@ redisClient.getAllIdsByIndex = async function (indexKey, scanPattern, extractReg
  */
 redisClient.addToIndex = async function (indexKey, id) {
   const client = this.getClientSafe()
+
   await client.sadd(indexKey, id)
   // 清除空标记（如果存在）
   await client.del(`${indexKey}:empty`)
@@ -5108,6 +5449,7 @@ redisClient.addToIndex = async function (indexKey, id) {
  */
 redisClient.removeFromIndex = async function (indexKey, id) {
   const client = this.getClientSafe()
+
   await client.srem(indexKey, id)
 }
 
@@ -5120,8 +5462,10 @@ redisClient.migrateGlobalStats = async function () {
   logger.info('🔄 开始迁移全局统计数据...')
 
   const keyIds = await this.scanApiKeyIds()
+
   if (!keyIds || keyIds.length === 0) {
     logger.info('📊 没有 API Key 数据需要迁移')
+
     return { success: true, migrated: 0 }
   }
 
@@ -5136,6 +5480,7 @@ redisClient.migrateGlobalStats = async function () {
 
   // 批量获取所有 usage 数据
   const pipeline = this.client.pipeline()
+
   keyIds.forEach((id) => pipeline.hgetall(`usage:${id}`))
   const results = await pipeline.exec()
 
@@ -5159,8 +5504,10 @@ redisClient.migrateGlobalStats = async function () {
   // 迁移月份索引（从现有的 usage:model:monthly:* key 中提取月份）
   const monthlyKeys = await this.client.keys('usage:model:monthly:*')
   const months = new Set()
+
   for (const key of monthlyKeys) {
     const match = key.match(/:(\d{4}-\d{2})$/)
+
     if (match) {
       months.add(match[1])
     }
@@ -5173,6 +5520,7 @@ redisClient.migrateGlobalStats = async function () {
   logger.success(
     `✅ 迁移完成: ${keyIds.length} 个 API Key, ${total.requests} 请求, ${total.allTokens} tokens`
   )
+
   return { success: true, migrated: keyIds.length, total }
 }
 
@@ -5181,8 +5529,10 @@ redisClient.ensureMonthlyMonthsIndex = async function () {
   // 扫描所有月份 key
   const monthlyKeys = await this.client.keys('usage:model:monthly:*')
   const allMonths = new Set()
+
   for (const key of monthlyKeys) {
     const match = key.match(/:(\d{4}-\d{2})$/)
+
     if (match) {
       allMonths.add(match[1])
     }
@@ -5210,6 +5560,7 @@ redisClient.ensureMonthlyMonthsIndex = async function () {
 // 检查是否需要迁移
 redisClient.needsGlobalStatsMigration = async function () {
   const exists = await this.client.exists('usage:global:total')
+
   return exists === 0
 }
 
@@ -5226,9 +5577,11 @@ redisClient.setMigratedVersion = async function (version) {
 // 获取全局统计（用于 dashboard 快速查询）
 redisClient.getGlobalStats = async function () {
   const stats = await this.client.hgetall('usage:global:total')
+
   if (!stats || !stats.requests) {
     return null
   }
+
   return {
     requests: parseInt(stats.requests) || 0,
     inputTokens: parseInt(stats.inputTokens) || 0,
@@ -5242,21 +5595,25 @@ redisClient.getGlobalStats = async function () {
 // 快速获取 API Key 计数（不拉全量数据）
 redisClient.getApiKeyCount = async function () {
   const keyIds = await this.scanApiKeyIds()
+
   if (!keyIds || keyIds.length === 0) {
     return { total: 0, active: 0 }
   }
 
   // 批量获取 isActive 字段
   const pipeline = this.client.pipeline()
+
   keyIds.forEach((id) => pipeline.hget(`apikey:${id}`, 'isActive'))
   const results = await pipeline.exec()
 
   let active = 0
+
   results.forEach(([err, val]) => {
     if (!err && (val === 'true' || val === true)) {
       active++
     }
   })
+
   return { total: keyIds.length, active }
 }
 
@@ -5265,8 +5622,10 @@ redisClient.cleanupSystemMetrics = async function () {
   logger.info('🧹 清理过期的系统分钟统计数据...')
 
   const keys = await this.scanKeys('system:metrics:minute:*')
+
   if (!keys || keys.length === 0) {
     logger.info('📊 没有需要清理的系统分钟统计数据')
+
     return { cleaned: 0 }
   }
 
@@ -5278,26 +5637,32 @@ redisClient.cleanupSystemMetrics = async function () {
   // 筛选需要删除的 key
   const toDelete = keys.filter((key) => {
     const match = key.match(/system:metrics:minute:(\d+)/)
+
     if (!match) {
       return false
     }
     const minute = parseInt(match[1])
+
     return minute < keepAfter
   })
 
   if (toDelete.length === 0) {
     logger.info('📊 没有过期的系统分钟统计数据')
+
     return { cleaned: 0 }
   }
 
   // 分批删除
   const batchSize = 1000
+
   for (let i = 0; i < toDelete.length; i += batchSize) {
     const batch = toDelete.slice(i, i + batchSize)
+
     await this.client.del(...batch)
   }
 
   logger.success(`✅ 清理完成: 删除 ${toDelete.length} 个过期的系统分钟统计 key`)
+
   return { cleaned: toDelete.length }
 }
 

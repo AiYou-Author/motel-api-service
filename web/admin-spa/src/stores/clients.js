@@ -10,13 +10,15 @@ export const useClientsStore = defineStore('clients', {
 
   actions: {
     async loadSupportedClients() {
-      if (this.supportedClients.length > 0) return this.supportedClients
+      if (this.supportedClients.length > 0) {return this.supportedClients}
 
       this.loading = true
       const res = await getSupportedClientsApi()
-      if (res.success) this.supportedClients = res.data || []
-      else this.error = res.message
+
+      if (res.success) {this.supportedClients = res.data || []}
+      else {this.error = res.message}
       this.loading = false
+
       return this.supportedClients
     }
   }

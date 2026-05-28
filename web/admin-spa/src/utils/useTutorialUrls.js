@@ -3,17 +3,20 @@ import { computed } from 'vue'
 export function useTutorialUrls() {
   const getBaseUrlPrefix = () => {
     const customPrefix = import.meta.env.VITE_API_BASE_PREFIX
+
     if (customPrefix) {
       return customPrefix.replace(/\/$/, '')
     }
 
     let origin = ''
+
     if (window.location.origin) {
       origin = window.location.origin
     } else {
       const protocol = window.location.protocol
       const hostname = window.location.hostname
       const port = window.location.port
+
       origin = protocol + '//' + hostname
       if (
         port &&
@@ -26,6 +29,7 @@ export function useTutorialUrls() {
     if (!origin) {
       const currentUrl = window.location.href
       const pathStart = currentUrl.indexOf('/', 8)
+
       if (pathStart !== -1) {
         origin = currentUrl.substring(0, pathStart)
       } else {

@@ -153,6 +153,7 @@ const windowState = computed(() => {
   if (remainingSeconds.value > 0) {
     return 'active' // 窗口活跃中
   }
+
   return 'unknown'
 })
 
@@ -194,45 +195,55 @@ const formatTokenCount = (count) => {
   } else if (count >= 1000) {
     return (count / 1000).toFixed(1) + 'K'
   }
+
   return count.toString()
 }
 
 const getRequestProgress = () => {
   if (!props.requestLimit || props.requestLimit === 0) return 0
   const percentage = ((props.currentRequests || 0) / props.requestLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 const getRequestProgressColor = () => {
   const progress = getRequestProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-blue-500'
 }
 
 const getTokenProgress = () => {
   if (!props.tokenLimit || props.tokenLimit === 0) return 0
   const percentage = ((props.currentTokens || 0) / props.tokenLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 const getTokenProgressColor = () => {
   const progress = getTokenProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-purple-500'
 }
 
 const getCostProgress = () => {
   if (!props.costLimit || props.costLimit === 0) return 0
   const percentage = ((props.currentCost || 0) / props.costLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 const getCostProgressColor = () => {
   const progress = getCostProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-green-500'
 }
 
@@ -241,6 +252,7 @@ const updateCountdown = () => {
   if (props.windowEndTime && remainingSeconds.value > 0) {
     const now = Date.now()
     const remaining = Math.max(0, Math.floor((props.windowEndTime - now) / 1000))
+
     remainingSeconds.value = remaining
 
     if (remaining === 0) {

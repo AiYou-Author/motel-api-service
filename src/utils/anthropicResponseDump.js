@@ -9,26 +9,32 @@ const RESPONSE_DUMP_FILENAME = 'anthropic-responses-dump.jsonl'
 
 function isEnabled() {
   const raw = process.env[RESPONSE_DUMP_ENV]
+
   if (!raw) {
     return false
   }
+
   return raw === '1' || raw.toLowerCase() === 'true'
 }
 
 function getMaxBytes() {
   const raw = process.env[RESPONSE_DUMP_MAX_BYTES_ENV]
+
   if (!raw) {
     return 2 * 1024 * 1024
   }
   const parsed = Number.parseInt(raw, 10)
+
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 2 * 1024 * 1024
   }
+
   return parsed
 }
 
 function safeJsonStringify(payload, maxBytes) {
   let json = ''
+
   try {
     json = JSON.stringify(payload)
   } catch (e) {
@@ -44,6 +50,7 @@ function safeJsonStringify(payload, maxBytes) {
   }
 
   const truncated = Buffer.from(json, 'utf8').subarray(0, maxBytes).toString('utf8')
+
   return JSON.stringify({
     type: 'anthropic_response_dump_truncated',
     maxBytes,
@@ -88,6 +95,7 @@ async function dumpAnthropicResponse(req, responseInfo, meta = {}) {
   }
 
   const line = `${safeJsonStringify(record, maxBytes)}\n`
+
   try {
     await safeRotatingAppend(filename, line)
   } catch (e) {

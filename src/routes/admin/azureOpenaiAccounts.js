@@ -28,8 +28,10 @@ router.get('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
       if (groupId === 'ungrouped') {
         // 筛选未分组账户
         const filteredAccounts = []
+
         for (const account of accounts) {
           const groups = await accountGroupService.getAccountGroups(account.id)
+
           if (!groups || groups.length === 0) {
             filteredAccounts.push(account)
           }
@@ -38,6 +40,7 @@ router.get('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
       } else {
         // 筛选特定分组的账户
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       }
     }
@@ -49,6 +52,7 @@ router.get('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
           const usageStats = await redis.getAccountUsageStats(account.id, 'openai')
           const groupInfos = await accountGroupService.getAccountGroups(account.id)
           const formattedAccount = formatAccountExpiry(account)
+
           return {
             ...formattedAccount,
             groupInfos,
@@ -63,6 +67,7 @@ router.get('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
           try {
             const groupInfos = await accountGroupService.getAccountGroups(account.id)
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos,
@@ -74,6 +79,7 @@ router.get('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
             }
           } catch (groupError) {
             logger.debug(`Failed to get group info for account ${account.id}:`, groupError)
+
             return {
               ...account,
               groupInfos: [],
@@ -165,6 +171,7 @@ router.post('/azure-openai-accounts', authenticateAdmin, async (req, res) => {
       const testUrl = `${azureEndpoint}/openai/deployments/${deploymentName}?api-version=${
         apiVersion || '2024-02-01'
       }`
+
       await axios.get(testUrl, {
         headers: {
           'api-key': apiKey
@@ -261,6 +268,7 @@ router.delete('/azure-openai-accounts/:id', authenticateAdmin, async (req, res) 
     await azureOpenaiAccountService.deleteAccount(id)
 
     let message = 'Azure OpenAI账号已成功删除'
+
     if (unboundCount > 0) {
       message += `,${unboundCount} 个 API Key 已切换为共享池模式`
     }
@@ -288,6 +296,7 @@ router.put('/azure-openai-accounts/:id/toggle', authenticateAdmin, async (req, r
     const { id } = req.params
 
     const account = await azureOpenaiAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -296,6 +305,7 @@ router.put('/azure-openai-accounts/:id/toggle', authenticateAdmin, async (req, r
     }
 
     const newStatus = account.isActive === 'true' ? 'false' : 'true'
+
     await azureOpenaiAccountService.updateAccount(id, { isActive: newStatus })
 
     res.json({
@@ -327,6 +337,7 @@ router.put(
       if (!result.schedulable) {
         // 获取账号信息
         const account = await azureOpenaiAccountService.getAccount(accountId)
+
         if (account) {
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId: account.id,
@@ -347,6 +358,7 @@ router.put(
       })
     } catch (error) {
       logger.error('切换 Azure OpenAI 账户调度状态失败:', error)
+
       return res.status(500).json({
         success: false,
         message: '切换调度状态失败',
@@ -426,12 +438,14 @@ router.post('/azure-openai-accounts/:accountId/test', authenticateAdmin, async (
   try {
     // 获取账户信息
     const account = await azureOpenaiAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
 
     // 获取解密后的 API Key
     const apiKey = await azureOpenaiAccountService.getDecryptedApiKey(accountId)
+
     if (!apiKey) {
       return res.status(401).json({ error: 'API Key not found or decryption failed' })
     }
@@ -455,6 +469,7 @@ router.post('/azure-openai-accounts/:accountId/test', authenticateAdmin, async (
     // 配置代理
     if (account.proxy) {
       const agent = getProxyAgent(account.proxy)
+
       if (agent) {
         requestConfig.httpsAgent = agent
         requestConfig.httpAgent = agent
@@ -466,6 +481,7 @@ router.post('/azure-openai-accounts/:accountId/test', authenticateAdmin, async (
 
     // 提取响应文本
     let responseText = ''
+
     if (response.data?.choices?.[0]?.message?.content) {
       responseText = response.data.choices[0].message.content
     }
@@ -486,6 +502,7 @@ router.post('/azure-openai-accounts/:accountId/test', authenticateAdmin, async (
     })
   } catch (error) {
     const latency = Date.now() - startTime
+
     logger.error(`❌ Azure OpenAI account test failed: ${accountId}`, error.message)
 
     return res.status(500).json({
@@ -502,10 +519,13 @@ router.post('/:accountId/reset-status', authenticateAdmin, async (req, res) => {
   try {
     const { accountId } = req.params
     const result = await azureOpenaiAccountService.resetAccountStatus(accountId)
+
     logger.success(`Admin reset status for Azure OpenAI account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Azure OpenAI account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })

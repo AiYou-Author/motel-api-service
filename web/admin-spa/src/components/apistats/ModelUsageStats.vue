@@ -94,6 +94,7 @@ const stats = computed(() => {
   if (props.period === 'daily') return dailyModelStats.value
   if (props.period === 'monthly') return monthlyModelStats.value
   if (props.period === 'alltime') return alltimeModelStats.value
+
   return []
 })
 
@@ -103,6 +104,7 @@ const periodLabel = computed(() => {
   if (props.period === 'daily') return '今日'
   if (props.period === 'monthly') return '本月'
   if (props.period === 'alltime') return '所有时间'
+
   return ''
 })
 
@@ -113,6 +115,7 @@ const copyModelName = (name) => copyText(name, '模型名称已复制')
 const getServiceFromModel = (model) => {
   if (!model) return 'claude'
   const m = model.toLowerCase()
+
   if (m.includes('claude') || m.includes('sonnet') || m.includes('opus') || m.includes('haiku'))
     return 'claude'
   if (m.includes('gpt') || m.includes('o1') || m.includes('o3') || m.includes('o4')) return 'codex'
@@ -120,6 +123,7 @@ const getServiceFromModel = (model) => {
   if (m.includes('droid') || m.includes('factory')) return 'droid'
   if (m.includes('bedrock') || m.includes('amazon')) return 'bedrock'
   if (m.includes('azure')) return 'azure'
+
   return 'claude'
 }
 
@@ -128,18 +132,23 @@ const calculateCcCost = (model) => {
   // 使用 isLegacy 判断是否有存储的计费费用
   if (!model.isLegacy && model.costs?.rated !== undefined) {
     const ccCost = model.costs.rated
+
     if (ccCost >= 1) return '$' + ccCost.toFixed(2)
     if (ccCost >= 0.01) return '$' + ccCost.toFixed(4)
+
     return '$' + ccCost.toFixed(6)
   }
   // 回退到重新计算（历史数据）
   const cost = model.costs?.total || 0
+
   if (!cost || !serviceRates.value?.rates) return '$0.00'
   const service = getServiceFromModel(model.model)
   const rate = serviceRates.value.rates[service] || 1.0
   const ccCost = cost * rate
+
   if (ccCost >= 1) return '$' + ccCost.toFixed(2)
   if (ccCost >= 0.01) return '$' + ccCost.toFixed(4)
+
   return '$' + ccCost.toFixed(6)
 }
 

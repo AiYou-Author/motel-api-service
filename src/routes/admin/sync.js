@@ -24,6 +24,7 @@ function toBool(value, defaultValue = false) {
   if (value === false || value === 'false') {
     return false
   }
+
   return defaultValue
 }
 
@@ -56,21 +57,25 @@ function buildModelMappingFromSupportedModels(supportedModels) {
 
   if (Array.isArray(supportedModels)) {
     const mapping = {}
+
     for (const model of supportedModels) {
       if (typeof model === 'string' && model.trim()) {
         mapping[model.trim()] = model.trim()
       }
     }
+
     return Object.keys(mapping).length ? mapping : null
   }
 
   if (typeof supportedModels === 'object') {
     const mapping = {}
+
     for (const [from, to] of Object.entries(supportedModels)) {
       if (typeof from === 'string' && typeof to === 'string' && from.trim() && to.trim()) {
         mapping[from.trim()] = to.trim()
       }
     }
+
     return Object.keys(mapping).length ? mapping : null
   }
 
@@ -93,6 +98,7 @@ function safeParseJson(raw, fallback = null) {
 router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
   try {
     const includeSecrets = toBool(req.query.include_secrets, false)
+
     if (!includeSecrets) {
       return res.status(400).json({
         success: false,
@@ -106,9 +112,11 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
     const claudeAccounts = rawClaudeAccounts.map((account) => {
       // Backward compatible extraction: prefer individual fields, fallback to claudeAiOauth JSON blob.
       let decryptedClaudeAiOauth = null
+
       if (account.claudeAiOauth) {
         try {
           const raw = claudeAccountService._decryptSensitiveData(account.claudeAiOauth)
+
           decryptedClaudeAiOauth = raw ? JSON.parse(raw) : null
         } catch (_) {
           decryptedClaudeAiOauth = null
@@ -138,6 +146,7 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
 
       let expiresAt = null
       const expiresAtMs = Number.parseInt(account.expiresAt, 10)
+
       if (Number.isFinite(expiresAtMs) && expiresAtMs > 0) {
         expiresAt = new Date(expiresAtMs).toISOString()
       } else if (decryptedClaudeAiOauth?.expiresAt) {
@@ -153,9 +162,11 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
       // 🔧 Parse subscriptionInfo to extract org_uuid and account_uuid
       let orgUuid = null
       let accountUuid = null
+
       if (account.subscriptionInfo) {
         try {
           const subscriptionInfo = JSON.parse(account.subscriptionInfo)
+
           orgUuid = subscriptionInfo.organizationUuid || null
           accountUuid = subscriptionInfo.accountUuid || null
         } catch (_) {
@@ -165,11 +176,13 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
 
       // 🔧 Calculate expires_in from expires_at
       let expiresIn = null
+
       if (expiresAt) {
         try {
           const expiresAtTime = new Date(expiresAt).getTime()
           const nowTime = Date.now()
           const diffSeconds = Math.floor((expiresAtTime - nowTime) / 1000)
+
           if (diffSeconds > 0) {
             expiresIn = diffSeconds
           }
@@ -190,6 +203,7 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
         scope: scopes.join(' ') || undefined,
         token_type: 'Bearer'
       }
+
       // 🔧 Add auth info as top-level credentials fields
       if (orgUuid) {
         credentials.org_uuid = orgUuid
@@ -235,8 +249,10 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
     // ===== Claude Console API Key accounts =====
     const claudeConsoleSummaries = await claudeConsoleAccountService.getAllAccounts()
     const claudeConsoleAccounts = []
+
     for (const summary of claudeConsoleSummaries) {
       const full = await claudeConsoleAccountService.getAccount(summary.id)
+
       if (!full) {
         continue
       }
@@ -287,14 +303,17 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
 
     // ===== OpenAI OAuth accounts =====
     const openaiOAuthAccounts = []
+
     {
       const openaiIds = await redis.getAllIdsByIndex(
         'openai:account:index',
         'openai:account:*',
         /^openai:account:(.+)$/
       )
+
       for (const id of openaiIds) {
         const account = await openaiAccountService.getAccount(id)
+
         if (!account) {
           continue
         }
@@ -302,6 +321,7 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
         const accessToken = account.accessToken
           ? openaiAccountService.decrypt(account.accessToken)
           : ''
+
         if (!accessToken) {
           // Skip broken/legacy records without decryptable token
           continue
@@ -316,11 +336,13 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
 
         // 🔧 Calculate expires_in from expires_at
         let expiresIn = null
+
         if (account.expiresAt) {
           try {
             const expiresAtTime = new Date(account.expiresAt).getTime()
             const nowTime = Date.now()
             const diffSeconds = Math.floor((expiresAtTime - nowTime) / 1000)
+
             if (diffSeconds > 0) {
               expiresIn = diffSeconds
             }
@@ -342,6 +364,7 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
           scope: scopes.join(' ') || undefined,
           token_type: 'Bearer'
         }
+
         // 🔧 Add auth info as top-level credentials fields
         if (account.accountId) {
           credentials.chatgpt_account_id = account.accountId
@@ -397,8 +420,10 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
       'openai_responses_account:*',
       /^openai_responses_account:(.+)$/
     )
+
     for (const id of openaiResponseIds) {
       const full = await openaiResponsesAccountService.getAccount(id)
+
       if (!full) {
         continue
       }
@@ -453,6 +478,7 @@ router.get('/sync/export-accounts', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to export accounts for sync:', error)
+
     return res.status(500).json({
       success: false,
       error: 'export_failed',

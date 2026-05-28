@@ -24,6 +24,7 @@ class BillingEventPublisher {
   async publishBillingEvent(eventData) {
     if (!this.enabled) {
       logger.debug('📭 Billing events disabled, skipping publish')
+
       return null
     }
 
@@ -104,6 +105,7 @@ class BillingEventPublisher {
     } catch (error) {
       // ⚠️ 发布失败不影响主流程，只记录错误
       logger.error('❌ Failed to publish billing event:', error)
+
       return null
     }
   }
@@ -159,9 +161,11 @@ class BillingEventPublisher {
       const successCount = results.filter((r) => r[0] === null).length
 
       logger.info(`📤 Batch published ${successCount}/${events.length} billing events`)
+
       return successCount
     } catch (error) {
       logger.error('❌ Failed to batch publish billing events:', error)
+
       return 0
     }
   }
@@ -177,6 +181,7 @@ class BillingEventPublisher {
 
       // 解析 Redis XINFO 返回的数组格式
       const result = {}
+
       for (let i = 0; i < info.length; i += 2) {
         result[info[i]] = info[i + 1]
       }
@@ -192,6 +197,7 @@ class BillingEventPublisher {
         return { length: 0, groups: 0 }
       }
       logger.error('❌ Failed to get stream info:', error)
+
       return null
     }
   }
@@ -209,13 +215,16 @@ class BillingEventPublisher {
       await client.xgroup('CREATE', this.streamKey, groupName, '0', 'MKSTREAM')
 
       logger.success(`Created consumer group: ${groupName}`)
+
       return true
     } catch (error) {
       if (error.message.includes('BUSYGROUP')) {
         logger.debug(`Consumer group ${groupName} already exists`)
+
         return true
       }
       logger.error(`❌ Failed to create consumer group ${groupName}:`, error)
+
       return false
     }
   }

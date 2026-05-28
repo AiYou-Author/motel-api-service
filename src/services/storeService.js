@@ -90,11 +90,13 @@ class StoreService {
   // 返回 { version: <int>, plans: <Array> }
   async _readPlansEnvelope() {
     const data = await redis.get(this.plansKey)
+
     if (!data) {
       return { version: 0, plans: DEFAULT_PLANS }
     }
     try {
       const parsed = JSON.parse(data)
+
       if (Array.isArray(parsed)) {
         return { version: 0, plans: parsed }
       }
@@ -105,9 +107,11 @@ class StoreService {
         }
       }
       logger.warn('⚠️ store:plans 格式异常，回退到默认套餐')
+
       return { version: 0, plans: DEFAULT_PLANS }
     } catch (e) {
       logger.error('❌ store:plans JSON 解析失败，回退默认套餐:', e)
+
       return { version: 0, plans: DEFAULT_PLANS }
     }
   }
@@ -122,6 +126,7 @@ class StoreService {
           if (plan.targetGroupId === null || plan.targetGroupId === undefined) {
             // 根据 channel 和 accountType 自动匹配账户分组
             const platform = this._getPlatformFromAccountType(plan.accountType)
+
             if (platform) {
               const groups = await accountGroupService.getAllGroups(platform)
               // 优先匹配名称包含 channel 的分组，否则取第一个
@@ -134,10 +139,12 @@ class StoreService {
                 logger.debug(
                   `📦 套餐 ${plan.id} 自动匹配分组: ${matchedGroup.name} (${matchedGroup.id})`
                 )
+
                 return { ...plan, targetGroupId: matchedGroup.id }
               }
             }
           }
+
           return plan
         })
       )
@@ -165,6 +172,7 @@ class StoreService {
     if (accountType === 'droid') {
       return 'droid'
     }
+
     return null
   }
 
@@ -173,7 +181,9 @@ class StoreService {
     try {
       const { version } = await this._readPlansEnvelope()
       const envelope = { version: version + 1, plans }
+
       await redis.set(this.plansKey, JSON.stringify(envelope))
+
       return plans
     } catch (error) {
       logger.error('❌ Error saving store plans:', error)
@@ -194,15 +204,19 @@ class StoreService {
   // 乐观锁保存：expectedVersion 必须等于当前 version；成功则版本 +1
   async savePlansWithVersion(plans, expectedVersion) {
     const { version: currentVersion } = await this._readPlansEnvelope()
+
     if (expectedVersion !== currentVersion) {
       const err = new Error('VERSION_CONFLICT')
+
       err.code = 'VERSION_CONFLICT'
       err.currentVersion = currentVersion
       throw err
     }
     const nextVersion = currentVersion + 1
     const envelope = { version: nextVersion, plans }
+
     await redis.set(this.plansKey, JSON.stringify(envelope))
+
     return { version: nextVersion, plans }
   }
 
@@ -216,6 +230,7 @@ class StoreService {
    */
   validatePlans(plans, _opts = {}) {
     const errors = []
+
     if (!Array.isArray(plans)) {
       return { valid: false, errors: ['plans 必须为数组'] }
     }
@@ -225,8 +240,10 @@ class StoreService {
 
     plans.forEach((plan, idx) => {
       const tag = `plans[${idx}]`
+
       if (!plan || typeof plan !== 'object') {
         errors.push(`${tag} 必须为对象`)
+
         return
       }
       if (!plan.id || typeof plan.id !== 'string') {
@@ -254,6 +271,7 @@ class StoreService {
       // 注：targetGroupId 校验移除，因为可能使用自定义字符串 ID 而非 UUID
 
       const numericFields = ['price', 'creditUSD', 'serviceRate', 'tokenLimit']
+
       numericFields.forEach((f) => {
         if (
           plan[f] !== undefined &&
@@ -287,15 +305,18 @@ class StoreService {
     try {
       const data = await redis.get(this.configKey)
       const parsed = data ? JSON.parse(data) : null
+
       if (!parsed) {
         return this._defaultConfig()
       }
+
       return {
         ...this._defaultConfig(),
         ...parsed
       }
     } catch (error) {
       logger.error('❌ Error getting store config:', error)
+
       return this._defaultConfig()
     }
   }
@@ -303,6 +324,7 @@ class StoreService {
   async saveConfig(config) {
     try {
       await redis.set(this.configKey, JSON.stringify(config))
+
       return config
     } catch (error) {
       logger.error('❌ Error saving store config:', error)
@@ -383,6 +405,7 @@ class StoreService {
         apiKeyValue: null,
         rejectReason: null
       }
+
       await redis.set(`${this.orderPrefix}${orderId}`, JSON.stringify(order))
       await redis.addToIndex(this.ordersIndex, orderId)
       if (userId) {
@@ -391,6 +414,7 @@ class StoreService {
       logger.info(
         `🛒 New order created: ${orderId} by user ${userId || 'anonymous'}, plan: ${planName}, amount: ¥${amount}, creditUSD: $${creditUSD}`
       )
+
       return order
     } catch (error) {
       logger.error('❌ Error creating order:', error)
@@ -401,14 +425,17 @@ class StoreService {
   async getOrder(orderId) {
     try {
       const data = await redis.get(`${this.orderPrefix}${orderId}`)
+
       if (!data) {
         return null
       }
       const order = JSON.parse(data)
+
       // 仅在 approved 状态下暴露 apiKeyValue
       if (order.status !== 'approved') {
         delete order.apiKeyValue
       }
+
       return order
     } catch (error) {
       logger.error('❌ Error getting order:', error)
@@ -419,6 +446,7 @@ class StoreService {
   async getOrderRaw(orderId) {
     try {
       const data = await redis.get(`${this.orderPrefix}${orderId}`)
+
       return data ? JSON.parse(data) : null
     } catch (error) {
       logger.error('❌ Error getting raw order:', error)
@@ -429,6 +457,7 @@ class StoreService {
   async updateOrderNote(orderId, note) {
     try {
       const order = await this.getOrderRaw(orderId)
+
       if (!order) {
         throw new Error('ORDER_NOT_FOUND')
       }
@@ -436,6 +465,7 @@ class StoreService {
       order.updatedAt = new Date().toISOString()
       await redis.set(`${this.orderPrefix}${orderId}`, JSON.stringify(order))
       logger.info(`📝 Order note updated: ${orderId}`)
+
       return order
     } catch (error) {
       logger.error('❌ Error updating order note:', error)
@@ -445,16 +475,19 @@ class StoreService {
 
   async _getIndexMembers(indexKey) {
     const client = redis.getClientSafe()
+
     return client.smembers(indexKey)
   }
 
   async getUserOrders(userId) {
     try {
       const orderIds = await this._getIndexMembers(`${this.userOrdersPrefix}${userId}`)
+
       if (!orderIds || orderIds.length === 0) {
         return []
       }
       const orders = await Promise.all(orderIds.map((id) => this.getOrder(id)))
+
       return orders
         .filter(Boolean)
         .filter((o) => !o.deletedByUser)
@@ -471,6 +504,7 @@ class StoreService {
   // - approved → 通过阈值校验后禁用关联 API Key 并打 deletedByUser
   async deleteUserOrder(userId, orderId) {
     const order = await this.getOrderRaw(orderId)
+
     if (!order || order.userId !== userId) {
       throw new Error('ORDER_NOT_FOUND')
     }
@@ -483,6 +517,7 @@ class StoreService {
     if (order.status === 'approved') {
       const approvedAt = order.updatedAt || order.createdAt
       const ageMs = Date.now() - new Date(approvedAt).getTime()
+
       if (ageMs > 30 * 24 * 60 * 60 * 1000) {
         throw new Error('ORDER_TOO_OLD')
       }
@@ -493,11 +528,13 @@ class StoreService {
           const apiKeyService = require('./apiKeyService')
           const keyInfo = await apiKeyService.getApiKeyById(order.apiKeyId)
           const limit = keyInfo ? Number(keyInfo.totalCostLimit) || 0 : 0
+
           if (limit > 0) {
             const stats = await apiKeyService.getUsageStats(order.apiKeyId, {
               includeRecords: false
             })
             const totalCost = Number(stats?.total?.cost) || 0
+
             if (totalCost / limit > 0.5) {
               throw new Error('ORDER_USAGE_TOO_HIGH')
             }
@@ -523,6 +560,7 @@ class StoreService {
 
     const prevStatus = order.status
     const now = new Date().toISOString()
+
     if (order.status === 'pending') {
       order.status = 'cancelled'
     }
@@ -533,12 +571,14 @@ class StoreService {
     logger.info(
       `🗑️  User-deleted order: ${orderId}, prevStatus=${prevStatus}, apiKeyDisabled=${sideEffects.apiKeyDisabled}, userId=${userId}`
     )
+
     return { order, sideEffects }
   }
 
   async getAllOrders({ status, limit = 50, offset = 0 } = {}) {
     try {
       const orderIds = await this._getIndexMembers(this.ordersIndex)
+
       if (!orderIds || orderIds.length === 0) {
         return { orders: [], total: 0 }
       }
@@ -546,7 +586,9 @@ class StoreService {
         Boolean
       )
       const filtered = status ? allOrders.filter((o) => o.status === status) : allOrders
+
       filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
       return {
         orders: filtered.slice(offset, offset + limit),
         total: filtered.length
@@ -560,6 +602,7 @@ class StoreService {
   async approveOrder(orderId, { apiKeyId, apiKeyValue }) {
     try {
       const order = await this.getOrderRaw(orderId)
+
       if (!order) {
         throw new Error('ORDER_NOT_FOUND')
       }
@@ -574,6 +617,7 @@ class StoreService {
       logger.info(`✅ Order approved: ${orderId}`)
       // 处理返佣
       await referralService.processOrderCommission(order)
+
       return order
     } catch (error) {
       logger.error('❌ Error approving order:', error)
@@ -584,6 +628,7 @@ class StoreService {
   async rejectOrder(orderId, rejectReason = '') {
     try {
       const order = await this.getOrderRaw(orderId)
+
       if (!order) {
         throw new Error('ORDER_NOT_FOUND')
       }
@@ -595,6 +640,7 @@ class StoreService {
       order.updatedAt = new Date().toISOString()
       await redis.set(`${this.orderPrefix}${orderId}`, JSON.stringify(order))
       logger.info(`❌ Order rejected: ${orderId}, reason: ${rejectReason}`)
+
       return order
     } catch (error) {
       logger.error('❌ Error rejecting order:', error)

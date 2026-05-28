@@ -293,6 +293,7 @@ router.beforeEach(async (to, from, next) => {
       // 尝试检查本地存储的认证信息
       try {
         const isUserLoggedIn = await userStore.checkAuth()
+
         if (!isUserLoggedIn) {
           return next('/user/login')
         }
@@ -301,9 +302,11 @@ router.beforeEach(async (to, from, next) => {
         if (error.message && error.message.includes('disabled')) {
           showToast(error.message, 'error')
         }
+
         return next('/user/login')
       }
     }
+
     return next()
   }
 
@@ -330,6 +333,7 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   const baseTitle = 'Motel API Service'
   const pageTitle = to.meta.title
+
   document.title = pageTitle ? `${pageTitle} - ${baseTitle}` : baseTitle
 })
 

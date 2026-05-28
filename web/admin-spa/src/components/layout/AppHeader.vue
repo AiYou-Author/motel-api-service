@@ -411,8 +411,10 @@ const checkForUpdates = async () => {
 
     // 尝试从localStorage读取缓存的版本信息
     const cached = localStorage.getItem('versionInfo')
+
     if (cached) {
       const cachedInfo = JSON.parse(cached)
+
       versionInfo.value.current = cachedInfo.current || versionInfo.value.current
       versionInfo.value.latest = cachedInfo.latest
       versionInfo.value.hasUpdate = cachedInfo.hasUpdate
@@ -443,11 +445,13 @@ const closeChangePasswordModal = () => {
 const changePassword = async () => {
   if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
     showToast('两次输入的密码不一致', 'error')
+
     return
   }
 
   if (changePasswordForm.newPassword.length < 8) {
     showToast('新密码长度至少8位', 'error')
+
     return
   }
 
@@ -464,6 +468,7 @@ const changePassword = async () => {
       const message = changePasswordForm.newUsername
         ? '账户信息修改成功，请重新登录'
         : '密码修改成功，请重新登录'
+
       showToast(message, 'success')
       closeChangePasswordModal()
 
@@ -491,6 +496,7 @@ const logout = async () => {
     '取消',
     'warning'
   )
+
   if (confirmed) {
     authStore.logout()
     router.push('/login')
@@ -502,6 +508,7 @@ const logout = async () => {
 // 点击外部关闭菜单
 const handleClickOutside = (event) => {
   const userMenuContainer = event.target.closest('.user-menu-container')
+
   if (!userMenuContainer && userMenuOpen.value) {
     userMenuOpen.value = false
   }

@@ -117,6 +117,7 @@ const showFullKey = ref(false)
 const getBaseUrlPrefix = () => {
   // 优先使用环境变量配置的自定义前缀
   const customPrefix = import.meta.env.VITE_API_BASE_PREFIX
+
   if (customPrefix) {
     return customPrefix.replace(/\/$/, '')
   }
@@ -129,6 +130,7 @@ const getBaseUrlPrefix = () => {
 
     const currentUrl = window.location.href
     const pathStart = currentUrl.indexOf('/', 8)
+
     if (pathStart !== -1) {
       origin = currentUrl.substring(0, pathStart)
     }
@@ -150,12 +152,14 @@ const toggleKeyVisibility = () => {
 // 获取显示的API Key
 const getDisplayedApiKey = () => {
   const key = props.apiKey.apiKey || props.apiKey.key || props.apiKey.apiKeyValue || ''
+
   if (!key) return '无'
 
   if (showFullKey.value) {
     return key
   } else {
     if (key.length <= 12) return key
+
     return (
       key.substring(0, 8) + '●'.repeat(Math.max(0, key.length - 12)) + key.substring(key.length - 4)
     )
@@ -169,6 +173,7 @@ const copyTextWithFallback = async (text, successMessage) => {
     showToast(successMessage, 'success')
   } catch (error) {
     const textArea = document.createElement('textarea')
+
     textArea.value = text
     document.body.appendChild(textArea)
     textArea.select()
@@ -186,8 +191,10 @@ const copyTextWithFallback = async (text, successMessage) => {
 // 复制完整配置（Claude 环境变量）
 const copyFullConfig = async () => {
   const key = props.apiKey.apiKey || props.apiKey.key || props.apiKey.apiKeyValue || ''
+
   if (!key) {
     showToast('API Key 不存在', 'error')
+
     return
   }
 
@@ -200,8 +207,10 @@ export ANTHROPIC_AUTH_TOKEN="${key}"`
 // 仅复制密钥
 const copyKeyOnly = async () => {
   const key = props.apiKey.apiKey || props.apiKey.key || props.apiKey.apiKeyValue || ''
+
   if (!key) {
     showToast('API Key 不存在', 'error')
+
     return
   }
 

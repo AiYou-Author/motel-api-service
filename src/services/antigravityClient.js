@@ -26,6 +26,7 @@ function getAntigravityApiUrl() {
 
 function normalizeBaseUrl(url) {
   const str = String(url || '').trim()
+
   return str.endsWith('/') ? str.slice(0, -1) : str
 }
 
@@ -53,6 +54,7 @@ function getAntigravityApiUrlCandidates() {
 function getAntigravityHeaders(accessToken, baseUrl) {
   const resolvedBaseUrl = baseUrl || getAntigravityApiUrl()
   let host = 'daily-cloudcode-pa.sandbox.googleapis.com'
+
   try {
     host = new URL(resolvedBaseUrl).host || host
   } catch (e) {
@@ -79,12 +81,14 @@ function generateAntigravitySessionId() {
 
 function resolveAntigravityProjectId(projectId, requestData) {
   const candidate = projectId || requestData?.project || requestData?.projectId || null
+
   return candidate || generateAntigravityProjectId()
 }
 
 function resolveAntigravitySessionId(sessionId, requestData) {
   const candidate =
     sessionId || requestData?.request?.sessionId || requestData?.request?.session_id || null
+
   return candidate || generateAntigravitySessionId()
 }
 
@@ -117,6 +121,7 @@ function buildAntigravityEnvelope({ requestData, projectId, sessionId, userPromp
   }
 
   normalizeAntigravityEnvelope(envelope)
+
   return { model, envelope }
 }
 
@@ -126,22 +131,27 @@ function normalizeAntigravityThinking(model, requestPayload) {
   }
 
   const { generationConfig } = requestPayload
+
   if (!generationConfig || typeof generationConfig !== 'object') {
     return
   }
   const { thinkingConfig } = generationConfig
+
   if (!thinkingConfig || typeof thinkingConfig !== 'object') {
     return
   }
 
   const normalizedModel = normalizeAntigravityModelInput(model)
+
   if (thinkingConfig.thinkingLevel && !normalizedModel.startsWith('gemini-3-')) {
     delete thinkingConfig.thinkingLevel
   }
 
   const metadata = getAntigravityModelMetadata(normalizedModel)
+
   if (metadata && !metadata.thinking) {
     delete generationConfig.thinkingConfig
+
     return
   }
   if (!metadata || !metadata.thinking) {
@@ -149,6 +159,7 @@ function normalizeAntigravityThinking(model, requestPayload) {
   }
 
   const budgetRaw = Number(thinkingConfig.thinkingBudget)
+
   if (!Number.isFinite(budgetRaw)) {
     return
   }
@@ -165,6 +176,7 @@ function normalizeAntigravityThinking(model, requestPayload) {
     ? generationConfig.maxOutputTokens
     : null
   let setDefaultMax = false
+
   if (!effectiveMax && metadata.maxCompletionTokens) {
     effectiveMax = metadata.maxCompletionTokens
     setDefaultMax = true
@@ -176,6 +188,7 @@ function normalizeAntigravityThinking(model, requestPayload) {
 
   if (minBudget !== null && budget >= 0 && budget < minBudget) {
     delete generationConfig.thinkingConfig
+
     return
   }
 
@@ -191,6 +204,7 @@ function normalizeAntigravityEnvelope(envelope) {
   }
   const model = String(envelope.model || '')
   const requestPayload = envelope.request
+
   if (!requestPayload || typeof requestPayload !== 'object') {
     return
   }
@@ -202,8 +216,10 @@ function normalizeAntigravityEnvelope(envelope) {
   // 对齐 CLIProxyAPI：有 tools 时默认启用 VALIDATED（除非显式 NONE）
   if (Array.isArray(requestPayload.tools) && requestPayload.tools.length > 0) {
     const existing = requestPayload?.toolConfig?.functionCallingConfig || null
+
     if (existing?.mode !== 'NONE') {
       const nextCfg = { ...(existing || {}), mode: 'VALIDATED' }
+
       requestPayload.toolConfig = { functionCallingConfig: nextCfg }
     }
   }
@@ -214,6 +230,7 @@ function normalizeAntigravityEnvelope(envelope) {
     if (requestPayload.generationConfig && typeof requestPayload.generationConfig === 'object') {
       delete requestPayload.generationConfig.maxOutputTokens
     }
+
     return
   }
 
@@ -242,6 +259,7 @@ function normalizeAntigravityEnvelope(envelope) {
       }
       let schema =
         decl.parametersJsonSchema !== undefined ? decl.parametersJsonSchema : decl.parameters
+
       if (typeof schema === 'string' && schema) {
         try {
           schema = JSON.parse(schema)
@@ -284,6 +302,7 @@ async function request({
     const prodHost = 'cloudcode-pa.googleapis.com'
     const dailyHost = 'daily-cloudcode-pa.sandbox.googleapis.com'
     const ordered = []
+
     for (const u of endpoints) {
       if (String(u).includes(prodHost)) {
         ordered.push(u)
@@ -300,6 +319,7 @@ async function request({
       const bv = String(b)
       const aScore = av.includes(prodHost) ? 0 : av.includes(dailyHost) ? 1 : 2
       const bScore = bv.includes(prodHost) ? 0 : bv.includes(dailyHost) ? 1 : 2
+
       return aScore - bScore
     })
   }
@@ -311,6 +331,7 @@ async function request({
     }
 
     const status = error?.response?.status
+
     if (status === 429) {
       return true
     }
@@ -343,11 +364,13 @@ async function request({
             return ''
           }
         }
+
         return String(value)
       }
 
       const text = safeToString(data)
       const msg = (text || '').toLowerCase()
+
       return (
         msg.includes('requested model is currently unavailable') ||
         msg.includes('tool_use') ||
@@ -406,12 +429,14 @@ async function request({
           envelope
         }).catch(() => {})
         const response = await axios(axiosConfig)
+
         return { model, response }
       } catch (error) {
         lastError = error
         const status = error?.response?.status || null
 
         const hasNext = index + 1 < endpoints.length
+
         if (hasNext && isRetryable(error)) {
           logger.warn('⚠️ Antigravity upstream error, retrying with fallback baseUrl', {
             status,
@@ -433,6 +458,7 @@ async function request({
   } catch (error) {
     // 如果是 429 RESOURCE_EXHAUSTED 且尚未重试过，等待 2 秒后重试一次
     const status = error?.response?.status
+
     if (status === 429 && !retriedAfterDelay && !signal?.aborted) {
       const data = error?.response?.data
 
@@ -462,10 +488,12 @@ async function request({
             return ''
           }
         }
+
         return String(value)
       }
 
       const msg = safeDataToString(data)
+
       if (
         msg.toLowerCase().includes('resource_exhausted') ||
         msg.toLowerCase().includes('no capacity')
@@ -473,6 +501,7 @@ async function request({
         retriedAfterDelay = true
         logger.warn('⏳ Antigravity 429 RESOURCE_EXHAUSTED, waiting 2s before retry', { model })
         await new Promise((resolve) => setTimeout(resolve, 2000))
+
         return await attemptRequest()
       }
     }
@@ -485,6 +514,7 @@ async function fetchAvailableModels({ accessToken, proxyConfig = null, timeoutMs
   const endpoints = getAntigravityApiUrlCandidates()
 
   let lastError = null
+
   for (let index = 0; index < endpoints.length; index += 1) {
     const baseUrl = endpoints[index]
     const url = `${baseUrl}/v1internal:fetchAvailableModels`
@@ -511,11 +541,13 @@ async function fetchAvailableModels({ accessToken, proxyConfig = null, timeoutMs
 
     try {
       const response = await axios(axiosConfig)
+
       return response.data
     } catch (error) {
       lastError = error
       const status = error?.response?.status
       const hasNext = index + 1 < endpoints.length
+
       if (hasNext && (status === 429 || status === 404)) {
         continue
       }
@@ -539,6 +571,7 @@ async function countTokens({
   const endpoints = getAntigravityApiUrlCandidates()
 
   let lastError = null
+
   for (let index = 0; index < endpoints.length; index += 1) {
     const baseUrl = endpoints[index]
     const url = `${baseUrl}/v1internal:countTokens`
@@ -569,11 +602,13 @@ async function countTokens({
 
     try {
       const response = await axios(axiosConfig)
+
       return response.data
     } catch (error) {
       lastError = error
       const status = error?.response?.status
       const hasNext = index + 1 < endpoints.length
+
       if (hasNext && (status === 429 || status === 404)) {
         continue
       }

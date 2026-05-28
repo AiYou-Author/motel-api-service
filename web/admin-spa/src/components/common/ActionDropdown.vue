@@ -74,6 +74,7 @@ const getActionClass = (action) => {
     red: 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20',
     gray: 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'
   }
+
   return colorMap[action.color] || colorMap.gray
 }
 

@@ -17,6 +17,7 @@ async function setup() {
 
     directories.forEach((dir) => {
       const dirPath = path.join(__dirname, '..', dir)
+
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true })
       }
@@ -104,8 +105,10 @@ async function setup() {
 // 检查是否已初始化
 function checkInitialized() {
   const initFile = path.join(__dirname, '..', 'data', 'init.json')
+
   if (fs.existsSync(initFile)) {
     const initData = JSON.parse(fs.readFileSync(initFile, 'utf8'))
+
     console.log(chalk.yellow('⚠️  服务已经初始化过了！'))
     console.log(`   初始化时间: ${new Date(initData.initializedAt).toLocaleString()}`)
     console.log(`   管理员用户名: ${initData.adminUsername}`)
@@ -114,8 +117,10 @@ function checkInitialized() {
     console.log('   1. 删除 init.json 文件后运行 npm run setup')
     console.log('   2. 生成新的账号密码后，需要重启服务才能生效')
     console.log('   3. 使用 npm run service:restart 重启服务\n')
+
     return true
   }
+
   return false
 }
 

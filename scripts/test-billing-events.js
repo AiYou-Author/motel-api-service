@@ -130,11 +130,13 @@ async function consumeTestEvents() {
       }
 
       const [streamKey, entries] = messages[0]
+
       console.log(`📬 Received ${entries.length} messages from ${streamKey}\n`)
 
       for (const [messageId, fields] of entries) {
         try {
           const data = {}
+
           for (let i = 0; i < fields.length; i += 2) {
             data[fields[i]] = fields[i + 1]
           }
@@ -174,17 +176,20 @@ async function showQueueInfo() {
   try {
     // Stream 长度
     const length = await redis.xlen(STREAM_KEY)
+
     console.log(`Stream: ${STREAM_KEY}`)
     console.log(`Length: ${length} messages\n`)
 
     if (length === 0) {
       console.log('ℹ️  Queue is empty')
+
       return
     }
 
     // Stream 详细信息
     const info = await redis.xinfo('STREAM', STREAM_KEY)
     const infoObj = {}
+
     for (let i = 0; i < info.length; i += 2) {
       infoObj[info[i]] = info[i + 1]
     }
@@ -202,6 +207,7 @@ async function showQueueInfo() {
       for (let i = 0; i < groups.length; i++) {
         const group = groups[i]
         const groupObj = {}
+
         for (let j = 0; j < group.length; j += 2) {
           groupObj[group[j]] = group[j + 1]
         }
@@ -214,11 +220,13 @@ async function showQueueInfo() {
         // 消费者详情
         if (groupObj.consumers > 0) {
           const consumers = await redis.xinfo('CONSUMERS', STREAM_KEY, groupObj.name)
+
           console.log('    Consumer Details:')
 
           for (let k = 0; k < consumers.length; k++) {
             const consumer = consumers[k]
             const consumerObj = {}
+
             for (let l = 0; l < consumer.length; l += 2) {
               consumerObj[consumer[l]] = consumer[l + 1]
             }
@@ -240,12 +248,14 @@ async function showQueueInfo() {
     } else {
       for (const [messageId, fields] of latest) {
         const data = {}
+
         for (let i = 0; i < fields.length; i += 2) {
           data[fields[i]] = fields[i + 1]
         }
 
         try {
           const event = JSON.parse(data.data)
+
           console.log(`\n  ${messageId}`)
           console.log(`    Event ID: ${event.eventId}`)
           console.log(`    Model: ${event.usage.model}`)
@@ -317,6 +327,7 @@ async function main() {
 
       case 'clear':
         await clearQueue()
+
         return // clearQueue 会自己关闭连接
 
       default:

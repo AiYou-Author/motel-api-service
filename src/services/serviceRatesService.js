@@ -45,16 +45,20 @@ class ServiceRatesService {
       }
 
       const configStr = await redis.client.get(this.CONFIG_KEY)
+
       if (!configStr) {
         const defaultRates = this.getDefaultRates()
+
         this.cachedRates = defaultRates
         this.cacheExpiry = Date.now() + this.CACHE_TTL
+
         return defaultRates
       }
 
       const storedConfig = JSON.parse(configStr)
       // 合并默认值，确保新增服务有默认倍率
       const defaultRates = this.getDefaultRates()
+
       storedConfig.rates = {
         ...defaultRates.rates,
         ...storedConfig.rates
@@ -62,9 +66,11 @@ class ServiceRatesService {
 
       this.cachedRates = storedConfig
       this.cacheExpiry = Date.now() + this.CACHE_TTL
+
       return storedConfig
     } catch (error) {
       logger.error('获取服务倍率配置失败:', error)
+
       return this.getDefaultRates()
     }
   }
@@ -96,6 +102,7 @@ class ServiceRatesService {
       this.cacheExpiry = 0
 
       logger.info(`✅ 服务倍率配置已更新 by ${updatedBy}`)
+
       return newConfig
     } catch (error) {
       logger.error('保存服务倍率配置失败:', error)
@@ -125,6 +132,7 @@ class ServiceRatesService {
    */
   async getServiceRate(service) {
     const config = await this.getRates()
+
     return config.rates[service] || 1.0
   }
 
@@ -136,6 +144,7 @@ class ServiceRatesService {
    */
   async calculateQuotaConsumption(costUSD, service) {
     const rate = await this.getServiceRate(service)
+
     return costUSD * rate
   }
 
@@ -244,6 +253,7 @@ class ServiceRatesService {
    */
   async getAvailableServices() {
     const config = await this.getRates()
+
     return Object.keys(config.rates)
   }
 

@@ -173,6 +173,7 @@ const emitClose = () => emit('close')
 
 const formattedTime = computed(() => {
   if (!props.record?.timestamp) return '未知时间'
+
   return dayjs(props.record.timestamp).format('YYYY-MM-DD HH:mm:ss')
 })
 
@@ -180,8 +181,10 @@ const formattedCosts = computed(() => {
   const breakdown = props.record?.realCostBreakdown || props.record?.costBreakdown || {}
   const formatValue = (value) => {
     const num = typeof value === 'number' ? value : 0
+
     if (num >= 1) return `$${num.toFixed(2)}`
     if (num >= 0.001) return `$${num.toFixed(4)}`
+
     return `$${num.toFixed(6)}`
   }
 

@@ -21,6 +21,7 @@ router.get('/claude-code-headers', authenticateAdmin, async (req, res) => {
     // 获取所有 Claude 账号信息
     const accounts = await claudeAccountService.getAllAccounts()
     const accountMap = {}
+
     accounts.forEach((account) => {
       accountMap[account.id] = account.name
     })
@@ -41,6 +42,7 @@ router.get('/claude-code-headers', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to get Claude Code headers:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to get Claude Code headers', message: error.message })
@@ -51,6 +53,7 @@ router.get('/claude-code-headers', authenticateAdmin, async (req, res) => {
 router.delete('/claude-code-headers/:accountId', authenticateAdmin, async (req, res) => {
   try {
     const { accountId } = req.params
+
     await claudeCodeHeadersService.clearAccountHeaders(accountId)
 
     return res.json({
@@ -59,6 +62,7 @@ router.delete('/claude-code-headers/:accountId', authenticateAdmin, async (req, 
     })
   } catch (error) {
     logger.error('❌ Failed to clear Claude Code headers:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to clear Claude Code headers', message: error.message })
@@ -71,6 +75,7 @@ router.delete('/claude-code-headers/:accountId', authenticateAdmin, async (req, 
 function compareVersions(current, latest) {
   const parseVersion = (v) => {
     const parts = v.split('.').map(Number)
+
     return {
       major: parts[0] || 0,
       minor: parts[1] || 0,
@@ -87,6 +92,7 @@ function compareVersions(current, latest) {
   if (currentV.minor !== latestV.minor) {
     return currentV.minor - latestV.minor
   }
+
   return currentV.patch - latestV.patch
 }
 
@@ -94,6 +100,7 @@ router.get('/check-updates', authenticateAdmin, async (req, res) => {
   // 读取当前版本
   const versionPath = path.join(__dirname, '../../../VERSION')
   let currentVersion = '1.0.0'
+
   try {
     currentVersion = fs.readFileSync(versionPath, 'utf8').trim()
   } catch (err) {
@@ -276,6 +283,7 @@ router.get('/oem-settings', async (req, res) => {
     }
 
     let settings = defaultSettings
+
     if (oemSettings) {
       try {
         settings = { ...defaultSettings, ...JSON.parse(oemSettings) }
@@ -294,6 +302,7 @@ router.get('/oem-settings', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to get OEM settings:', error)
+
     return res.status(500).json({ error: 'Failed to get OEM settings', message: error.message })
   }
 })
@@ -342,6 +351,7 @@ router.put('/oem-settings', authenticateAdmin, async (req, res) => {
     }
 
     const client = redis.getClient()
+
     await client.set('oem:settings', JSON.stringify(settings))
 
     logger.info(`✅ OEM settings updated: ${siteName}`)
@@ -353,6 +363,7 @@ router.put('/oem-settings', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to update OEM settings:', error)
+
     return res.status(500).json({ error: 'Failed to update OEM settings', message: error.message })
   }
 })
@@ -419,6 +430,7 @@ router.get('/models/pricing', authenticateAdmin, async (req, res) => {
       await pricingService.loadPricingData()
     }
     const data = pricingService.pricingData
+
     res.json({
       success: true,
       data: data || {}
@@ -433,6 +445,7 @@ router.get('/models/pricing', authenticateAdmin, async (req, res) => {
 router.get('/models/pricing/status', authenticateAdmin, async (req, res) => {
   try {
     const status = pricingService.getStatus()
+
     res.json({ success: true, data: status })
   } catch (error) {
     logger.error('Failed to get pricing status:', error)
@@ -444,6 +457,7 @@ router.get('/models/pricing/status', authenticateAdmin, async (req, res) => {
 router.post('/models/pricing/refresh', authenticateAdmin, async (req, res) => {
   try {
     const result = await pricingService.forceUpdate()
+
     res.json({ success: result.success, message: result.message })
   } catch (error) {
     logger.error('Failed to refresh pricing:', error)
@@ -457,6 +471,7 @@ router.post('/models/pricing/refresh', authenticateAdmin, async (req, res) => {
 router.get('/models/pricing/custom', authenticateAdmin, async (req, res) => {
   try {
     const list = pricingService.getAllCustomPricing()
+
     res.json({ success: true, data: list })
   } catch (error) {
     logger.error('Failed to list custom pricing:', error)
@@ -467,8 +482,10 @@ router.get('/models/pricing/custom', authenticateAdmin, async (req, res) => {
 // 创建或更新自定义价格（幂等）
 router.put('/models/pricing/custom/:model', authenticateAdmin, async (req, res) => {
   const { model } = req.params
+
   try {
     const data = await pricingService.setCustomPricing(model, req.body || {}, req.admin?.id)
+
     res.json({ success: true, data })
   } catch (error) {
     const map = {
@@ -480,6 +497,7 @@ router.put('/models/pricing/custom/:model', authenticateAdmin, async (req, res) 
       INVALID_OUTPUT_COST: { code: 400, msg: '输出价格必须是 ≥ 0 的数字' }
     }
     const hit = map[error.message]
+
     if (hit) {
       return res.status(hit.code).json({ error: error.message, message: hit.msg })
     }
@@ -491,6 +509,7 @@ router.put('/models/pricing/custom/:model', authenticateAdmin, async (req, res) 
 // 删除自定义价格
 router.delete('/models/pricing/custom/:model', authenticateAdmin, async (req, res) => {
   const { model } = req.params
+
   try {
     await pricingService.removeCustomPricing(model, req.admin?.id)
     res.json({ success: true })

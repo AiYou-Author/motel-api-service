@@ -54,11 +54,13 @@ class ClaudeCodeValidator {
     }
 
     const model = typeof body.model === 'string' ? body.model : null
+
     if (!model) {
       return false
     }
 
     const systemEntries = Array.isArray(body.system) ? body.system : null
+
     if (!systemEntries) {
       return false
     }
@@ -91,11 +93,13 @@ class ClaudeCodeValidator {
           `Claude system prompt similarity below threshold: score=${bestScore.toFixed(4)}, threshold=${threshold}`
         )
         const preview = typeof maskedRaw === 'string' ? maskedRaw.slice(0, 200) : ''
+
         logger.warn(
           `Claude system prompt detail: templateId=${templateId || 'unknown'}, preview=${preview}${
             maskedRaw && maskedRaw.length > 200 ? '…' : ''
           }`
         )
+
         return false
       }
     }
@@ -107,6 +111,7 @@ class ClaudeCodeValidator {
     logger.debug(
       `Claude system prompt not detected: matchCount=${matchCount}, minRequired=${minRequired}`
     )
+
     return matchCount >= minRequired
   }
 
@@ -141,12 +146,14 @@ class ClaudeCodeValidator {
       if (!path.includes('messages')) {
         // 其他路径，只要 User-Agent 匹配就认为是 Claude Code
         logger.debug(`Claude Code detected for path: ${path}, allowing access`)
+
         return true
       }
 
       // 3. 检查系统提示词匹配（由 CLAUDE_CODE_MIN_SYSTEM_PROMPT_MATCHES 控制匹配策略）
       if (!this.hasClaudeCodeSystemPrompt(req.body, undefined, MIN_SYSTEM_PROMPT_MATCHES)) {
         logger.debug('Claude Code validation failed - missing or invalid Claude Code system prompt')
+
         return false
       }
 
@@ -157,16 +164,19 @@ class ClaudeCodeValidator {
 
       if (!xApp || xApp.trim() === '') {
         logger.debug('Claude Code validation failed - missing or empty x-app header')
+
         return false
       }
 
       if (!anthropicBeta || anthropicBeta.trim() === '') {
         logger.debug('Claude Code validation failed - missing or empty anthropic-beta header')
+
         return false
       }
 
       if (!anthropicVersion || anthropicVersion.trim() === '') {
         logger.debug('Claude Code validation failed - missing or empty anthropic-version header')
+
         return false
       }
 
@@ -177,14 +187,17 @@ class ClaudeCodeValidator {
       // 5. 验证 body 中的 metadata.user_id
       if (!req.body || !req.body.metadata || !req.body.metadata.user_id) {
         logger.debug('Claude Code validation failed - missing metadata.user_id in body')
+
         return false
       }
 
       const userId = req.body.metadata.user_id
+
       if (!metadataUserIdHelper.isValid(userId)) {
         logger.debug(
           `Claude Code validation failed - invalid user_id format: ${typeof userId === 'string' ? userId.slice(0, 80) : typeof userId}`
         )
+
         return false
       }
 
@@ -195,6 +208,7 @@ class ClaudeCodeValidator {
       return true
     } catch (error) {
       logger.error('Error in ClaudeCodeValidator:', error)
+
       // 验证出错时默认拒绝
       return false
     }

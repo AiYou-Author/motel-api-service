@@ -59,6 +59,7 @@ class ClaudeCodeHeadersService {
       return null
     }
     const match = userAgent.match(/claude-cli\/([\d.]+(?:[a-zA-Z0-9-]*)?)/i)
+
     return match ? match[1] : null
   }
 
@@ -97,6 +98,7 @@ class ClaudeCodeHeadersService {
 
     // 转换所有 header keys 为小写进行比较
     const lowerCaseHeaders = {}
+
     Object.keys(clientHeaders || {}).forEach((key) => {
       lowerCaseHeaders[key.toLowerCase()] = clientHeaders[key]
     })
@@ -104,6 +106,7 @@ class ClaudeCodeHeadersService {
     // 提取需要的 headers
     this.claudeCodeHeaderKeys.forEach((key) => {
       const lowerKey = key.toLowerCase()
+
       if (lowerCaseHeaders[lowerKey]) {
         headers[key] = lowerCaseHeaders[lowerKey]
       }
@@ -121,14 +124,17 @@ class ClaudeCodeHeadersService {
 
       // 检查是否有 user-agent
       const userAgent = extractedHeaders['user-agent']
+
       if (!userAgent || !/^claude-cli\/[\d.]+\s+\(/i.test(userAgent)) {
         // 不是 Claude Code 的请求，不存储
         return
       }
 
       const version = this.extractVersionFromUserAgent(userAgent)
+
       if (!version) {
         logger.warn(`⚠️ Failed to extract version from user-agent: ${userAgent}`)
+
         return
       }
 
@@ -172,6 +178,7 @@ class ClaudeCodeHeadersService {
 
     // 检查内存缓存
     const cached = getCachedConfig(cacheKey)
+
     if (cached) {
       return cached
     }
@@ -181,19 +188,23 @@ class ClaudeCodeHeadersService {
 
       if (data) {
         const parsed = JSON.parse(data)
+
         logger.debug(
           `📋 Retrieved Claude Code headers for account ${accountId}, version: ${parsed.version}`
         )
         // 缓存到内存
         setCachedConfig(cacheKey, parsed.headers, this.headersCacheTtl)
+
         return parsed.headers
       }
 
       // 返回默认 headers
       logger.debug(`📋 Using default Claude Code headers for account ${accountId}`)
+
       return this.defaultHeaders
     } catch (error) {
       logger.error(`❌ Failed to get Claude Code headers for account ${accountId}:`, error)
+
       return this.defaultHeaders
     }
   }
@@ -204,6 +215,7 @@ class ClaudeCodeHeadersService {
   async clearAccountHeaders(accountId) {
     try {
       const cacheKey = `claude_code_headers:${accountId}`
+
       await redis.getClient().del(cacheKey)
       // 删除内存缓存
       deleteCachedConfig(cacheKey)
@@ -222,9 +234,11 @@ class ClaudeCodeHeadersService {
       const keys = await redis.scanKeys(pattern)
 
       const results = {}
+
       for (const key of keys) {
         const accountId = key.replace('claude_code_headers:', '')
         const data = await redis.getClient().get(key)
+
         if (data) {
           results[accountId] = JSON.parse(data)
         }
@@ -233,6 +247,7 @@ class ClaudeCodeHeadersService {
       return results
     } catch (error) {
       logger.error('❌ Failed to get all account headers:', error)
+
       return {}
     }
   }

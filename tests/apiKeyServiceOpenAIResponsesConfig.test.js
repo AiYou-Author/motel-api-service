@@ -112,6 +112,7 @@ describe('apiKeyService openai responses config', () => {
     })
 
     const [, storedKeyData] = redis.setApiKey.mock.calls[0]
+
     expect(storedKeyData.enableOpenAIResponsesCodexAdaptation).toBe('false')
     expect(storedKeyData.enableOpenAIResponsesPayloadRules).toBe('true')
     expect(storedKeyData.openaiResponsesPayloadRules).toBe(

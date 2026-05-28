@@ -16,6 +16,7 @@ describe('UserMessageQueueService', () => {
           { role: 'user', content: 'How are you?' }
         ]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(true)
     })
 
@@ -26,6 +27,7 @@ describe('UserMessageQueueService', () => {
           { role: 'assistant', content: 'Hi there' }
         ]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
@@ -46,6 +48,7 @@ describe('UserMessageQueueService', () => {
           }
         ]
       }
+
       // tool_result 消息虽然 role 是 user，但不是真正的用户消息
       // 应该返回 false，不进入用户消息队列
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
@@ -72,6 +75,7 @@ describe('UserMessageQueueService', () => {
           }
         ]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
@@ -89,6 +93,7 @@ describe('UserMessageQueueService', () => {
           }
         ]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(true)
     })
 
@@ -110,21 +115,25 @@ describe('UserMessageQueueService', () => {
           }
         ]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(true)
     })
 
     it('should return false when messages is empty', () => {
       const requestBody = { messages: [] }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
     it('should return false when messages is not an array', () => {
       const requestBody = { messages: 'not an array' }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
     it('should return false when messages is undefined', () => {
       const requestBody = {}
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
@@ -140,6 +149,7 @@ describe('UserMessageQueueService', () => {
       const requestBody = {
         messages: [{ content: 'Hello' }]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
 
@@ -147,6 +157,7 @@ describe('UserMessageQueueService', () => {
       const requestBody = {
         messages: [{ role: 'user', content: 'Hello' }]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(true)
     })
 
@@ -154,6 +165,7 @@ describe('UserMessageQueueService', () => {
       const requestBody = {
         messages: [{ role: 'assistant', content: 'Hello' }]
       }
+
       expect(userMessageQueueService.isUserMessageRequest(requestBody)).toBe(false)
     })
   })
@@ -161,6 +173,7 @@ describe('UserMessageQueueService', () => {
   describe('getConfig', () => {
     it('should return config with expected properties', async () => {
       const config = await userMessageQueueService.getConfig()
+
       expect(config).toHaveProperty('enabled')
       expect(config).toHaveProperty('delayMs')
       expect(config).toHaveProperty('timeoutMs')
@@ -175,6 +188,7 @@ describe('UserMessageQueueService', () => {
   describe('isEnabled', () => {
     it('should return boolean', async () => {
       const enabled = await userMessageQueueService.isEnabled()
+
       expect(typeof enabled).toBe('boolean')
     })
   })
@@ -247,11 +261,13 @@ describe('UserMessageQueueService', () => {
       })
 
       let callCount = 0
+
       jest.spyOn(redis, 'acquireUserMessageLock').mockImplementation(async () => {
         callCount++
         if (callCount < 3) {
           return { acquired: false, waitMs: -1 } // lock held
         }
+
         return { acquired: true, waitMs: 0 }
       })
 
@@ -273,11 +289,13 @@ describe('UserMessageQueueService', () => {
       })
 
       let callCount = 0
+
       jest.spyOn(redis, 'acquireUserMessageLock').mockImplementation(async () => {
         callCount++
         if (callCount === 1) {
           return { acquired: false, waitMs: 150 } // need to wait 150ms for delay
         }
+
         return { acquired: true, waitMs: 0 }
       })
 
@@ -398,8 +416,10 @@ describe('UserMessageQueueService', () => {
           if (!lockState.held) {
             lockState.held = true
             lockState.holderId = requestId
+
             return { acquired: true, waitMs: 0 }
           }
+
           return { acquired: false, waitMs: -1 }
         })
 
@@ -409,8 +429,10 @@ describe('UserMessageQueueService', () => {
           if (lockState.holderId === requestId) {
             lockState.held = false
             lockState.holderId = null
+
             return true
           }
+
           return false
         })
 
@@ -418,6 +440,7 @@ describe('UserMessageQueueService', () => {
 
       // First request acquires lock
       const result1 = await userMessageQueueService.acquireQueueLock('acct-1', 'req-1')
+
       expect(result1.acquired).toBe(true)
 
       // Second request should fail to acquire (lock held)
@@ -428,6 +451,7 @@ describe('UserMessageQueueService', () => {
 
       // Now second request should acquire
       const result2 = await acquirePromise
+
       expect(result2.acquired).toBe(true)
     })
   })

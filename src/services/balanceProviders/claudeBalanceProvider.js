@@ -14,6 +14,7 @@ class ClaudeBalanceProvider extends BaseBalanceProvider {
 
     // 仅 OAuth 账户可用；失败时降级
     const usageData = await claudeAccountService.fetchOAuthUsage(account.id).catch(() => null)
+
     if (!usageData) {
       return { balance: null, currency: 'USD', queryMethod: 'local' }
     }

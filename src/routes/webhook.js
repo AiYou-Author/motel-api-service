@@ -10,6 +10,7 @@ const { getISOStringWithTimezone } = require('../utils/dateHelper')
 router.get('/config', authenticateAdmin, async (req, res) => {
   try {
     const config = await webhookConfigService.getConfig()
+
     res.json({
       success: true,
       config
@@ -27,6 +28,7 @@ router.get('/config', authenticateAdmin, async (req, res) => {
 router.post('/config', authenticateAdmin, async (req, res) => {
   try {
     const config = await webhookConfigService.saveConfig(req.body)
+
     res.json({
       success: true,
       message: 'Webhook配置已保存',
@@ -45,6 +47,7 @@ router.post('/config', authenticateAdmin, async (req, res) => {
 router.post('/platforms', authenticateAdmin, async (req, res) => {
   try {
     const platform = await webhookConfigService.addPlatform(req.body)
+
     res.json({
       success: true,
       message: 'Webhook平台已添加',
@@ -63,6 +66,7 @@ router.post('/platforms', authenticateAdmin, async (req, res) => {
 router.put('/platforms/:id', authenticateAdmin, async (req, res) => {
   try {
     const platform = await webhookConfigService.updatePlatform(req.params.id, req.body)
+
     res.json({
       success: true,
       message: 'Webhook平台已更新',
@@ -98,6 +102,7 @@ router.delete('/platforms/:id', authenticateAdmin, async (req, res) => {
 router.post('/platforms/:id/toggle', authenticateAdmin, async (req, res) => {
   try {
     const platform = await webhookConfigService.togglePlatform(req.params.id)
+
     res.json({
       success: true,
       message: `Webhook平台已${platform.enabled ? '启用' : '禁用'}`,
@@ -207,6 +212,7 @@ router.post('/test', authenticateAdmin, async (req, res) => {
       if (apiBaseUrl) {
         try {
           const parsed = new URL(apiBaseUrl)
+
           if (!['http:', 'https:'].includes(parsed.protocol)) {
             return res.status(400).json({
               error: 'Invalid Telegram API base url protocol',
@@ -225,6 +231,7 @@ router.post('/test', authenticateAdmin, async (req, res) => {
         try {
           const parsed = new URL(proxyUrl)
           const supportedProtocols = ['http:', 'https:', 'socks4:', 'socks4a:', 'socks5:']
+
           if (!supportedProtocols.includes(parsed.protocol)) {
             return res.status(400).json({
               error: 'Unsupported proxy protocol',
@@ -304,11 +311,13 @@ router.post('/test', authenticateAdmin, async (req, res) => {
       }
       if (type === 'smtp') {
         const recipients = Array.isArray(to) ? to.join(', ') : to
+
         return `${host}:${port || 587} -> ${recipients}`
       }
       if (type === 'telegram') {
         return `Chat ID: ${chatId}`
       }
+
       return url
     })()
 
@@ -357,6 +366,7 @@ router.post('/test-notification', authenticateAdmin, async (req, res) => {
 
     // 先检查webhook配置
     const config = await webhookConfigService.getConfig()
+
     logger.debug(
       `Webhook配置: enabled=${config.enabled}, platforms=${config.platforms?.length || 0}`
     )
@@ -368,6 +378,7 @@ router.post('/test-notification', authenticateAdmin, async (req, res) => {
     }
 
     const enabledPlatforms = await webhookConfigService.getEnabledPlatforms()
+
     logger.info(`找到 ${enabledPlatforms.length} 个启用的通知平台`)
 
     if (enabledPlatforms.length === 0) {
@@ -411,6 +422,7 @@ router.post('/test-notification', authenticateAdmin, async (req, res) => {
 
     if (result.failed > 0) {
       logger.warn(`⚠️ 测试通知部分失败: ${result.succeeded}成功, ${result.failed}失败`)
+
       return res.json({
         success: true,
         message: `测试通知部分成功: ${result.succeeded}个平台成功, ${result.failed}个平台失败`,

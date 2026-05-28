@@ -308,6 +308,7 @@ const conflictVersion = ref(0)
 const sortedPlans = computed(() =>
   [...plans.value].sort((a, b) => {
     if (a.enabled === b.enabled) return 0
+
     return a.enabled ? -1 : 1
   })
 )
@@ -316,6 +317,7 @@ const loadPlans = async () => {
   loading.value = true
   try {
     const res = await getAdminPlansApi()
+
     if (res?.success) {
       plans.value = Array.isArray(res.plans) ? res.plans : []
       version.value = Number.isInteger(res.version) ? res.version : 0
@@ -332,6 +334,7 @@ const loadPlans = async () => {
 const loadGroups = async () => {
   try {
     const res = await getAccountGroupsApi()
+
     if (res?.success) {
       accountGroups.value = res.data || []
     }
@@ -347,6 +350,7 @@ const loadModels = async () => {
       getModelPricingApi().catch(() => null),
       getCustomPricingApi().catch(() => null)
     ])
+
     if (pricingRes?.success && pricingRes.data) {
       Object.keys(pricingRes.data).forEach((m) => set.add(m))
     }
@@ -389,6 +393,7 @@ const openCreate = () => {
 
 const openEdit = (plan) => {
   const idx = plans.value.findIndex((p) => p === plan)
+
   draft.value = JSON.parse(JSON.stringify(plan))
   if (!draft.value.permissions) draft.value.permissions = []
   if (!draft.value.models) draft.value.models = []
@@ -406,6 +411,7 @@ const closeEditor = () => {
 
 const togglePermission = (p, checked) => {
   const set = new Set(draft.value.permissions || [])
+
   if (checked) set.add(p)
   else set.delete(p)
   draft.value.permissions = [...set]
@@ -414,11 +420,13 @@ const togglePermission = (p, checked) => {
 // 未选择的模型列表（用于下拉框）
 const unselectedModels = computed(() => {
   const selected = new Set(draft.value.models || [])
+
   return availableModels.value.filter((m) => !selected.has(m))
 })
 
 const addModel = (e) => {
   const val = e.target.value
+
   if (!val) return
   if (!draft.value.models) draft.value.models = []
   if (!draft.value.models.includes(val)) {
@@ -434,6 +442,7 @@ const removeModel = (m) => {
 
 const commitDraft = () => {
   const d = draft.value
+
   if (!d.id) return showToast('id 必填', 'error')
   if (!d.name) return showToast('名称必填', 'error')
   if (isCreating.value && plans.value.some((p) => p.id === d.id)) {
@@ -454,6 +463,7 @@ const commitDraft = () => {
 
 const toggleEnabled = (plan) => {
   const idx = plans.value.findIndex((p) => p === plan)
+
   if (idx >= 0) {
     plans.value.splice(idx, 1, { ...plan, enabled: !plan.enabled })
   }
@@ -463,22 +473,26 @@ const saveAll = async () => {
   saving.value = true
   try {
     const res = await saveAdminPlansApi(plans.value, version.value)
+
     if (res?.success) {
       plans.value = res.plans || plans.value
       version.value = res.version
       showToast('保存成功', 'success')
     } else {
       const details = Array.isArray(res?.details) ? '\n' + res.details.join('\n') : ''
+
       showToast((res?.error || '保存失败') + details, 'error')
     }
   } catch (e) {
     const status = e?.response?.status
     const data = e?.response?.data
+
     if (status === 409) {
       conflictVersion.value = data?.currentVersion ?? -1
       conflictOpen.value = true
     } else if (status === 400) {
       const details = Array.isArray(data?.details) ? '\n' + data.details.join('\n') : ''
+
       showToast((data?.error || '校验失败') + details, 'error')
     } else {
       showToast(e?.message || '保存失败', 'error')

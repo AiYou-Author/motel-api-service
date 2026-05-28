@@ -187,6 +187,7 @@ export const useThemeStore = defineStore('theme', () => {
   const initTheme = () => {
     // 检测系统主题偏好
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
     systemPrefersDark.value = mediaQuery.matches
 
     // 从 localStorage 读取保存的主题模式
@@ -201,6 +202,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     // 从 localStorage 读取保存的色系
     const savedColorScheme = localStorage.getItem('colorScheme')
+
     if (savedColorScheme && ColorSchemes[savedColorScheme]) {
       colorScheme.value = savedColorScheme
     }
@@ -264,6 +266,7 @@ export const useThemeStore = defineStore('theme', () => {
     // 解析颜色为 RGB 值用于 rgba()
     const hexToRgb = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+
       return result
         ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
         : '102, 126, 234'
@@ -300,6 +303,7 @@ export const useThemeStore = defineStore('theme', () => {
     const modes = [ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.AUTO]
     const currentIndex = modes.indexOf(themeMode.value)
     const nextIndex = (currentIndex + 1) % modes.length
+
     themeMode.value = modes[nextIndex]
   }
 
@@ -315,6 +319,7 @@ export const useThemeStore = defineStore('theme', () => {
     const schemes = Object.keys(ColorSchemes)
     const currentIndex = schemes.indexOf(colorScheme.value)
     const nextIndex = (currentIndex + 1) % schemes.length
+
     colorScheme.value = schemes[nextIndex]
   }
 

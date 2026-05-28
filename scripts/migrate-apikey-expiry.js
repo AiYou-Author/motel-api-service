@@ -19,8 +19,10 @@ const readline = require('readline')
 // 解析命令行参数
 const args = process.argv.slice(2)
 const params = {}
+
 args.forEach((arg) => {
   const [key, value] = arg.split('=')
+
   params[key.replace('--', '')] = value || true
 })
 
@@ -53,6 +55,7 @@ async function migrateApiKeys() {
 
     // 获取所有 API Keys
     const apiKeys = await apiKeyService.getAllApiKeysFast()
+
     logger.info(`📊 Found ${apiKeys.length} API Keys in total`)
 
     // 统计信息
@@ -76,6 +79,7 @@ async function migrateApiKeys() {
       } else {
         stats.alreadyHasExpiry++
         const expiryDate = new Date(key.expiresAt)
+
         logger.info(
           `✓ API Key "${key.name}" (${key.id}) already has expiry: ${expiryDate.toLocaleString()}`
         )
@@ -84,6 +88,7 @@ async function migrateApiKeys() {
 
     if (keysToMigrate.length === 0) {
       logger.success('✨ No API Keys need migration!')
+
       return
     }
 
@@ -105,12 +110,14 @@ async function migrateApiKeys() {
 
       if (!confirmed) {
         logger.warn('❌ Migration cancelled by user')
+
         return
       }
     }
 
     // 计算新的过期时间
     const newExpiryDate = new Date()
+
     newExpiryDate.setDate(newExpiryDate.getDate() + DEFAULT_DAYS)
     const newExpiryISO = newExpiryDate.toISOString()
 

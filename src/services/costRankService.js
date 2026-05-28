@@ -153,8 +153,10 @@ class CostRankService {
    */
   async updateRank(timeRange) {
     const client = redis.getClient()
+
     if (!client) {
       logger.warn('Redis client not available, skipping cost rank update')
+
       return
     }
 
@@ -164,8 +166,10 @@ class CostRankService {
 
     // 获取分布式锁
     const acquired = await client.set(lockKey, '1', 'NX', 'EX', LOCK_TTL)
+
     if (!acquired) {
       logger.debug(`Skipping ${timeRange} rank update - another update in progress`)
+
       return
     }
 
@@ -182,6 +186,7 @@ class CostRankService {
         // 无数据时清空索引
         await client.del(rankKey)
         await this._updateMeta(client, metaKey, startTime, 0)
+
         return
       }
 
@@ -216,6 +221,7 @@ class CostRankService {
   async _atomicUpdateIndex(client, rankKey, costs) {
     if (costs.size === 0) {
       await client.del(rankKey)
+
       return
     }
 
@@ -225,6 +231,7 @@ class CostRankService {
     try {
       // 构建 ZADD 参数
       const members = []
+
       costs.forEach((cost, keyId) => {
         members.push(cost, keyId)
       })
@@ -264,6 +271,7 @@ class CostRankService {
    */
   async addKeyToIndexes(keyId) {
     const client = redis.getClient()
+
     if (!client) {
       return
     }
@@ -289,6 +297,7 @@ class CostRankService {
    */
   async removeKeyFromIndexes(keyId) {
     const client = redis.getClient()
+
     if (!client) {
       return
     }
@@ -322,6 +331,7 @@ class CostRankService {
    */
   async getSortedKeyIds(timeRange, sortOrder = 'desc', offset = 0, limit = -1) {
     const client = redis.getClient()
+
     if (!client) {
       throw new Error('Redis client not available')
     }
@@ -344,11 +354,13 @@ class CostRankService {
    */
   async getKeyCost(timeRange, keyId) {
     const client = redis.getClient()
+
     if (!client) {
       return 0
     }
 
     const score = await client.zscore(RedisKeys.rankKey(timeRange), keyId)
+
     return score ? parseFloat(score) : 0
   }
 
@@ -360,6 +372,7 @@ class CostRankService {
    */
   async getBatchKeyCosts(timeRange, keyIds) {
     const client = redis.getClient()
+
     if (!client || keyIds.length === 0) {
       return new Map()
     }
@@ -368,6 +381,7 @@ class CostRankService {
     const costs = new Map()
 
     const pipeline = client.pipeline()
+
     keyIds.forEach((keyId) => {
       pipeline.zscore(rankKey, keyId)
     })
@@ -375,6 +389,7 @@ class CostRankService {
 
     keyIds.forEach((keyId, index) => {
       const [err, score] = results[index]
+
       costs.set(keyId, err || !score ? 0 : parseFloat(score))
     })
 
@@ -387,20 +402,24 @@ class CostRankService {
    */
   async getRankStatus() {
     const client = redis.getClient()
+
     if (!client) {
       return {}
     }
 
     // 使用 Pipeline 批量获取
     const pipeline = client.pipeline()
+
     for (const timeRange of VALID_TIME_RANGES) {
       pipeline.hgetall(RedisKeys.metaKey(timeRange))
     }
     const results = await pipeline.exec()
 
     const status = {}
+
     VALID_TIME_RANGES.forEach((timeRange, i) => {
       const [err, meta] = results[i]
+
       if (err || !meta) {
         status[timeRange] = {
           lastUpdate: null,
@@ -445,6 +464,7 @@ class CostRankService {
    */
   async calculateCustomRangeCosts(startDate, endDate) {
     const client = redis.getClient()
+
     if (!client) {
       throw new Error('Redis client not available')
     }
@@ -463,6 +483,7 @@ class CostRankService {
     const costs = await this._calculateCostsInBatches(keyIds, { startDate, endDate })
 
     const duration = Date.now() - startTime
+
     logger.info(`📊 Custom range costs calculated: ${keyIds.length} keys in ${duration}ms`)
 
     return costs
@@ -501,6 +522,7 @@ class CostRankService {
     for (let i = 0; i < keyIds.length; i += BATCH_SIZE) {
       const batch = keyIds.slice(i, i + BATCH_SIZE)
       const batchCosts = await this._calculateBatchCosts(batch, dateRange)
+
       batchCosts.forEach((cost, keyId) => costs.set(keyId, cost))
     }
 
@@ -518,6 +540,7 @@ class CostRankService {
     if (dateRange.useTotal) {
       // 'all' 时间范围：直接读取 total cost
       const pipeline = client.pipeline()
+
       keyIds.forEach((keyId) => {
         pipeline.get(RedisKeys.totalCost(keyId))
       })
@@ -525,6 +548,7 @@ class CostRankService {
 
       keyIds.forEach((keyId, index) => {
         const [err, value] = results[index]
+
         costs.set(keyId, err ? 0 : parseFloat(value || 0))
       })
     } else {
@@ -532,6 +556,7 @@ class CostRankService {
       const dates = this._getDatesBetween(dateRange.startDate, dateRange.endDate)
 
       const pipeline = client.pipeline()
+
       keyIds.forEach((keyId) => {
         dates.forEach((date) => {
           pipeline.get(RedisKeys.dailyCost(keyId, date))
@@ -540,10 +565,13 @@ class CostRankService {
       const results = await pipeline.exec()
 
       let resultIndex = 0
+
       keyIds.forEach((keyId) => {
         let totalCost = 0
+
         dates.forEach(() => {
           const [err, value] = results[resultIndex++]
+
           if (!err && value) {
             totalCost += parseFloat(value)
           }
@@ -568,12 +596,16 @@ class CostRankService {
         return { startDate: today, endDate: today }
       case '7days': {
         const d7 = new Date(now)
+
         d7.setDate(d7.getDate() - 6)
+
         return { startDate: redis.getDateStringInTimezone(d7), endDate: today }
       }
       case '30days': {
         const d30 = new Date(now)
+
         d30.setDate(d30.getDate() - 29)
+
         return { startDate: redis.getDateStringInTimezone(d30), endDate: today }
       }
       case 'all':

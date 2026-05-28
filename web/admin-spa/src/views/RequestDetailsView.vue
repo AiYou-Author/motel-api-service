@@ -672,16 +672,19 @@ const emptyHint = computed(() => {
   ) {
     return '当前筛选条件下没有结果，请尝试放宽搜索条件。'
   }
+
   return '这里只展示开启请求明细采集之后的新请求记录。'
 })
 
 const toPickerDate = (value) => {
   const parsed = dayjs(value)
+
   return parsed.isValid() ? parsed.toDate() : null
 }
 
 const getDateRangeTimestamp = (value) => {
   const parsed = dayjs(value)
+
   return parsed.isValid() ? parsed.valueOf() : null
 }
 
@@ -735,11 +738,13 @@ const syncResponseState = (data) => {
   records.value = data.records || []
 
   const pageInfo = data.pagination || {}
+
   pagination.currentPage = pageInfo.currentPage || 1
   pagination.pageSize = pageInfo.pageSize || pagination.pageSize
   pagination.totalRecords = pageInfo.totalRecords || 0
 
   const filterEcho = data.filters || {}
+
   // keyword 不回写：用户可能正在输入，回写会覆盖用户当前的输入
   filters.apiKeyId = filterEcho.apiKeyId || ''
   filters.accountId = filterEcho.accountId || ''
@@ -748,6 +753,7 @@ const syncResponseState = (data) => {
   filters.sortOrder = filterEcho.sortOrder || 'desc'
   if (filterEcho.startDate && filterEcho.endDate) {
     const nextRange = [toPickerDate(filterEcho.startDate), toPickerDate(filterEcho.endDate)]
+
     if (
       filterEcho.hasCustomDateRange &&
       nextRange.every(Boolean) &&
@@ -764,6 +770,7 @@ const syncResponseState = (data) => {
   availableEndpoints.value = data.availableFilters?.endpoints || []
 
   const summaryData = data.summary || {}
+
   summary.totalRequests = summaryData.totalRequests || 0
   summary.inputTokens = summaryData.inputTokens || 0
   summary.outputTokens = summaryData.outputTokens || 0
@@ -789,12 +796,15 @@ const invalidateSnapshot = () => {
 const fetchRecords = async (page = pagination.currentPage) => {
   debouncedKeywordFetch.cancel()
   const version = ++fetchVersion
+
   loading.value = true
   try {
     const response = await getRequestDetailsApi(buildParams(page))
+
     if (version !== fetchVersion) return
     if (response?.success === false) {
       showToast(response.message || '加载请求明细失败', 'error')
+
       return
     }
     syncResponseState(response.data || {})
@@ -848,18 +858,22 @@ const handleRequestDetailBodyPreviewPurge = async () => {
 
     if (statsResponse?.success === false) {
       showToast(statsResponse.message || '检查历史请求体预览失败', 'error')
+
       return
     }
 
     const snapshotCount = Number(statsResponse?.data?.snapshotCount || 0)
+
     if (snapshotCount <= 0) {
       showToast('暂无历史请求体预览需要清理', 'success')
+
       return
     }
 
     const confirmed = window.confirm(
       `检测到当前仍有 ${snapshotCount} 条请求明细保存了请求体预览。\n清理后将仅移除历史请求体预览，保留请求明细摘要字段。\n\n是否继续？`
     )
+
     if (!confirmed) return
 
     requestDetailBodyPreviewPurging.value = true
@@ -867,6 +881,7 @@ const handleRequestDetailBodyPreviewPurge = async () => {
 
     if (purgeResponse?.success === false) {
       showToast(purgeResponse.message || '清理历史请求体预览失败', 'error')
+
       return
     }
 
@@ -906,6 +921,7 @@ const exportCsv = async () => {
         pageSize: 200
       })
       const payload = response.data || {}
+
       snapshotId = payload.snapshotId || null
       aggregated.push(...(payload.records || []))
       totalPages = payload.pagination?.totalPages || 1
@@ -924,6 +940,7 @@ const exportCsv = async () => {
 
     if (aggregated.length === 0) {
       showToast('没有可导出的记录', 'info')
+
       return
     }
 
@@ -946,6 +963,7 @@ const exportCsv = async () => {
     ]
 
     const rows = [headers.join(',')]
+
     aggregated.forEach((record) => {
       const row = [
         formatDate(record.timestamp),
@@ -964,12 +982,14 @@ const exportCsv = async () => {
         formatCost(record.cost),
         record.durationMs || 0
       ]
+
       rows.push(row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     })
 
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'request-details.csv'
     link.click()
@@ -984,14 +1004,17 @@ const exportCsv = async () => {
 
 const formatCost = (value) => {
   const num = Number(value || 0)
+
   if (num >= 1) return `$${num.toFixed(2)}`
   if (num >= 0.001) return `$${num.toFixed(4)}`
+
   return `$${num.toFixed(6)}`
 }
 const formatCacheCreate = (value, notApplicable = false) =>
   notApplicable ? '-' : formatNumber(value)
 const formatRetentionHours = (value) => {
   const totalHours = Number(value || 0)
+
   if (totalHours <= 0) return '保留 6 小时'
 
   const days = Math.floor(totalHours / 24)
@@ -1039,6 +1062,7 @@ watch(
   () => {
     if (suppressDateRangeWatch) {
       suppressDateRangeWatch = false
+
       return
     }
     pagination.currentPage = 1

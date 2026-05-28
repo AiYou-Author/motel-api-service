@@ -111,16 +111,19 @@ const props = defineProps({
 const isCompact = computed(() => props.variant === 'compact')
 const currentValue = computed(() => {
   const n = Number(props.current)
+
   return Number.isFinite(n) ? n : 0
 })
 const limitValue = computed(() => {
   const n = Number(props.limit)
+
   return Number.isFinite(n) ? n : 0
 })
 const progress = computed(() => {
   // 无限制时不显示进度条
   if (!limitValue.value || limitValue.value <= 0) return 0
   const percentage = (currentValue.value / limitValue.value) * 100
+
   return Math.min(percentage, 100)
 })
 
@@ -260,6 +263,7 @@ const iconClass = computed(() => {
 
   // 根据进度选择图标颜色
   let colorClass = ''
+
   if (p >= 90) {
     colorClass = 'text-red-700 dark:text-red-400'
   } else if (p >= 70) {
@@ -281,6 +285,7 @@ const iconClass = computed(() => {
   }
 
   let iconName = ''
+
   switch (props.type) {
     case 'daily':
       iconName = 'fas fa-calendar-day'

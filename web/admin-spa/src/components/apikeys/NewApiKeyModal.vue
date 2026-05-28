@@ -194,6 +194,7 @@ const handleCancelModal = () => {
 const getBaseUrlPrefix = () => {
   // 优先使用环境变量配置的自定义前缀
   const customPrefix = import.meta.env.VITE_API_BASE_PREFIX
+
   if (customPrefix) {
     // 去除末尾的斜杠
     return customPrefix.replace(/\/$/, '')
@@ -209,6 +210,7 @@ const getBaseUrlPrefix = () => {
     // 如果当前URL包含路径，只取协议+主机部分
     const currentUrl = window.location.href
     const pathStart = currentUrl.indexOf('/', 8) // 跳过 http:// 或 https://
+
     if (pathStart !== -1) {
       origin = currentUrl.substring(0, pathStart)
     }
@@ -233,6 +235,7 @@ const toggleKeyVisibility = () => {
 // 获取显示的API Key
 const getDisplayedApiKey = () => {
   const key = props.apiKey.apiKey || props.apiKey.key || ''
+
   if (!key) return ''
 
   if (showFullKey.value) {
@@ -240,6 +243,7 @@ const getDisplayedApiKey = () => {
   } else {
     // 显示前8个字符和后4个字符，中间用●代替
     if (key.length <= 12) return key
+
     return (
       key.substring(0, 8) + '●'.repeat(Math.max(0, key.length - 12)) + key.substring(key.length - 4)
     )
@@ -253,6 +257,7 @@ const copyTextWithFallback = async (text, successMessage) => {
     showToast(successMessage, 'success')
   } catch (error) {
     const textArea = document.createElement('textarea')
+
     textArea.value = text
     document.body.appendChild(textArea)
     textArea.select()
@@ -270,8 +275,10 @@ const copyTextWithFallback = async (text, successMessage) => {
 // 复制完整配置（包含提示信息）
 const copyFullConfig = async () => {
   const key = props.apiKey.apiKey || props.apiKey.key || ''
+
   if (!key) {
     showToast('API Key 不存在', 'error')
+
     return
   }
 
@@ -285,8 +292,10 @@ export ANTHROPIC_AUTH_TOKEN="${key}"`
 // 仅复制密钥
 const copyKeyOnly = async () => {
   const key = props.apiKey.apiKey || props.apiKey.key || ''
+
   if (!key) {
     showToast('API Key 不存在', 'error')
+
     return
   }
 
@@ -302,6 +311,7 @@ const handleClose = async () => {
     '取消',
     'warning'
   )
+
   if (confirmed) {
     emit('close')
   }
@@ -316,6 +326,7 @@ const handleDirectClose = async () => {
     '返回复制',
     'warning'
   )
+
   if (confirmed) {
     emit('close')
   }

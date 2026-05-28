@@ -34,8 +34,10 @@ const claudeConsoleAccountsRouter = require('../src/routes/admin/claudeConsoleAc
 describe('POST /admin/claude-console-accounts/:accountId/test', () => {
   const buildApp = () => {
     const app = express()
+
     app.use(express.json())
     app.use('/admin', claudeConsoleAccountsRouter)
+
     return app
   }
 

@@ -438,6 +438,7 @@ function openRechargeModal(plan) {
   if (!isLoggedIn.value) {
     showToast('请先登录后再购买', 'warning')
     router.push('/user/login')
+
     return
   }
   modal.value = {
@@ -476,10 +477,12 @@ async function submitOrder() {
   modal.value.submitting = true
   try {
     const { data } = await createOrderApi(modal.value.plan.id, modal.value.selectedAmount)
+
     modal.value.orderId = data.order.orderId
     modal.value.step = 2
   } catch (err) {
     const msg = err.response?.data?.error || '下单失败，请稍后重试'
+
     showToast(msg, 'error')
   } finally {
     modal.value.submitting = false
@@ -492,8 +495,10 @@ const modelPricing = ref({})
 // 计算模型按倍率调整后的价格（每百万 token）
 function getModelPrice(modelId, serviceRate) {
   const base = modelPricing.value[modelId]
+
   if (!base) return null
   const rate = serviceRate ?? 1
+
   return {
     input: base.input != null ? (base.input * rate).toFixed(2) : null,
     output: base.output != null ? (base.output * rate).toFixed(2) : null
@@ -508,6 +513,7 @@ onMounted(async () => {
   }
   try {
     const { data } = await getStorePlansApi()
+
     allPlans.value = data.plans || []
     modelPricing.value = data.modelPricing || {}
     qrCodeImage.value = data.qrCodeImage || null

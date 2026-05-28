@@ -1,4 +1,5 @@
 const path = require('path')
+
 require('dotenv').config()
 
 const config = {
@@ -50,6 +51,7 @@ const config = {
     overloadHandling: {
       enabled: (() => {
         const minutes = parseInt(process.env.CLAUDE_OVERLOAD_HANDLING_MINUTES) || 0
+
         // 验证配置值：限制在0-1440分钟(24小时)内
         return Math.max(0, Math.min(minutes, 1440))
       })()
@@ -78,6 +80,7 @@ const config = {
       if (process.env.PROXY_KEEP_ALIVE === undefined || process.env.PROXY_KEEP_ALIVE === '') {
         return false
       }
+
       return process.env.PROXY_KEEP_ALIVE === 'true'
     })(),
     maxSockets: (() => {
@@ -85,6 +88,7 @@ const config = {
         return undefined
       }
       const parsed = parseInt(process.env.PROXY_MAX_SOCKETS)
+
       return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
     })(),
     maxFreeSockets: (() => {
@@ -95,6 +99,7 @@ const config = {
         return undefined
       }
       const parsed = parseInt(process.env.PROXY_MAX_FREE_SOCKETS)
+
       return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
     })(),
     // IP协议族配置：true=IPv4, false=IPv6, 默认IPv4（兼容性更好）

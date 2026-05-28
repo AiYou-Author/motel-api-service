@@ -48,6 +48,7 @@ class CodexCliValidator {
 
       if (!uaMatch) {
         logger.debug(`Codex CLI validation failed - UA mismatch: ${userAgent}`)
+
         return false
       }
 
@@ -60,21 +61,25 @@ class CodexCliValidator {
       if (!needsStrictValidation) {
         // 其他路径，只要 User-Agent 匹配就认为是 Codex CLI
         logger.debug(`Codex CLI detected for path: ${req.path}, allowing access`)
+
         return true
       }
 
       // 3. 验证 originator 头必须与 UA 中的客户端类型匹配
       const clientType = uaMatch[1].toLowerCase()
+
       if (originator.toLowerCase() !== clientType) {
         logger.debug(
           `Codex CLI validation failed - originator mismatch. UA: ${clientType}, originator: ${originator}`
         )
+
         return false
       }
 
       // 4. 检查 session_id - 必须存在且长度大于20
       if (!sessionId || sessionId.length <= 20) {
         logger.debug(`Codex CLI validation failed - session_id missing or too short: ${sessionId}`)
+
         return false
       }
 
@@ -85,15 +90,18 @@ class CodexCliValidator {
       ) {
         if (!req.body || !req.body.instructions) {
           logger.debug(`Codex CLI validation failed - missing instructions in body for ${req.path}`)
+
           return false
         }
 
         const expectedPrefix =
           'You are Codex, based on GPT-5. You are running as a coding agent in the Codex CLI'
+
         if (!req.body.instructions.startsWith(expectedPrefix)) {
           logger.debug(`Codex CLI validation failed - invalid instructions prefix for ${req.path}`)
           logger.debug(`Expected: "${expectedPrefix}..."`)
           logger.debug(`Received: "${req.body.instructions.substring(0, 100)}..."`)
+
           return false
         }
 
@@ -106,9 +114,11 @@ class CodexCliValidator {
 
       // 所有必要检查通过
       logger.debug(`Codex CLI validation passed for UA: ${userAgent}`)
+
       return true
     } catch (error) {
       logger.error('Error in CodexCliValidator:', error)
+
       // 验证出错时默认拒绝
       return false
     }

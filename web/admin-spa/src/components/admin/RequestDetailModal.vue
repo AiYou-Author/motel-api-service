@@ -236,6 +236,7 @@ const isMobileViewport = ref(false)
 
 const costBreakdown = computed(() => {
   const breakdown = detail.value?.realCostBreakdown || detail.value?.costBreakdown || {}
+
   return {
     input: breakdown.input || 0,
     output: breakdown.output || 0,
@@ -330,6 +331,7 @@ const formatJsonLikeText = (value) => {
   }
 
   const trimmed = formatted.trim()
+
   if (!trimmed) {
     return suffix
   }
@@ -384,9 +386,11 @@ const fetchDetail = async () => {
   detail.value = null
   try {
     const response = await getRequestDetailApi(targetRequestId)
+
     if (targetRequestId !== props.requestId || !props.show) return
     if (response?.success === false) {
       showToast(response.message || '加载请求详情失败', 'error')
+
       return
     }
     bodyPreviewEnabled.value = response.data?.bodyPreviewEnabled === true
@@ -406,6 +410,7 @@ const fetchDetail = async () => {
 const copySnapshot = async () => {
   if (!formattedSnapshot.value) {
     showToast('没有可复制的快照', 'info')
+
     return
   }
 
@@ -425,8 +430,10 @@ const formatCacheCreate = (value, notApplicable = false) =>
 const formatReasoning = (value) => value || '-'
 const formatCost = (value) => {
   const num = Number(value || 0)
+
   if (num >= 1) return `$${num.toFixed(2)}`
   if (num >= 0.001) return `$${num.toFixed(4)}`
+
   return `$${num.toFixed(6)}`
 }
 const formatCacheCreateCost = (value, notApplicable = false) =>
@@ -435,6 +442,7 @@ const formatCacheCreateCost = (value, notApplicable = false) =>
 const statusTagType = (statusCode) => {
   if (statusCode >= 500) return 'danger'
   if (statusCode >= 400) return 'warning'
+
   return 'success'
 }
 

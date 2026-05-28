@@ -106,6 +106,7 @@ class LdapService {
 
       // 提取所有DC组件：DC=test,DC=demo,DC=com
       const dcMatches = dnString.match(/DC=([^,]+)/gi)
+
       if (!dcMatches || dcMatches.length === 0) {
         return null
       }
@@ -113,18 +114,22 @@ class LdapService {
       // 提取DC值并连接成域名
       const domainParts = dcMatches.map((match) => {
         const value = match.replace(/DC=/i, '').trim()
+
         return value
       })
 
       if (domainParts.length > 0) {
         const domain = domainParts.join('.')
+
         logger.debug(`🌐 从DN提取域名: ${domain}`)
+
         return domain
       }
 
       return null
     } catch (error) {
       logger.debug('⚠️ 域名提取失败:', error.message)
+
       return null
     }
   }
@@ -224,15 +229,19 @@ class LdapService {
 
       if (!bindDN || typeof bindDN !== 'string') {
         const error = new Error('LDAP bind DN is not configured or invalid')
+
         logger.error('❌ LDAP configuration error:', error.message)
         reject(error)
+
         return
       }
 
       if (!bindCredentials || typeof bindCredentials !== 'string') {
         const error = new Error('LDAP bind credentials are not configured or invalid')
+
         logger.error('❌ LDAP configuration error:', error.message)
         reject(error)
+
         return
       }
 
@@ -276,6 +285,7 @@ class LdapService {
         if (err) {
           logger.error('❌ LDAP search error:', err)
           reject(err)
+
           return
         }
 
@@ -336,14 +346,17 @@ class LdapService {
       // 验证输入参数
       if (!userDN || typeof userDN !== 'string') {
         const error = new Error('User DN is not provided or invalid')
+
         logger.error('❌ LDAP authentication error:', error.message)
         reject(error)
+
         return
       }
 
       if (!password || typeof password !== 'string') {
         logger.debug(`🚫 Invalid or empty password for DN: ${userDN}`)
         resolve(false)
+
         return
       }
 
@@ -385,12 +398,14 @@ class LdapService {
 
       // 如果域名有多个部分，也尝试简化版本
       const domainParts = domain.split('.')
+
       if (domainParts.length > 1) {
         adFormats.push(`${username}@${domainParts.slice(-2).join('.')}`) // 只取后两部分
       }
 
       // 域\用户名格式
       const firstDomainPart = domainParts[0]
+
       if (firstDomainPart) {
         adFormats.push(`${firstDomainPart}\\${username}`)
         adFormats.push(`${firstDomainPart.toUpperCase()}\\${username}`)
@@ -406,8 +421,10 @@ class LdapService {
       try {
         logger.info(`🔍 尝试格式: ${format}`)
         const result = await this.tryDirectBind(format, password)
+
         if (result) {
           logger.info(`✅ Windows AD认证成功: ${format}`)
+
           return true
         }
         logger.debug(`❌ 认证失败: ${format}`)
@@ -417,6 +434,7 @@ class LdapService {
     }
 
     logger.info(`🚫 所有Windows AD格式认证都失败了`)
+
     return false
   }
 
@@ -449,9 +467,11 @@ class LdapService {
 
       // 创建属性映射
       const attrMap = {}
+
       attributes.forEach((attr) => {
         const name = attr.type || attr.name
         const values = Array.isArray(attr.values) ? attr.values : [attr.values]
+
         attrMap[name] = values.length === 1 ? values[0] : values
       })
 
@@ -479,6 +499,7 @@ class LdapService {
       return userInfo
     } catch (error) {
       logger.error('❌ Error extracting user info:', error)
+
       return { username }
     }
   }
@@ -493,6 +514,7 @@ class LdapService {
 
     // 用户名只能包含字母、数字、下划线和连字符
     const usernameRegex = /^[a-zA-Z0-9_-]+$/
+
     if (!usernameRegex.test(trimmedUsername)) {
       throw new Error('Username can only contain letters, numbers, underscores, and hyphens')
     }
@@ -551,8 +573,10 @@ class LdapService {
 
       // 2. 搜索用户 (使用已验证的用户名)
       const ldapEntry = await this.searchUser(client, sanitizedUsername)
+
       if (!ldapEntry) {
         logger.info(`🚫 User not found in LDAP: ${sanitizedUsername}`)
+
         return { success: false, message: 'Invalid username or password' }
       }
 
@@ -580,6 +604,7 @@ class LdapService {
           ldapEntryType: typeof ldapEntry,
           extractedDN: userDN
         })
+
         return { success: false, message: 'Authentication service error' }
       }
 
@@ -609,6 +634,7 @@ class LdapService {
 
       if (!isPasswordValid) {
         logger.info(`🚫 All authentication methods failed for user: ${sanitizedUsername}`)
+
         return { success: false, message: 'Invalid username or password' }
       }
 
@@ -623,6 +649,7 @@ class LdapService {
         logger.security(
           `🔒 Disabled user LDAP login attempt: ${sanitizedUsername} from LDAP authentication`
         )
+
         return {
           success: false,
           message: 'Your account has been disabled. Please contact administrator.'

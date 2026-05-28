@@ -40,6 +40,7 @@ function toNumberOrNull(value) {
   }
 
   const num = Number(value)
+
   return Number.isFinite(num) ? num : null
 }
 
@@ -52,6 +53,7 @@ function computeResetMeta(updatedAt, resetAfterSeconds) {
   }
 
   const updatedMs = Date.parse(updatedAt)
+
   if (Number.isNaN(updatedMs)) {
     return {
       resetAt: null,
@@ -60,6 +62,7 @@ function computeResetMeta(updatedAt, resetAfterSeconds) {
   }
 
   const resetMs = updatedMs + resetAfterSeconds * 1000
+
   return {
     resetAt: new Date(resetMs).toISOString(),
     remainingSeconds: Math.max(0, Math.round((resetMs - Date.now()) / 1000))
@@ -141,6 +144,7 @@ async function refreshAccessToken(refreshToken, proxy = null) {
 
     // 配置代理（如果有）
     const proxyAgent = ProxyHelper.createProxyAgent(proxy)
+
     if (proxyAgent) {
       requestOptions.httpAgent = proxyAgent
       requestOptions.httpsAgent = proxyAgent
@@ -176,6 +180,7 @@ async function refreshAccessToken(refreshToken, proxy = null) {
     if (error.response) {
       // 服务器响应了错误状态码
       const errorData = error.response.data || {}
+
       logger.error('OpenAI token refresh failed:', {
         status: error.response.status,
         data: errorData,
@@ -210,6 +215,7 @@ async function refreshAccessToken(refreshToken, proxy = null) {
       }
 
       const fullError = new Error(errorMessage)
+
       fullError.status = error.response.status
       fullError.details = errorData
       throw fullError
@@ -218,6 +224,7 @@ async function refreshAccessToken(refreshToken, proxy = null) {
       logger.error('OpenAI token refresh no response:', error.message)
 
       let errorMessage = '无法连接到 OpenAI 服务器'
+
       if (proxy) {
         errorMessage += `（代理: ${ProxyHelper.getProxyDescription(proxy)}）`
       }
@@ -234,12 +241,14 @@ async function refreshAccessToken(refreshToken, proxy = null) {
       }
 
       const fullError = new Error(errorMessage)
+
       fullError.code = error.code
       throw fullError
     } else {
       // 设置请求时发生错误
       logger.error('OpenAI token refresh error:', error.message)
       const fullError = new Error(`请求设置错误: ${error.message}`)
+
       fullError.originalError = error
       throw fullError
     }
@@ -251,6 +260,7 @@ function isTokenExpired(account) {
   if (!account.expiresAt) {
     return false
   }
+
   return new Date(account.expiresAt) <= new Date()
 }
 
@@ -264,6 +274,7 @@ function isSubscriptionExpired(account) {
     return false // 未设置视为永不过期
   }
   const expiryDate = new Date(account.subscriptionExpiresAt)
+
   return expiryDate <= new Date()
 }
 
@@ -305,6 +316,7 @@ async function refreshAccountToken(accountId) {
 
       // 重新获取账户数据（可能已被其他进程刷新）
       const updatedAccount = await getAccount(accountId)
+
       if (updatedAccount && !isTokenExpired(updatedAccount)) {
         return {
           access_token: decrypt(updatedAccount.accessToken),
@@ -324,6 +336,7 @@ async function refreshAccountToken(accountId) {
 
     // 获取代理配置
     let proxy = null
+
     if (account.proxy) {
       try {
         proxy = typeof account.proxy === 'string' ? JSON.parse(account.proxy) : account.proxy
@@ -333,6 +346,7 @@ async function refreshAccountToken(accountId) {
     }
 
     const newTokens = await refreshAccessToken(refreshToken, proxy)
+
     if (!newTokens) {
       throw new Error('Failed to refresh token')
     }
@@ -351,6 +365,7 @@ async function refreshAccountToken(accountId) {
       if (!account.idToken || account.idToken === '') {
         try {
           const idTokenParts = newTokens.id_token.split('.')
+
           if (idTokenParts.length === 3) {
             const payload = JSON.parse(Buffer.from(idTokenParts[1], 'base64').toString())
             const authClaims = payload['https://api.openai.com/auth'] || {}
@@ -400,6 +415,7 @@ async function refreshAccountToken(accountId) {
     await updateAccount(accountId, updates)
 
     logRefreshSuccess(accountId, accountName, 'openai', newTokens) // 传入完整的 newTokens 对象
+
     return newTokens
   } catch (error) {
     logRefreshError(accountId, account?.name || accountName, 'openai', error.message)
@@ -407,6 +423,7 @@ async function refreshAccountToken(accountId) {
     // 发送 Webhook 通知（如果启用）
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account?.name || accountName,
@@ -440,6 +457,7 @@ async function createAccount(accountData) {
 
   // 处理OAuth数据
   let oauthData = {}
+
   if (accountData.openaiOauth) {
     oauthData =
       typeof accountData.openaiOauth === 'string'
@@ -514,6 +532,7 @@ async function createAccount(accountData) {
   }
 
   const client = redisClient.getClientSafe()
+
   await client.hset(`${OPENAI_ACCOUNT_KEY_PREFIX}${accountId}`, account)
   await redisClient.addToIndex('openai:account:index', accountId)
 
@@ -523,6 +542,7 @@ async function createAccount(accountData) {
   }
 
   logger.info(`Created OpenAI account: ${accountId}`)
+
   return account
 }
 
@@ -572,6 +592,7 @@ async function getAccount(accountId) {
 // 更新账户
 async function updateAccount(accountId, updates) {
   const existingAccount = await getAccount(accountId)
+
   if (!existingAccount) {
     throw new Error('Account not found')
   }
@@ -584,6 +605,7 @@ async function updateAccount(accountId, updates) {
       typeof updates.openaiOauth === 'string'
         ? updates.openaiOauth
         : JSON.stringify(updates.openaiOauth)
+
     updates.openaiOauth = encrypt(oauthData)
   }
   if (updates.idToken) {
@@ -621,6 +643,7 @@ async function updateAccount(accountId, updates) {
 
   // 更新账户类型时处理共享账户集合
   const client = redisClient.getClientSafe()
+
   if (updates.accountType && updates.accountType !== existingAccount.accountType) {
     if (updates.accountType === 'shared') {
       await client.sadd(SHARED_OPENAI_ACCOUNTS_KEY, accountId)
@@ -651,12 +674,14 @@ async function updateAccount(accountId, updates) {
 // 删除账户
 async function deleteAccount(accountId) {
   const account = await getAccount(accountId)
+
   if (!account) {
     throw new Error('Account not found')
   }
 
   // 从 Redis 删除
   const client = redisClient.getClientSafe()
+
   await client.del(`${OPENAI_ACCOUNT_KEY_PREFIX}${accountId}`)
   await redisClient.removeFromIndex('openai:account:index', accountId)
 
@@ -667,14 +692,17 @@ async function deleteAccount(accountId) {
 
   // 清理会话映射（使用反向索引）
   const sessionHashes = await client.smembers(`openai_account_sessions:${accountId}`)
+
   if (sessionHashes.length > 0) {
     const pipeline = client.pipeline()
+
     sessionHashes.forEach((hash) => pipeline.del(`${ACCOUNT_SESSION_MAPPING_PREFIX}${hash}`))
     pipeline.del(`openai_account_sessions:${accountId}`)
     await pipeline.exec()
   }
 
   logger.info(`Deleted OpenAI account: ${accountId}`)
+
   return true
 }
 
@@ -692,6 +720,7 @@ async function getAllAccounts() {
 
   for (let i = 0; i < keys.length; i++) {
     const accountData = dataList[i]
+
     if (accountData && Object.keys(accountData).length > 0) {
       const codexUsage = buildCodexUsageSnapshot(accountData)
 
@@ -829,13 +858,16 @@ async function getAccountOverview(accountId) {
 async function selectAvailableAccount(apiKeyId, sessionHash = null) {
   // 首先检查是否有粘性会话
   const client = redisClient.getClientSafe()
+
   if (sessionHash) {
     const mappedAccountId = await client.get(`${ACCOUNT_SESSION_MAPPING_PREFIX}${sessionHash}`)
 
     if (mappedAccountId) {
       const account = await getAccount(mappedAccountId)
+
       if (account && account.isActive === 'true' && !isTokenExpired(account)) {
         logger.debug(`Using sticky session account: ${mappedAccountId}`)
+
         return account
       }
     }
@@ -847,6 +879,7 @@ async function selectAvailableAccount(apiKeyId, sessionHash = null) {
   // 检查是否绑定了 OpenAI 账户
   if (apiKeyData.openaiAccountId) {
     const account = await getAccount(apiKeyData.openaiAccountId)
+
     if (account && account.isActive === 'true') {
       // 检查 token 是否过期
       const isExpired = isTokenExpired(account)
@@ -856,6 +889,7 @@ async function selectAvailableAccount(apiKeyId, sessionHash = null) {
 
       if (isExpired) {
         await refreshAccountToken(account.id)
+
         return await getAccount(account.id)
       }
 
@@ -881,6 +915,7 @@ async function selectAvailableAccount(apiKeyId, sessionHash = null) {
 
   for (const accountId of sharedAccountIds) {
     const account = await getAccount(accountId)
+
     if (
       account &&
       account.isActive === 'true' &&
@@ -903,12 +938,14 @@ async function selectAvailableAccount(apiKeyId, sessionHash = null) {
   const selectedAccount = availableAccounts.reduce((prev, curr) => {
     const prevUsage = parseInt(prev.totalUsage || 0)
     const currUsage = parseInt(curr.totalUsage || 0)
+
     return prevUsage <= currUsage ? prev : curr
   })
 
   // 检查 token 是否过期
   if (isTokenExpired(selectedAccount)) {
     await refreshAccountToken(selectedAccount.id)
+
     return await getAccount(selectedAccount.id)
   }
 
@@ -935,6 +972,7 @@ function isRateLimited(account) {
 
     return now < limitedAt + limitDuration
   }
+
   return false
 }
 
@@ -943,6 +981,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
   // disableAutoProtection 检查（仅在设置限流时）
   if (isLimited) {
     const account = await getAccount(accountId)
+
     if (
       account &&
       (account.disableAutoProtection === true || account.disableAutoProtection === 'true')
@@ -951,6 +990,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
         `🛡️ Account ${accountId} has auto-protection disabled, skipping setAccountRateLimited`
       )
       upstreamErrorHelper.recordErrorHistory(accountId, 'openai', 429, 'rate_limit').catch(() => {})
+
       return
     }
   }
@@ -965,6 +1005,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
   // 如果提供了重置时间（秒数），计算重置时间戳
   if (isLimited && resetsInSeconds !== null && resetsInSeconds > 0) {
     const resetTime = new Date(Date.now() + resetsInSeconds * 1000).toISOString()
+
     updates.rateLimitResetAt = resetTime
     logger.info(
       `🕐 Account ${accountId} will be reset at ${resetTime} (in ${resetsInSeconds} seconds / ${Math.ceil(resetsInSeconds / 60)} minutes)`
@@ -973,6 +1014,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
     // 如果没有提供重置时间，使用默认的60分钟
     const defaultResetSeconds = 60 * 60 // 1小时
     const resetTime = new Date(Date.now() + defaultResetSeconds * 1000).toISOString()
+
     updates.rateLimitResetAt = resetTime
     logger.warn(
       `⚠️ No reset time provided for account ${accountId}, using default 60 minutes. Reset at ${resetTime}`
@@ -991,6 +1033,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
     try {
       const account = await getAccount(accountId)
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account.name || accountId,
@@ -1012,6 +1055,7 @@ async function setAccountRateLimited(accountId, isLimited, resetsInSeconds = nul
 // 🚫 标记账户为未授权状态（401错误）
 async function markAccountUnauthorized(accountId, reason = 'OpenAI账号认证失败（401错误）') {
   const account = await getAccount(accountId)
+
   if (!account) {
     throw new Error('Account not found')
   }
@@ -1022,6 +1066,7 @@ async function markAccountUnauthorized(accountId, reason = 'OpenAI账号认证�
       `🛡️ Account ${accountId} has auto-protection disabled, skipping markAccountUnauthorized`
     )
     upstreamErrorHelper.recordErrorHistory(accountId, 'openai', 401, 'auth_error').catch(() => {})
+
     return
   }
 
@@ -1044,6 +1089,7 @@ async function markAccountUnauthorized(accountId, reason = 'OpenAI账号认证�
 
   try {
     const webhookNotifier = require('../../utils/webhookNotifier')
+
     await webhookNotifier.sendAccountAnomalyNotification({
       accountId,
       accountName: account.name || accountId,
@@ -1064,6 +1110,7 @@ async function markAccountUnauthorized(accountId, reason = 'OpenAI账号认证�
 // 🔄 重置账户所有异常状态
 async function resetAccountStatus(accountId) {
   const account = await getAccount(accountId)
+
   if (!account) {
     throw new Error('Account not found')
   }
@@ -1089,6 +1136,7 @@ async function resetAccountStatus(accountId) {
   // 发送 Webhook 通知
   try {
     const webhookNotifier = require('../../utils/webhookNotifier')
+
     await webhookNotifier.sendAccountAnomalyNotification({
       accountId,
       accountName: account.name || accountId,
@@ -1109,6 +1157,7 @@ async function resetAccountStatus(accountId) {
 // 切换账户调度状态
 async function toggleSchedulable(accountId) {
   const account = await getAccount(accountId)
+
   if (!account) {
     throw new Error('Account not found')
   }
@@ -1131,6 +1180,7 @@ async function toggleSchedulable(accountId) {
 // 获取账户限流信息
 async function getAccountRateLimitInfo(accountId) {
   const account = await getAccount(accountId)
+
   if (!account) {
     return null
   }
@@ -1145,10 +1195,12 @@ async function getAccountRateLimitInfo(accountId) {
 
     if (rateLimitResetAt) {
       const resetAt = new Date(rateLimitResetAt).getTime()
+
       remainingTime = Math.max(0, resetAt - now)
     } else if (rateLimitedAt) {
       const limitedAt = new Date(rateLimitedAt).getTime()
       const limitDuration = 60 * 60 * 1000 // 默认1小时
+
       remainingTime = Math.max(0, limitedAt + limitDuration - now)
     }
 
@@ -1175,6 +1227,7 @@ async function getAccountRateLimitInfo(accountId) {
 // 更新账户使用统计（tokens参数可选，默认为0，仅更新最后使用时间）
 async function updateAccountUsage(accountId, tokens = 0) {
   const account = await getAccount(accountId)
+
   if (!account) {
     return
   }
@@ -1186,6 +1239,7 @@ async function updateAccountUsage(accountId, tokens = 0) {
   // 如果有 tokens 参数且大于0，同时更新使用统计
   if (tokens > 0) {
     const totalUsage = parseInt(account.totalUsage || 0) + tokens
+
     updates.totalUsage = totalUsage.toString()
   }
 
@@ -1227,6 +1281,7 @@ async function updateCodexUsageSnapshot(accountId, usageSnapshot) {
   updates.codexUsageUpdatedAt = new Date().toISOString()
 
   const client = redisClient.getClientSafe()
+
   await client.hset(`${OPENAI_ACCOUNT_KEY_PREFIX}${accountId}`, updates)
 }
 

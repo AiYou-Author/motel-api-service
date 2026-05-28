@@ -106,6 +106,7 @@ function ensureAntigravityProjectId(account) {
   if (account.tempProjectId) {
     return account.tempProjectId
   }
+
   return `ag-${crypto.randomBytes(8).toString('hex')}`
 }
 
@@ -125,6 +126,7 @@ function extractAnthropicText(content) {
   if (!Array.isArray(content)) {
     return ''
   }
+
   return content
     .filter((part) => part && part.type === 'text')
     .map((part) => part.text || '')
@@ -139,6 +141,7 @@ function shouldSkipText(text) {
   if (!text || typeof text !== 'string') {
     return true
   }
+
   return text.trimStart().startsWith(SYSTEM_REMINDER_PREFIX)
 }
 
@@ -150,6 +153,7 @@ function shouldSkipText(text) {
  */
 function buildSystemParts(system) {
   const parts = []
+
   if (!system) {
     return parts
   }
@@ -159,16 +163,20 @@ function buildSystemParts(system) {
         continue
       }
       const text = extractAnthropicText(part.text || '')
+
       if (text && !shouldSkipText(text)) {
         parts.push({ text })
       }
     }
+
     return parts
   }
   const text = extractAnthropicText(system)
+
   if (text && !shouldSkipText(text)) {
     parts.push({ text })
   }
+
   return parts
 }
 
@@ -186,6 +194,7 @@ function buildToolUseIdToNameMap(messages) {
       continue
     }
     const content = message?.content
+
     if (!Array.isArray(content)) {
       continue
     }
@@ -215,11 +224,13 @@ function normalizeToolUseInput(input) {
   }
   if (typeof input === 'string') {
     const trimmed = input.trim()
+
     if (!trimmed) {
       return {}
     }
     try {
       const parsed = JSON.parse(trimmed)
+
       if (parsed && typeof parsed === 'object') {
         return parsed
       }
@@ -227,6 +238,7 @@ function normalizeToolUseInput(input) {
       return {}
     }
   }
+
   return {}
 }
 
@@ -251,6 +263,7 @@ function truncateText(text, maxChars) {
   if (text.length <= maxChars) {
     return text
   }
+
   return `${text.slice(0, maxChars)}\n...[truncated ${text.length - maxChars} chars]`
 }
 
@@ -264,6 +277,7 @@ function truncateInlineText(text, maxChars) {
   if (text.length <= maxChars) {
     return text
   }
+
   return `${text.slice(0, maxChars)}...[truncated ${text.length - maxChars} chars]`
 }
 
@@ -279,6 +293,7 @@ function compactToolDescriptionForAntigravity(description) {
     return ''
   }
   const normalized = description.replace(/\r\n/g, '\n').trim()
+
   if (!normalized) {
     return ''
   }
@@ -293,6 +308,7 @@ function compactToolDescriptionForAntigravity(description) {
   }
 
   const compacted = lines.slice(0, 6).join(' ')
+
   return truncateInlineText(compacted, MAX_ANTIGRAVITY_TOOL_DESCRIPTION_CHARS)
 }
 
@@ -308,9 +324,11 @@ function compactSchemaDescriptionForAntigravity(description) {
     return ''
   }
   const normalized = description.replace(/\s+/g, ' ').trim()
+
   if (!normalized) {
     return ''
   }
+
   return truncateInlineText(normalized, MAX_ANTIGRAVITY_SCHEMA_DESCRIPTION_CHARS)
 }
 
@@ -332,9 +350,11 @@ function compactJsonSchemaDescriptionsForAntigravity(schema) {
   }
 
   const cleaned = {}
+
   for (const [key, value] of Object.entries(schema)) {
     if (key === 'description') {
       const compacted = compactSchemaDescriptionForAntigravity(value)
+
       if (compacted) {
         cleaned.description = compacted
       }
@@ -342,6 +362,7 @@ function compactJsonSchemaDescriptionsForAntigravity(schema) {
     }
     cleaned[key] = compactJsonSchemaDescriptionsForAntigravity(value)
   }
+
   return cleaned
 }
 
@@ -357,16 +378,19 @@ function sanitizeThoughtSignatureForAntigravity(signature) {
     return ''
   }
   const trimmed = signature.trim()
+
   if (!trimmed) {
     return ''
   }
 
   const compacted = trimmed.replace(/\s+/g, '')
+
   if (compacted.length > 65536) {
     return ''
   }
 
   const looksLikeToken = /^[A-Za-z0-9+/_=-]+$/.test(compacted)
+
   if (!looksLikeToken) {
     return ''
   }
@@ -390,10 +414,12 @@ function isInvalidAntigravityArgumentError(sanitized) {
     return false
   }
   const upstreamType = String(sanitized.upstreamType || '').toUpperCase()
+
   if (upstreamType === 'INVALID_ARGUMENT') {
     return true
   }
   const message = String(sanitized.upstreamMessage || sanitized.message || '')
+
   return /invalid argument/i.test(message)
 }
 
@@ -413,6 +439,7 @@ function summarizeAntigravityRequestForDebug(requestData) {
 
   for (const message of contents) {
     const parts = Array.isArray(message?.parts) ? message.parts : []
+
     for (const part of parts) {
       if (!part || typeof part !== 'object') {
         continue
@@ -484,10 +511,12 @@ function sanitizeToolResultBlocksForAntigravity(blocks) {
 
     if (block.type === 'text' && typeof block.text === 'string') {
       const remaining = MAX_ANTIGRAVITY_TOOL_RESULT_CHARS - usedChars
+
       if (remaining <= 0) {
         break
       }
       const text = truncateText(block.text, remaining)
+
       cleaned.push({ ...block, text })
       usedChars += text.length
       continue
@@ -527,6 +556,7 @@ function normalizeToolResultContent(content, { vendor = null } = {}) {
     if (vendor === 'antigravity') {
       return truncateText(content, MAX_ANTIGRAVITY_TOOL_RESULT_CHARS)
     }
+
     return content
   }
   // Claude Code 的 tool_result.content 通常是 content blocks 数组（例如 [{type:"text",text:"..."}]）。
@@ -536,8 +566,10 @@ function normalizeToolResultContent(content, { vendor = null } = {}) {
     if (vendor === 'antigravity' && Array.isArray(content)) {
       return sanitizeToolResultBlocksForAntigravity(content)
     }
+
     return content
   }
+
   return ''
 }
 
@@ -579,12 +611,14 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
       return false
     }
     const trimmed = part.text.trim()
+
     if (trimmed === '' || trimmed === '(no content)') {
       return true
     }
     if (part.cache_control?.type === 'ephemeral' && trimmed === '(no content)') {
       return true
     }
+
     return false
   }
 
@@ -594,6 +628,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
     }
     const thinkingBlocks = []
     const otherBlocks = []
+
     for (const part of parts) {
       if (!part) {
         continue
@@ -602,6 +637,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
         // 移除 cache_control 字段，上游 API 不接受 thinking block 中包含此字段
         // 错误信息: "thinking.cache_control: Extra inputs are not permitted"
         const { cache_control: _cache_control, ...cleanedPart } = part
+
         thinkingBlocks.push(cleanedPart)
         continue
       }
@@ -613,12 +649,14 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
     if (thinkingBlocks.length === 0) {
       return otherBlocks
     }
+
     return [...thinkingBlocks, ...otherBlocks]
   }
 
   const stripNonToolPartsAfterToolUse = (parts) => {
     let seenToolUse = false
     const cleaned = []
+
     for (const part of parts) {
       if (!part) {
         continue
@@ -636,6 +674,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
         continue
       }
     }
+
     return cleaned
   }
 
@@ -648,6 +687,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
     }
 
     let parts = message.content.filter(Boolean)
+
     if (message.role === 'assistant') {
       parts = normalizeAssistantThinkingOrderForVendor(parts)
     }
@@ -675,6 +715,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
       const toolUseIds = stripped
         .filter((part) => part?.type === 'tool_use' && typeof part.id === 'string')
         .map((part) => part.id)
+
       if (toolUseIds.length > 0) {
         pendingToolUseIds.push(...toolUseIds)
       }
@@ -689,6 +730,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
         toolResults.map((p) => p.tool_use_id).filter((id) => typeof id === 'string')
       )
       const missing = pendingToolUseIds.filter((id) => !toolResultIds.has(id))
+
       if (missing.length > 0) {
         const synthetic = missing.map((toolUseId) => ({
           type: 'tool_result',
@@ -701,6 +743,7 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
             }
           ]
         }))
+
         parts = [...toolResults, ...synthetic, ...parts.filter((p) => p.type !== 'tool_result')]
       }
       pendingToolUseIds.length = 0
@@ -712,12 +755,14 @@ function normalizeAnthropicMessages(messages, { vendor = null } = {}) {
     }
 
     const toolResults = parts.filter((p) => p.type === 'tool_result')
+
     if (toolResults.length === 0) {
       normalized.push({ ...message, content: parts })
       continue
     }
 
     const nonToolResults = parts.filter((p) => p.type !== 'tool_result')
+
     if (nonToolResults.length === 0) {
       normalized.push({ ...message, content: toolResults })
       continue
@@ -812,6 +857,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
     }
 
     const sanitized = {}
+
     for (const [key, value] of Object.entries(schema)) {
       // Antigravity/Cloud Code 的 function_declarations.parameters 不接受 $schema / $id 等元字段
       if (key === '$schema' || key === '$id') {
@@ -832,8 +878,10 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
       if (key === 'properties') {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
           const props = {}
+
           for (const [propName, propSchema] of Object.entries(value)) {
             const sanitizedProp = sanitizeSchemaForFunctionDeclarations(propSchema)
+
             if (sanitizedProp && typeof sanitizedProp === 'object') {
               props[propName] = sanitizedProp
             }
@@ -846,6 +894,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
       if (key === 'required') {
         if (Array.isArray(value)) {
           const req = value.filter((item) => typeof item === 'string')
+
           if (req.length > 0) {
             sanitized.required = req
           }
@@ -859,6 +908,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
             (item) =>
               typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean'
           )
+
           if (en.length > 0) {
             sanitized.enum = en
           }
@@ -871,6 +921,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
           sanitized.additionalProperties = value
         } else if (value && typeof value === 'object') {
           const ap = sanitizeSchemaForFunctionDeclarations(value)
+
           if (ap && typeof ap === 'object') {
             sanitized.additionalProperties = ap
           }
@@ -879,6 +930,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
       }
 
       const sanitizedValue = sanitizeSchemaForFunctionDeclarations(value)
+
       if (sanitizedValue === null || sanitizedValue === undefined) {
         continue
       }
@@ -909,6 +961,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
   const functionDeclarations = tools
     .map((tool) => {
       const toolDef = tool?.custom && typeof tool.custom === 'object' ? tool.custom : tool
+
       if (!toolDef || !toolDef.name) {
         return null
       }
@@ -937,6 +990,7 @@ function convertAnthropicToolsToGeminiTools(tools, { vendor = null } = {}) {
       if (vendor === 'antigravity') {
         return { ...baseDecl, parametersJsonSchema: schema }
       }
+
       return { ...baseDecl, parameters: schema }
     })
     .filter(Boolean)
@@ -966,6 +1020,7 @@ function convertAnthropicToolChoiceToGeminiToolConfig(toolChoice) {
   }
 
   const { type } = toolChoice
+
   if (!type) {
     return null
   }
@@ -980,9 +1035,11 @@ function convertAnthropicToolChoiceToGeminiToolConfig(toolChoice) {
 
   if (type === 'tool') {
     const { name } = toolChoice
+
     if (!name) {
       return { functionCallingConfig: { mode: 'ANY' } }
     }
+
     return {
       functionCallingConfig: {
         mode: 'ANY',
@@ -1029,6 +1086,7 @@ function convertAnthropicMessagesToGeminiContents(
   { vendor = null, stripThinking = false, sessionId = null } = {}
 ) {
   const contents = []
+
   for (const message of messages || []) {
     const role = message?.role === 'assistant' ? 'model' : 'user'
 
@@ -1038,6 +1096,7 @@ function convertAnthropicMessagesToGeminiContents(
 
     if (typeof content === 'string') {
       const text = extractAnthropicText(content)
+
       if (text && !shouldSkipText(text)) {
         parts.push({ text })
       }
@@ -1049,6 +1108,7 @@ function convertAnthropicMessagesToGeminiContents(
 
         if (part.type === 'text') {
           const text = extractAnthropicText(part.text || '')
+
           if (text && !shouldSkipText(text)) {
             parts.push({ text })
           }
@@ -1063,12 +1123,15 @@ function convertAnthropicMessagesToGeminiContents(
           }
 
           const thinkingText = extractAnthropicText(part.thinking || part.text || '')
+
           if (vendor === 'antigravity') {
             const hasThinkingText = thinkingText && !shouldSkipText(thinkingText)
             // 先尝试使用请求中的签名，如果没有则尝试从缓存恢复
             let signature = sanitizeThoughtSignatureForAntigravity(part.signature)
+
             if (!signature && sessionId && hasThinkingText) {
               const cachedSig = signatureCache.getCachedSignature(sessionId, thinkingText)
+
               if (cachedSig) {
                 signature = cachedSig
                 logger.debug('[SignatureCache] Restored signature from cache for thinking block')
@@ -1089,6 +1152,7 @@ function convertAnthropicMessagesToGeminiContents(
 
             lastAntigravityThoughtSignature = signature
             const thoughtPart = { thought: true, thoughtSignature: signature }
+
             if (hasThinkingText) {
               thoughtPart.text = thinkingText
             }
@@ -1101,12 +1165,14 @@ function convertAnthropicMessagesToGeminiContents(
 
         if (part.type === 'image') {
           const source = part.source || {}
+
           if (source.type === 'base64' && source.data) {
             const mediaType = source.media_type || source.mediaType || 'application/octet-stream'
             const inlineData =
               vendor === 'antigravity'
                 ? { mime_type: mediaType, data: source.data }
                 : { mimeType: mediaType, data: source.data }
+
             parts.push({ inlineData })
           }
           continue
@@ -1147,6 +1213,7 @@ function convertAnthropicMessagesToGeminiContents(
         if (part.type === 'tool_result') {
           const toolUseId = part.tool_use_id
           const toolName = toolUseId ? toolUseIdToName.get(toolUseId) : null
+
           if (!toolName) {
             continue
           }
@@ -1154,6 +1221,7 @@ function convertAnthropicMessagesToGeminiContents(
           const raw = normalizeToolResultContent(part.content, { vendor })
 
           let parsedResponse = null
+
           if (raw && typeof raw === 'string') {
             try {
               parsedResponse = JSON.parse(raw)
@@ -1203,6 +1271,7 @@ function convertAnthropicMessagesToGeminiContents(
       parts
     })
   }
+
   return contents
 }
 
@@ -1229,6 +1298,7 @@ function canEnableAntigravityThinking(messages) {
       continue
     }
     const { content } = message
+
     if (!Array.isArray(content) || content.length === 0) {
       continue
     }
@@ -1237,6 +1307,7 @@ function canEnableAntigravityThinking(messages) {
         continue
       }
       const signature = sanitizeThoughtSignatureForAntigravity(part.signature)
+
       if (!signature) {
         return false
       }
@@ -1244,8 +1315,10 @@ function canEnableAntigravityThinking(messages) {
   }
 
   let lastAssistant = null
+
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const message = messages[i]
+
     if (message && message.role === 'assistant') {
       lastAssistant = message
       break
@@ -1263,11 +1336,13 @@ function canEnableAntigravityThinking(messages) {
   const hasToolBlocks = parts.some(
     (part) => part?.type === 'tool_use' || part?.type === 'tool_result'
   )
+
   if (!hasToolBlocks) {
     return true
   }
 
   const first = parts[0]
+
   if (!first || (first.type !== 'thinking' && first.type !== 'redacted_thinking')) {
     return false
   }
@@ -1307,8 +1382,10 @@ function buildGeminiRequestFromAnthropic(
 
   // 提前判断是否可以启用 thinking，以便决定是否需要剥离 thinking blocks
   let canEnableThinking = false
+
   if (vendor === 'antigravity' && body?.thinking?.type === 'enabled') {
     const budgetRaw = Number(body.thinking.budget_tokens)
+
     if (Number.isFinite(budgetRaw)) {
       canEnableThinking = canEnableAntigravityThinking(normalizedMessages)
     }
@@ -1352,6 +1429,7 @@ function buildGeminiRequestFromAnthropic(
   // 使用前面已经计算好的 canEnableThinking 结果
   if (vendor === 'antigravity' && body?.thinking?.type === 'enabled') {
     const budgetRaw = Number(body.thinking.budget_tokens)
+
     if (Number.isFinite(budgetRaw)) {
       if (canEnableThinking) {
         generationConfig.thinkingConfig = {
@@ -1375,17 +1453,20 @@ function buildGeminiRequestFromAnthropic(
   // antigravity: 前置注入系统提示词
   if (vendor === 'antigravity') {
     const allParts = [{ text: ANTIGRAVITY_SYSTEM_INSTRUCTION_PREFIX }, ...systemParts]
+
     geminiRequestBody.systemInstruction = { role: 'user', parts: allParts }
   } else if (systemParts.length > 0) {
     geminiRequestBody.systemInstruction = { parts: systemParts }
   }
 
   const geminiTools = convertAnthropicToolsToGeminiTools(body.tools, { vendor })
+
   if (geminiTools) {
     geminiRequestBody.tools = geminiTools
   }
 
   const toolConfig = convertAnthropicToolChoiceToGeminiToolConfig(body.tool_choice)
+
   if (toolConfig) {
     geminiRequestBody.toolConfig = toolConfig
   } else if (geminiTools) {
@@ -1410,9 +1491,11 @@ function buildGeminiRequestFromAnthropic(
 function extractGeminiText(payload, { includeThought = false } = {}) {
   const candidate = payload?.candidates?.[0]
   const parts = candidate?.content?.parts
+
   if (!Array.isArray(parts)) {
     return ''
   }
+
   return parts
     .filter(
       (part) => typeof part?.text === 'string' && part.text && (includeThought || !part.thought)
@@ -1428,9 +1511,11 @@ function extractGeminiText(payload, { includeThought = false } = {}) {
 function extractGeminiThoughtText(payload) {
   const candidate = payload?.candidates?.[0]
   const parts = candidate?.content?.parts
+
   if (!Array.isArray(parts)) {
     return ''
   }
+
   return parts
     .filter((part) => part?.thought && typeof part?.text === 'string' && part.text)
     .map((part) => part.text)
@@ -1445,6 +1530,7 @@ function extractGeminiThoughtText(payload) {
 function extractGeminiThoughtSignature(payload) {
   const candidate = payload?.candidates?.[0]
   const parts = candidate?.content?.parts
+
   if (!Array.isArray(parts)) {
     return ''
   }
@@ -1453,6 +1539,7 @@ function extractGeminiThoughtSignature(payload) {
     if (!part) {
       return ''
     }
+
     return part.thoughtSignature || part.thought_signature || part.signature || ''
   }
 
@@ -1462,6 +1549,7 @@ function extractGeminiThoughtSignature(payload) {
       continue
     }
     const signature = resolveSignature(part)
+
     if (signature) {
       return signature
     }
@@ -1473,10 +1561,12 @@ function extractGeminiThoughtSignature(payload) {
       continue
     }
     const signature = resolveSignature(part)
+
     if (signature) {
       return signature
     }
   }
+
   return ''
 }
 
@@ -1494,12 +1584,14 @@ function resolveUsageOutputTokens(usageMetadata) {
   const totalTokens = usageMetadata.totalTokenCount || 0
 
   let outputTokens = candidateTokens + thoughtTokens
+
   if (outputTokens === 0 && totalTokens > 0) {
     outputTokens = totalTokens - promptTokens
     if (outputTokens < 0) {
       outputTokens = 0
     }
   }
+
   return outputTokens
 }
 
@@ -1512,6 +1604,7 @@ function isEnvEnabled(value) {
     return false
   }
   const normalized = String(value).trim().toLowerCase()
+
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
 }
 
@@ -1527,12 +1620,14 @@ function tryExtractWriteToolFromText(text, fallbackCwd) {
 
   const lines = text.split(/\r?\n/)
   const index = lines.findIndex((line) => /^\s*Write\s*:\s*/i.test(line))
+
   if (index < 0) {
     return null
   }
 
   const header = lines[index]
   const rawPath = header.replace(/^\s*Write\s*:\s*/i, '').trim()
+
   if (!rawPath) {
     return null
   }
@@ -1543,6 +1638,7 @@ function tryExtractWriteToolFromText(text, fallbackCwd) {
   // Claude Code 的 Write 工具要求绝对路径。若模型给的是相对路径，仅在本地运行代理时可用；
   // 这里提供一个可选回退：使用服务端 cwd 解析。
   let filePath = rawPath
+
   if (!path.isAbsolute(filePath) && fallbackCwd) {
     filePath = path.resolve(fallbackCwd, filePath)
   }
@@ -1561,9 +1657,11 @@ function tryExtractWriteToolFromText(text, fallbackCwd) {
 
 function mapGeminiFinishReasonToAnthropicStopReason(finishReason) {
   const normalized = (finishReason || '').toString().toUpperCase()
+
   if (normalized === 'MAX_TOKENS') {
     return 'max_tokens'
   }
+
   return 'end_turn'
 }
 
@@ -1589,8 +1687,10 @@ function stableJsonStringify(value) {
   if (typeof value === 'object') {
     const keys = Object.keys(value).sort()
     const pairs = keys.map((key) => `${JSON.stringify(key)}:${stableJsonStringify(value[key])}`)
+
     return `{${pairs.join(',')}}`
   }
+
   return JSON.stringify(value)
 }
 
@@ -1600,9 +1700,11 @@ function stableJsonStringify(value) {
 function extractGeminiParts(payload) {
   const candidate = payload?.candidates?.[0]
   const parts = candidate?.content?.parts
+
   if (!Array.isArray(parts)) {
     return []
   }
+
   return parts
 }
 
@@ -1636,10 +1738,12 @@ function convertGeminiPayloadToAnthropicContent(payload) {
   const pushThinkingBlock = (thinkingText, signature) => {
     const normalizedThinking = typeof thinkingText === 'string' ? thinkingText : ''
     const normalizedSignature = typeof signature === 'string' ? signature : ''
+
     if (!normalizedThinking && !normalizedSignature) {
       return
     }
     const block = { type: 'thinking', thinking: normalizedThinking }
+
     if (normalizedSignature) {
       block.signature = normalizedSignature
     }
@@ -1650,11 +1754,13 @@ function convertGeminiPayloadToAnthropicContent(payload) {
     if (!part) {
       return ''
     }
+
     return part.thoughtSignature || part.thought_signature || part.signature || ''
   }
 
   for (const part of parts) {
     const isThought = part?.thought === true
+
     if (isThought) {
       flushText()
       pushThinkingBlock(typeof part?.text === 'string' ? part.text : '', resolveSignature(part))
@@ -1667,18 +1773,21 @@ function convertGeminiPayloadToAnthropicContent(payload) {
     }
 
     const functionCall = part?.functionCall
+
     if (functionCall?.name) {
       flushText()
 
       // 上游可能把 thought signature 挂在 functionCall part 上：需要原样传回给客户端，
       // 以便下一轮对话能携带 signature。
       const functionCallSignature = resolveSignature(part)
+
       if (functionCallSignature) {
         pushThinkingBlock('', functionCallSignature)
       }
 
       const toolUseId =
         typeof functionCall.id === 'string' && functionCall.id ? functionCall.id : buildToolUseId()
+
       content.push({
         type: 'tool_use',
         id: toolUseId,
@@ -1692,15 +1801,19 @@ function convertGeminiPayloadToAnthropicContent(payload) {
   const thinkingBlocks = content.filter(
     (b) => b && (b.type === 'thinking' || b.type === 'redacted_thinking')
   )
+
   if (thinkingBlocks.length > 0) {
     const firstType = content?.[0]?.type
+
     if (firstType !== 'thinking' && firstType !== 'redacted_thinking') {
       const others = content.filter(
         (b) => b && b.type !== 'thinking' && b.type !== 'redacted_thinking'
       )
+
       return [...thinkingBlocks, ...others]
     }
   }
+
   return content
 }
 
@@ -1723,9 +1836,11 @@ function buildAnthropicError(message) {
  */
 function shouldRetryWithoutTools(sanitizedError) {
   const message = (sanitizedError?.upstreamMessage || sanitizedError?.message || '').toLowerCase()
+
   if (!message) {
     return false
   }
+
   return (
     message.includes('json schema is invalid') ||
     message.includes('invalid json payload') ||
@@ -1747,8 +1862,10 @@ function stripToolsFromRequest(requestData) {
       ...requestData.request
     }
   }
+
   delete nextRequest.request.tools
   delete nextRequest.request.toolConfig
+
   return nextRequest
 }
 
@@ -1824,6 +1941,7 @@ async function applyRateLimitTracking(
       'gemini',
       preCalculatedCost
     )
+
     if (totalTokens > 0) {
       logger.api(`📊 Updated rate limit token count${label}: +${totalTokens} tokens`)
     }
@@ -1870,6 +1988,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
   const pickFallbackModel = (account, requestedModel) => {
     const supportedModels = Array.isArray(account?.supportedModels) ? account.supportedModels : []
+
     if (supportedModels.length === 0) {
       return requestedModel
     }
@@ -1884,6 +2003,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
     // Claude Code 常见探测模型：优先回退到 Opus 4.5（如果账号支持）
     const preferred = ['claude-opus-4-5', 'claude-sonnet-4-5-thinking', 'claude-sonnet-4-5']
+
     for (const candidate of preferred) {
       if (normalizedSupported.includes(candidate)) {
         return candidate
@@ -1898,6 +2018,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   const upstreamSessionId = sessionHash || req.apiKey?.id || null
 
   let accountSelection
+
   try {
     accountSelection = await unifiedGeminiScheduler.selectAccountForApiKey(
       req.apiKey,
@@ -1907,6 +2028,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
     )
   } catch (error) {
     logger.error('Failed to select Gemini account (via /v1/messages):', error)
+
     return res
       .status(503)
       .json(buildAnthropicError(error.message || 'No available Gemini accounts'))
@@ -1914,6 +2036,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
   let { accountId } = accountSelection
   const { accountType } = accountSelection
+
   if (accountType !== 'gemini') {
     return res
       .status(400)
@@ -1921,6 +2044,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   }
 
   const account = await geminiAccountService.getAccount(accountId)
+
   if (!account) {
     return res.status(503).json(buildAnthropicError('Gemini OAuth account not found'))
   }
@@ -1928,6 +2052,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   await geminiAccountService.markAccountUsed(account.id)
 
   let proxyConfig = null
+
   if (account.proxy) {
     try {
       proxyConfig = typeof account.proxy === 'string' ? JSON.parse(account.proxy) : account.proxy
@@ -1944,6 +2069,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   )
 
   let { projectId } = account
+
   if (vendor === 'antigravity') {
     projectId = ensureAntigravityProjectId(account)
     if (!account.projectId && account.tempProjectId !== projectId) {
@@ -1953,6 +2079,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   }
 
   const effectiveModel = pickFallbackModel(account, baseModel)
+
   if (effectiveModel !== baseModel) {
     logger.warn('⚠️ Requested model not supported by account, falling back', {
       requestedModel: baseModel,
@@ -1976,8 +2103,10 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   ) {
     const existingCfg = requestData?.request?.toolConfig?.functionCallingConfig || null
     const mode = existingCfg?.mode
+
     if (mode !== 'NONE') {
       const nextCfg = { ...(existingCfg || {}), mode: 'VALIDATED' }
+
       requestData = {
         ...requestData,
         request: {
@@ -1991,6 +2120,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
   // Antigravity 默认启用 tools（对齐 CLIProxyAPI）。若上游拒绝 schema，会在下方自动重试去掉 tools/toolConfig。
 
   const abortController = new AbortController()
+
   req.on('close', () => {
     if (!abortController.signal.aborted) {
       abortController.abort()
@@ -2010,6 +2140,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
             proxyConfig
           )
         }
+
         return await geminiAccountService.generateContent(
           client,
           payload,
@@ -2021,10 +2152,12 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       }
 
       let rawResponse
+
       try {
         rawResponse = await attemptRequest(requestData)
       } catch (error) {
         const sanitized = sanitizeUpstreamError(error)
+
         if (shouldRetryWithoutTools(sanitized) && requestData.request?.tools) {
           logger.warn('⚠️ Tool schema rejected by upstream, retrying without tools', {
             vendor,
@@ -2061,6 +2194,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
             )
             const newAccountId = newAccountSelection.accountId
             const newClient = await geminiAccountService.getGeminiClient(newAccountId)
+
             if (!newClient) {
               throw new Error('Failed to get new Gemini client for retry')
             }
@@ -2106,9 +2240,11 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       if (!hasToolUse && isEnvEnabled(process.env[TEXT_TOOL_FALLBACK_ENV])) {
         const fullText = extractGeminiText(payload)
         const extracted = tryExtractWriteToolFromText(fullText, process.cwd())
+
         if (extracted?.tool) {
           const toolUseId = buildToolUseId()
           const blocks = []
+
           if (extracted.prefixText) {
             blocks.push({ type: 'text', text: extracted.prefixText })
           }
@@ -2154,6 +2290,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
             statusCode: 200
           })
         )
+
         await applyRateLimitTracking(
           req.rateLimitInfo,
           { inputTokens, outputTokens, cacheCreateTokens: 0, cacheReadTokens: 0 },
@@ -2188,6 +2325,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       return res.status(200).json(responseBody)
     } catch (error) {
       const sanitized = sanitizeUpstreamError(error)
+
       logger.error('Upstream Gemini error (via /v1/messages):', sanitized)
       dumpAnthropicNonStreamResponse(
         req,
@@ -2195,6 +2333,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         buildAnthropicError(sanitized.upstreamMessage || sanitized.message),
         { vendor, accountId, effectiveModel, forcedVendor: vendor, upstreamError: sanitized }
       )
+
       return res
         .status(sanitized.statusCode || 502)
         .json(buildAnthropicError(sanitized.upstreamMessage || sanitized.message))
@@ -2217,6 +2356,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
           proxyConfig
         )
       }
+
       return await geminiAccountService.generateContentStream(
         client,
         payload,
@@ -2229,10 +2369,12 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
     }
 
     let streamResponse
+
     try {
       streamResponse = await startStream(requestData)
     } catch (error) {
       const sanitized = sanitizeUpstreamError(error)
+
       if (shouldRetryWithoutTools(sanitized) && requestData.request?.tools) {
         logger.warn('⚠️ Tool schema rejected by upstream, retrying stream without tools', {
           vendor,
@@ -2266,6 +2408,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
           )
           const newAccountId = newAccountSelection.accountId
           const newClient = await geminiAccountService.getGeminiClient(newAccountId)
+
           if (!newClient) {
             throw new Error('Failed to get new Gemini client for retry')
           }
@@ -2450,6 +2593,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       if (emittedThinking || emittedThoughtSignature) {
         return true
       }
+
       return false
     }
 
@@ -2513,12 +2657,14 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
       const json =
         typeof raw === 'string' ? raw : raw === null || raw === undefined ? '' : String(raw)
+
       if (!json) {
         return { args: null, json: '', canContinue }
       }
 
       try {
         const parsed = JSON.parse(json)
+
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           return { args: parsed, json: '', canContinue }
         }
@@ -2531,6 +2677,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
     const flushPendingToolCallById = (id, { force = false } = {}) => {
       const pending = pendingToolCallsById.get(id)
+
       if (!pending) {
         return
       }
@@ -2540,6 +2687,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       if (!pending.args && pending.argsJson) {
         try {
           const parsed = JSON.parse(pending.argsJson)
+
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
             pending.args = parsed
             pending.argsJson = ''
@@ -2556,8 +2704,10 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       }
 
       const toolKey = `id:${id}`
+
       if (emittedToolCallKeys.has(toolKey)) {
         pendingToolCallsById.delete(id)
+
         return
       }
       emittedToolCallKeys.add(toolKey)
@@ -2630,6 +2780,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
 
         res.end()
+
         return
       }
 
@@ -2701,6 +2852,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
             statusCode: res.statusCode
           })
         )
+
         await applyRateLimitTracking(
           req.rateLimitInfo,
           { inputTokens, outputTokens, cacheCreateTokens: 0, cacheReadTokens: 0 },
@@ -2721,6 +2873,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
       buffer += chunk.toString()
       const lines = buffer.split('\n')
+
       buffer = lines.pop() || ''
 
       for (const line of lines) {
@@ -2729,6 +2882,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
 
         const parsed = parseSSELine(line)
+
         if (parsed.type === 'control') {
           continue
         }
@@ -2750,12 +2904,14 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
 
         const { usageMetadata: currentUsageMetadata, candidates } = payload || {}
+
         if (currentUsageMetadata) {
           usageMetadata = currentUsageMetadata
         }
 
         const [candidate] = Array.isArray(candidates) ? candidates : []
         const { finishReason: currentFinishReason } = candidate || {}
+
         if (currentFinishReason) {
           finishReason = currentFinishReason
         }
@@ -2773,6 +2929,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
           // 导致下一轮请求的 thinking 校验/工具调用校验失败（Antigravity 会返回 400）。
           if (thoughtSignature && canStartThinkingBlock()) {
             let delta = ''
+
             if (thoughtSignature.startsWith(emittedThoughtSignature)) {
               delta = thoughtSignature.slice(emittedThoughtSignature.length)
             } else if (thoughtSignature !== emittedThoughtSignature) {
@@ -2791,6 +2948,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
           if (fullThoughtForToolOrdering && canStartThinkingBlock()) {
             let delta = ''
+
             if (fullThoughtForToolOrdering.startsWith(emittedThinking)) {
               delta = fullThoughtForToolOrdering.slice(emittedThinking.length)
             } else {
@@ -2809,6 +2967,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
         for (const part of parts) {
           const functionCall = part?.functionCall
+
           if (!functionCall?.name) {
             continue
           }
@@ -2820,6 +2979,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
           if (!id) {
             const finalArgs = args || {}
             const toolKey = `${functionCall.name}:${stableJsonStringify(finalArgs)}`
+
             if (emittedToolCallKeys.has(toolKey)) {
               continue
             }
@@ -2839,6 +2999,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
             args: null,
             argsJson: ''
           }
+
           pending.name = functionCall.name
           if (args) {
             pending.args = args
@@ -2856,6 +3017,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
 
         if (thoughtSignature && canStartThinkingBlock(true)) {
           let delta = ''
+
           if (thoughtSignature.startsWith(emittedThoughtSignature)) {
             delta = thoughtSignature.slice(emittedThoughtSignature.length)
           } else if (thoughtSignature !== emittedThoughtSignature) {
@@ -2873,11 +3035,13 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
 
         const fullThought = extractGeminiThoughtText(payload)
+
         if (
           fullThought &&
           canStartThinkingBlock(Boolean(thoughtSignature || emittedThoughtSignature))
         ) {
           let delta = ''
+
           if (fullThought.startsWith(emittedThinking)) {
             delta = fullThought.slice(emittedThinking.length)
           } else {
@@ -2899,8 +3063,10 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         }
 
         const fullText = extractGeminiText(payload)
+
         if (fullText) {
           let delta = ''
+
           if (fullText.startsWith(emittedText)) {
             delta = fullText.slice(emittedText.length)
           } else {
@@ -2936,6 +3102,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
         return
       }
       const sanitized = sanitizeUpstreamError(error)
+
       logger.error('Upstream Gemini stream error (via /v1/messages):', sanitized)
       writeAnthropicSseEvent(
         res,
@@ -3001,6 +3168,7 @@ async function handleAnthropicMessagesToGemini(req, res, { vendor, baseModel }) 
       buildAnthropicError(sanitized.upstreamMessage || sanitized.message)
     )
     res.end()
+
     return undefined
   }
 }
@@ -3013,11 +3181,13 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
   const sessionHash = sessionHelper.generateSessionHash(req.body)
 
   const model = (req.body?.model || '').trim()
+
   if (!model) {
     return res.status(400).json(buildAnthropicError('Missing model'))
   }
 
   let accountSelection
+
   try {
     accountSelection = await unifiedGeminiScheduler.selectAccountForApiKey(
       req.apiKey,
@@ -3027,12 +3197,14 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
     )
   } catch (error) {
     logger.error('Failed to select Gemini account (count_tokens):', error)
+
     return res
       .status(503)
       .json(buildAnthropicError(error.message || 'No available Gemini accounts'))
   }
 
   const { accountId, accountType } = accountSelection
+
   if (accountType !== 'gemini') {
     return res
       .status(400)
@@ -3040,6 +3212,7 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
   }
 
   const account = await geminiAccountService.getAccount(accountId)
+
   if (!account) {
     return res.status(503).json(buildAnthropicError('Gemini OAuth account not found'))
   }
@@ -3047,6 +3220,7 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
   await geminiAccountService.markAccountUsed(account.id)
 
   let proxyConfig = null
+
   if (account.proxy) {
     try {
       proxyConfig = typeof account.proxy === 'string' ? JSON.parse(account.proxy) : account.proxy
@@ -3066,8 +3240,10 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
   const toolUseIdToName = buildToolUseIdToNameMap(normalizedMessages || [])
 
   let canEnableThinking = false
+
   if (vendor === 'antigravity' && req.body?.thinking?.type === 'enabled') {
     const budgetRaw = Number(req.body.thinking.budget_tokens)
+
     if (Number.isFinite(budgetRaw)) {
       canEnableThinking = canEnableAntigravityThinking(normalizedMessages)
     }
@@ -3090,10 +3266,13 @@ async function handleAnthropicCountTokensToGemini(req, res, { vendor }) {
         : await geminiAccountService.countTokens(client, contents, model, proxyConfig)
 
     const totalTokens = countResult?.totalTokens || 0
+
     return res.status(200).json({ input_tokens: totalTokens })
   } catch (error) {
     const sanitized = sanitizeUpstreamError(error)
+
     logger.error('Upstream token count error (via /v1/messages/count_tokens):', sanitized)
+
     return res
       .status(sanitized.statusCode || 502)
       .json(buildAnthropicError(sanitized.upstreamMessage || sanitized.message))
