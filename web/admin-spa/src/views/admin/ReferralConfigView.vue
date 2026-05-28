@@ -165,7 +165,7 @@ const loadPlans = async () => {
   try {
     const data = await getAdminPlansApi() // 包含禁用套餐
 
-    plans.value = data
+    plans.value = data?.success && Array.isArray(data.plans) ? data.plans : []
   } catch (error) {
     showToast('加载套餐列表失败', 'error')
   }

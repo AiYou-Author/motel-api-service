@@ -439,7 +439,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { showToast, formatDate } from '@/utils/tools'
+import { APP_CONFIG, showToast, formatDate } from '@/utils/tools'
 import {
   getReferralInfoApi,
   getReferralRecordsApi,
@@ -467,7 +467,7 @@ const loadReferralInfo = async () => {
     const data = await getReferralInfoApi()
 
     referralInfo.value = data
-    referralLink.value = `${window.location.origin}/user/register?ref=${data.code}`
+    referralLink.value = `${window.location.origin}${APP_CONFIG.basePath}user/register?ref=${data.code}`
   } catch (error) {
     showToast('加载推广信息失败', 'error')
   }

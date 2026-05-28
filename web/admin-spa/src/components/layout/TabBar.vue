@@ -78,6 +78,12 @@ const tabs = computed(() => {
     icon: 'fas fa-tags'
   })
   baseTabs.push({ key: 'settings', name: '系统设置', shortName: '设置', icon: 'fas fa-cogs' })
+  baseTabs.push({
+    key: 'referral',
+    name: '推广奖励',
+    shortName: '推广',
+    icon: 'fas fa-gift'
+  })
 
   return baseTabs
 })

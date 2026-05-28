@@ -49,13 +49,22 @@ export const changePasswordApi = (data) =>
 export const getOemSettingsApi = () => request({ url: '/admin/oem-settings', method: 'GET' })
 // 推广奖励相关
 // 用户端
-export const getReferralInfoApi = () => request({ url: '/api/referral/info', method: 'GET' })
+export const getReferralInfoApi = () =>
+  userAxios()
+    .get('/api/referral/info')
+    .then((res) => res.data)
 export const getReferralRecordsApi = (params) =>
-  request({ url: '/api/referral/records', method: 'GET', params })
+  userAxios()
+    .get('/api/referral/records', { params })
+    .then((res) => res.data)
 export const getReferralWithdrawalsApi = (params) =>
-  request({ url: '/api/referral/withdrawals', method: 'GET', params })
+  userAxios()
+    .get('/api/referral/withdrawals', { params })
+    .then((res) => res.data)
 export const createWithdrawRequestApi = (data) =>
-  request({ url: '/api/referral/withdraw', method: 'POST', data })
+  userAxios()
+    .post('/api/referral/withdraw', data)
+    .then((res) => res.data)
 
 // 管理端
 export const getReferralConfigApi = () => request({ url: '/admin/referral/config', method: 'GET' })
@@ -453,7 +462,9 @@ export const saveAdminPlansApi = (plans, expectedVersion) =>
 // getReferralWithdrawalsApi 已在前面定义
 
 export const submitReferralWithdrawApi = (data) =>
-  request({ url: '/api/referral/withdraw', method: 'POST', data })
+  userAxios()
+    .post('/api/referral/withdraw', data)
+    .then((res) => res.data)
 
 // ─── 推广返佣（管理端）──────────────────────────────────────────────
 export const getAdminReferralConfigApi = () =>

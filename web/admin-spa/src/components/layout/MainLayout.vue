@@ -42,7 +42,8 @@ const tabRouteMap = computed(() => {
     userManagement: '/user-management',
     storeOrders: '/store-orders',
     storePlans: '/admin/store/plans',
-    settings: '/settings'
+    settings: '/settings',
+    referral: '/admin/referral/config'
   }
 
   return baseMap
@@ -69,7 +70,9 @@ const initActiveTab = () => {
       UserManagement: 'userManagement',
       StoreOrders: 'storeOrders',
       StorePlansAdmin: 'storePlans',
-      Settings: 'settings'
+      Settings: 'settings',
+      ReferralConfig: 'referral',
+      ReferralWithdrawal: 'referral'
     }
 
     if (routeName && nameToTabMap[routeName]) {
@@ -101,8 +104,13 @@ watch(
         Accounts: 'accounts',
         RequestDetails: 'requestDetails',
         QuotaCards: 'quotaCards',
+        UserManagement: 'userManagement',
+        StoreOrders: 'storeOrders',
+        StorePlansAdmin: 'storePlans',
         Tutorial: 'tutorial',
-        Settings: 'settings'
+        Settings: 'settings',
+        ReferralConfig: 'referral',
+        ReferralWithdrawal: 'referral'
       }
 
       if (routeName && nameToTabMap[routeName]) {
