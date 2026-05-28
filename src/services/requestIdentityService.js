@@ -56,6 +56,7 @@ function safeParseJson(value) {
 
   try {
     const parsed = JSON.parse(value)
+
     return parsed && typeof parsed === 'object' ? parsed : null
   } catch (error) {
     return null
@@ -84,6 +85,7 @@ function sanitizeFingerprint(source) {
 
   Object.keys(source).forEach((key) => {
     const value = source[key]
+
     if (value === undefined || value === null || String(value).trim() === '') {
       return
     }
@@ -108,6 +110,7 @@ function collectFingerprintFromHeaders(headers) {
 
   Object.keys(headers).forEach((key) => {
     const lowerKey = key.toLowerCase()
+
     if (STAINLESS_HEADER_KEYS.includes(lowerKey)) {
       subset[lowerKey] = headers[key]
     }
@@ -122,6 +125,7 @@ function removeHeaderCaseInsensitive(target, key) {
   }
 
   const lowerKey = key.toLowerCase()
+
   Object.keys(target).forEach((candidate) => {
     if (candidate.toLowerCase() === lowerKey) {
       delete target[candidate]
@@ -147,6 +151,7 @@ function applyFingerprintToHeaders(headers, fingerprint) {
     removeHeaderCaseInsensitive(nextHeaders, key)
     // 使用正确的大小写格式返回给上游
     const properCaseKey = STAINLESS_HEADER_CASE_MAP[key] || key
+
     nextHeaders[properCaseKey] = fingerprint[key]
   })
 
@@ -177,6 +182,7 @@ function getHeaderValueCaseInsensitive(headers, key) {
   }
 
   const lowerKey = key.toLowerCase()
+
   for (const candidate of Object.keys(headers)) {
     if (candidate.toLowerCase() === lowerKey) {
       return headers[candidate]
@@ -224,6 +230,7 @@ function resolveAccountId(payload) {
     }
 
     const stringified = String(candidate).trim()
+
     if (stringified) {
       return stringified
     }
@@ -249,6 +256,7 @@ function rewriteHeaders(headers, accountId) {
     logger.warn(
       `requestIdentityService: 账号 ${accountId} 提供的 Stainless 指纹字段不足，已保持原样`
     )
+
     return { nextHeaders: workingHeaders, changed: false }
   }
 
@@ -256,6 +264,7 @@ function rewriteHeaders(headers, accountId) {
     persistFingerprint(accountId, fingerprint)
   } catch (error) {
     logger.error(`requestIdentityService: 持久化指纹失败 (${accountId}): ${error.message}`)
+
     return {
       abortResponse: {
         statusCode: 500,
@@ -277,6 +286,7 @@ function normalizeAccountUuid(candidate) {
   }
 
   const trimmed = candidate.trim()
+
   return trimmed || null
 }
 
@@ -286,6 +296,7 @@ function extractAccountUuid(account) {
   }
 
   const extInfoRaw = account.extInfo
+
   if (!extInfoRaw) {
     return null
   }
@@ -297,6 +308,7 @@ function extractAccountUuid(account) {
   }
 
   const extUuid = normalizeAccountUuid(extInfoObject.account_uuid)
+
   return extUuid || null
 }
 
@@ -306,16 +318,19 @@ function rewriteUserId(body, accountId, accountUuid) {
   }
 
   const { metadata } = body
+
   if (!metadata || typeof metadata !== 'object') {
     return { nextBody: body, changed: false }
   }
 
   const userId = metadata.user_id
+
   if (typeof userId !== 'string') {
     return { nextBody: body, changed: false }
   }
 
   const parsed = metadataUserIdHelper.parse(userId)
+
   if (!parsed) {
     return { nextBody: body, changed: false }
   }

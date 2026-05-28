@@ -56,6 +56,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       try {
         const response = await axios.post(`${API_BASE}/register`, credentials)
+
         if (response.data.success) {
           this.user = response.data.user
           this.sessionToken = response.data.sessionToken
@@ -63,6 +64,7 @@ export const useUserStore = defineStore('user', {
           localStorage.setItem('userToken', this.sessionToken)
           localStorage.setItem('userData', JSON.stringify(this.user))
           this.setAuthHeader()
+
           return response.data
         } else {
           throw new Error(response.data.message || 'Registration failed')
@@ -102,6 +104,7 @@ export const useUserStore = defineStore('user', {
 
       if (!token || !userData) {
         this.clearAuth()
+
         return false
       }
 
@@ -114,10 +117,12 @@ export const useUserStore = defineStore('user', {
 
         // 验证 token 是否仍然有效
         await this.getUserProfile()
+
         return true
       } catch (error) {
         console.error('Auth check failed:', error)
         this.clearAuth()
+
         return false
       }
     },
@@ -132,6 +137,7 @@ export const useUserStore = defineStore('user', {
           this.config = response.data.config
           localStorage.setItem('userData', JSON.stringify(this.user))
           localStorage.setItem('userConfig', JSON.stringify(this.config))
+
           return response.data.user
         }
       } catch (error) {
@@ -151,10 +157,12 @@ export const useUserStore = defineStore('user', {
     async getUserApiKeys(includeDeleted = false) {
       try {
         const params = {}
+
         if (includeDeleted) {
           params.includeDeleted = 'true'
         }
         const response = await axios.get(`${API_BASE}/api-keys`, { params })
+
         return response.data.success ? response.data.apiKeys : []
       } catch (error) {
         console.error('Failed to fetch API keys:', error)
@@ -166,6 +174,7 @@ export const useUserStore = defineStore('user', {
     async createApiKey(keyData) {
       try {
         const response = await axios.post(`${API_BASE}/api-keys`, keyData)
+
         return response.data
       } catch (error) {
         console.error('Failed to create API key:', error)
@@ -177,6 +186,7 @@ export const useUserStore = defineStore('user', {
     async deleteApiKey(keyId) {
       try {
         const response = await axios.delete(`${API_BASE}/api-keys/${keyId}`)
+
         return response.data
       } catch (error) {
         console.error('Failed to delete API key:', error)
@@ -188,6 +198,7 @@ export const useUserStore = defineStore('user', {
     async getUserUsageStats(params = {}) {
       try {
         const response = await axios.get(`${API_BASE}/usage-stats`, { params })
+
         return response.data.success ? response.data.stats : null
       } catch (error) {
         console.error('Failed to fetch usage stats:', error)
@@ -225,6 +236,7 @@ export const useUserStore = defineStore('user', {
         (error) => {
           if (error.response?.status === 403) {
             const message = error.response.data?.message
+
             if (message && (message.includes('disabled') || message.includes('Account disabled'))) {
               this.clearAuth()
               showToast(message, 'error')
@@ -234,6 +246,7 @@ export const useUserStore = defineStore('user', {
               }
             }
           }
+
           return Promise.reject(error)
         }
       )

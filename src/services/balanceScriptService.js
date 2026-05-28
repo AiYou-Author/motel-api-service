@@ -62,11 +62,13 @@ class BalanceScriptService {
   async execute(options = {}) {
     if (!isBalanceScriptEnabled()) {
       const error = new Error('余额脚本功能已禁用（可通过 BALANCE_SCRIPT_ENABLED=true 启用）')
+
       error.code = 'BALANCE_SCRIPT_DISABLED'
       throw error
     }
 
     const scriptBody = options.scriptBody?.trim()
+
     if (!scriptBody) {
       throw new Error('脚本内容为空')
     }
@@ -79,9 +81,11 @@ class BalanceScriptService {
     }
 
     let scriptResult
+
     try {
       const wrapped = scriptBody.startsWith('(') ? scriptBody : `(${scriptBody})`
       const script = new vm.Script(wrapped)
+
       scriptResult = script.runInNewContext(sandbox, { timeout: timeoutMs })
     } catch (error) {
       throw new Error(`脚本解析失败: ${error.message}`)
@@ -123,11 +127,13 @@ class BalanceScriptService {
     }
 
     let httpResponse
+
     try {
       httpResponse = await axios(axiosConfig)
     } catch (error) {
       const { response } = error || {}
       const { status, data } = response || {}
+
       throw new Error(
         `请求失败: ${status || ''} ${error.message}${data ? ` | ${JSON.stringify(data)}` : ''}`
       )
@@ -136,6 +142,7 @@ class BalanceScriptService {
     const responseData = httpResponse?.data
 
     let extracted = {}
+
     try {
       extracted = extractor(responseData) || {}
     } catch (error) {
@@ -143,6 +150,7 @@ class BalanceScriptService {
     }
 
     const mapped = this.mapExtractorResult(extracted, responseData)
+
     return {
       mapped,
       extracted,
@@ -158,6 +166,7 @@ class BalanceScriptService {
     if (typeof value === 'string') {
       return value.replace(/{{(\w+)}}/g, (_, key) => {
         const trimmed = key.trim()
+
         return variables[trimmed] !== undefined ? String(variables[trimmed]) : ''
       })
     }
@@ -166,11 +175,14 @@ class BalanceScriptService {
     }
     if (value && typeof value === 'object') {
       const result = {}
+
       Object.keys(value).forEach((k) => {
         result[k] = this.applyTemplates(value[k], variables)
       })
+
       return result
     }
+
     return value
   }
 

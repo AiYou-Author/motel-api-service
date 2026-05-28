@@ -58,10 +58,12 @@ function queueRateLimitUpdate(
       if (typeof totalCost === 'number' && totalCost > 0) {
         logger.api(`💰 Updated rate limit cost count${label}: +$${totalCost.toFixed(6)}`)
       }
+
       return { totalTokens, totalCost }
     })
     .catch((error) => {
       logger.error(`❌ Failed to update rate limit counters${label}:`, error)
+
       return { totalTokens: 0, totalCost: 0 }
     })
 }
@@ -115,6 +117,7 @@ function isOldSession(body) {
         return false
       }
       const text = item.text || ''
+
       // 剔除以 <system-reminder> 开头的
       return !text.trimStart().startsWith('<system-reminder>')
     })
@@ -188,6 +191,7 @@ async function handleMessagesRequest(req, res) {
       req.apiKey.restrictedModels.length > 0
     ) {
       const effectiveModel = getEffectiveModel(req.body.model || '')
+
       if (req.apiKey.restrictedModels.includes(effectiveModel)) {
         return res.status(403).json({
           error: {
@@ -214,6 +218,7 @@ async function handleMessagesRequest(req, res) {
     // /v1/messages 的扩展：按路径强制分流到 Gemini OAuth 账户（避免 model 前缀混乱）
     if (forcedVendor === 'gemini-cli' || forcedVendor === 'antigravity') {
       const baseModel = (req.body.model || '').trim()
+
       return await handleAnthropicMessagesToGemini(req, res, { vendor: forcedVendor, baseModel })
     }
 
@@ -244,6 +249,7 @@ async function handleMessagesRequest(req, res) {
         logger.warn(
           `⚠️ Client disconnected before stream response could start for key: ${req.apiKey?.name || 'unknown'}`
         )
+
         return undefined
       }
 
@@ -261,6 +267,7 @@ async function handleMessagesRequest(req, res) {
         // 当并发队列功能启用时，auth.js 会设置 Connection: close 来禁用 Keep-Alive
         // 这里只在没有设置过 Connection 头时才设置 keep-alive
         const existingConnection = res.getHeader('Connection')
+
         if (!existingConnection) {
           res.setHeader('Connection', 'keep-alive')
         } else {
@@ -309,6 +316,7 @@ async function handleMessagesRequest(req, res) {
               logger.api(
                 `❌ Session binding validation failed: ${validation.code} for session ${originalSessionId}`
               )
+
               return res.status(403).json({
                 error: {
                   type: 'session_binding_error',
@@ -342,6 +350,7 @@ async function handleMessagesRequest(req, res) {
       const requestedModel = req.body.model
       let accountId
       let accountType
+
       try {
         const selection = await unifiedClaudeScheduler.selectAccountForApiKey(
           req.apiKey,
@@ -349,11 +358,13 @@ async function handleMessagesRequest(req, res) {
           requestedModel,
           forcedAccount
         )
+
         ;({ accountId, accountType } = selection)
       } catch (error) {
         // 处理会话绑定账户不可用的错误
         if (error.code === 'SESSION_BINDING_ACCOUNT_UNAVAILABLE') {
           const errorMessage = await claudeRelayConfigService.getSessionBindingErrorMessage()
+
           return res.status(403).json({
             error: {
               type: 'session_binding_error',
@@ -365,6 +376,7 @@ async function handleMessagesRequest(req, res) {
           const limitMessage = claudeRelayService._buildStandardRateLimitMessage(
             error.rateLimitEndAt
           )
+
           res.status(403)
           res.setHeader('Content-Type', 'application/json')
           res.end(
@@ -373,6 +385,7 @@ async function handleMessagesRequest(req, res) {
               message: limitMessage
             })
           )
+
           return
         }
         throw error
@@ -481,6 +494,7 @@ async function handleMessagesRequest(req, res) {
                 _headers['anthropic-beta'] ||
                 _headers['Anthropic-Beta'] ||
                 _headers['ANTHROPIC-BETA']
+
               if (requestBetaHeader) {
                 usageObject.request_anthropic_beta = requestBetaHeader
               }
@@ -615,6 +629,7 @@ async function handleMessagesRequest(req, res) {
                 _headersConsole['anthropic-beta'] ||
                 _headersConsole['Anthropic-Beta'] ||
                 _headersConsole['ANTHROPIC-BETA']
+
               if (requestBetaHeader) {
                 usageObject.request_anthropic_beta = requestBetaHeader
               }
@@ -704,6 +719,7 @@ async function handleMessagesRequest(req, res) {
 
         try {
           const bedrockAccountResult = await bedrockAccountService.getAccount(accountId)
+
           if (!bedrockAccountResult.success) {
             throw new Error('Failed to get Bedrock account details')
           }
@@ -779,6 +795,7 @@ async function handleMessagesRequest(req, res) {
           logger.error('❌ Bedrock stream request failed:', error)
           if (!res.headersSent) {
             const statusCode = error.$metadata?.httpStatusCode || 500
+
             return res
               .status(statusCode)
               .json({ error: 'Bedrock service error', message: error.message })
@@ -787,6 +804,7 @@ async function handleMessagesRequest(req, res) {
           if (!res.writableEnded) {
             res.end()
           }
+
           return undefined
         }
       } else if (accountType === 'ccr') {
@@ -846,6 +864,7 @@ async function handleMessagesRequest(req, res) {
                 _headersCcr['anthropic-beta'] ||
                 _headersCcr['Anthropic-Beta'] ||
                 _headersCcr['ANTHROPIC-BETA']
+
               if (requestBetaHeader) {
                 usageObject.request_anthropic_beta = requestBetaHeader
               }
@@ -947,6 +966,7 @@ async function handleMessagesRequest(req, res) {
         logger.warn(
           `⚠️ Client disconnected before non-stream request could start for key: ${_apiKeyNameNonStream || 'unknown'}`
         )
+
         return undefined
       }
 
@@ -1021,6 +1041,7 @@ async function handleMessagesRequest(req, res) {
               logger.api(
                 `❌ Session binding validation failed (non-stream): ${validation.code} for session ${originalSessionId}`
               )
+
               return res.status(403).json({
                 error: {
                   type: 'session_binding_error',
@@ -1053,6 +1074,7 @@ async function handleMessagesRequest(req, res) {
       const requestedModel = req.body.model
       let accountId
       let accountType
+
       try {
         const selection = await unifiedClaudeScheduler.selectAccountForApiKey(
           req.apiKey,
@@ -1060,10 +1082,12 @@ async function handleMessagesRequest(req, res) {
           requestedModel,
           forcedAccountNonStream
         )
+
         ;({ accountId, accountType } = selection)
       } catch (error) {
         if (error.code === 'SESSION_BINDING_ACCOUNT_UNAVAILABLE') {
           const errorMessage = await claudeRelayConfigService.getSessionBindingErrorMessage()
+
           return res.status(403).json({
             error: {
               type: 'session_binding_error',
@@ -1075,6 +1099,7 @@ async function handleMessagesRequest(req, res) {
           const limitMessage = claudeRelayService._buildStandardRateLimitMessage(
             error.rateLimitEndAt
           )
+
           return res.status(403).json({
             error: 'upstream_rate_limited',
             message: limitMessage
@@ -1122,12 +1147,14 @@ async function handleMessagesRequest(req, res) {
           logger.api(
             `🔥 Warmup request intercepted (non-stream) for account: ${account.name} (${accountId})`
           )
+
           return res.json(buildMockWarmupResponse(_requestBodyNonStream.model))
         }
       }
 
       // 根据账号类型选择对应的转发服务
       let response
+
       logger.debug(`[DEBUG] Request query params: ${JSON.stringify(req.query)}`)
       logger.debug(`[DEBUG] Request URL: ${req.url}`)
       logger.debug(`[DEBUG] Request path: ${req.path}`)
@@ -1158,6 +1185,7 @@ async function handleMessagesRequest(req, res) {
         // Bedrock账号使用Bedrock转发服务
         try {
           const bedrockAccountResult = await bedrockAccountService.getAccount(accountId)
+
           if (!bedrockAccountResult.success) {
             throw new Error('Failed to get Bedrock account details')
           }
@@ -1179,12 +1207,14 @@ async function handleMessagesRequest(req, res) {
           // 如果成功，添加使用统计到响应数据中
           if (result.success && result.usage) {
             const responseData = JSON.parse(response.body)
+
             responseData.usage = result.usage
             response.body = JSON.stringify(responseData)
           }
         } catch (error) {
           logger.error('❌ Bedrock non-stream request failed:', error)
           const statusCode = error.$metadata?.httpStatusCode || 500
+
           response = {
             statusCode,
             headers: { 'Content-Type': 'application/json' },
@@ -1217,6 +1247,7 @@ async function handleMessagesRequest(req, res) {
         logger.warn(
           `⚠️ Client disconnected before non-stream response could be sent for key: ${req.apiKey?.name || 'unknown'}`
         )
+
         return undefined
       }
 
@@ -1224,6 +1255,7 @@ async function handleMessagesRequest(req, res) {
 
       // 设置响应头，避免 Content-Length 和 Transfer-Encoding 冲突
       const skipHeaders = ['content-encoding', 'transfer-encoding', 'content-length']
+
       Object.keys(response.headers).forEach((key) => {
         if (!skipHeaders.includes(key.toLowerCase())) {
           res.setHeader(key, response.headers[key])
@@ -1275,6 +1307,7 @@ async function handleMessagesRequest(req, res) {
             _headersNonStream['anthropic-beta'] ||
             _headersNonStream['Anthropic-Beta'] ||
             _headersNonStream['ANTHROPIC-BETA']
+
           if (requestBetaHeader) {
             usageObject.request_anthropic_beta = requestBetaHeader
           }
@@ -1352,7 +1385,9 @@ async function handleMessagesRequest(req, res) {
     }
 
     const duration = Date.now() - startTime
+
     logger.api(`✅ Request completed in ${duration}ms for key: ${req.apiKey.name}`)
+
     return undefined
   } catch (error) {
     let handledError = error
@@ -1372,6 +1407,7 @@ async function handleMessagesRequest(req, res) {
         try {
           // 清理粘性会话映射（如果存在）
           const sessionHash = sessionHelper.generateSessionHash(req.body)
+
           await unifiedClaudeScheduler.clearSessionMapping(sessionHash)
 
           logger.info('🔄 Session mapping cleared, retrying handleMessagesRequest...')
@@ -1382,6 +1418,7 @@ async function handleMessagesRequest(req, res) {
           // 重试失败
           if (retryError.code === 'CONSOLE_ACCOUNT_CONCURRENCY_FULL') {
             logger.error('❌ All Console accounts reached concurrency limit after retry')
+
             return res.status(503).json({
               error: 'service_unavailable',
               message:
@@ -1397,6 +1434,7 @@ async function handleMessagesRequest(req, res) {
         if (!res.destroyed && !res.finished) {
           res.end()
         }
+
         return undefined
       }
     }
@@ -1417,6 +1455,7 @@ async function handleMessagesRequest(req, res) {
         if (!res.destroyed && !res.finished) {
           res.end()
         }
+
         return undefined
       }
     }
@@ -1462,6 +1501,7 @@ async function handleMessagesRequest(req, res) {
       if (!res.destroyed && !res.finished) {
         res.end()
       }
+
       return undefined
     }
   }
@@ -1479,6 +1519,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
     // Claude Code / Anthropic baseUrl 的分流：/antigravity/api/v1/models 返回 Antigravity 实时模型列表
     //（通过 v1internal:fetchAvailableModels），避免依赖静态 modelService 列表。
     const forcedVendor = req._anthropicVendor || null
+
     if (forcedVendor === 'antigravity') {
       if (!apiKeyService.hasPermission(req.apiKey?.permissions, 'gemini')) {
         return res.status(403).json({
@@ -1493,6 +1534,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
       const geminiAccountService = require('../services/account/geminiAccountService')
 
       let accountSelection
+
       try {
         accountSelection = await unifiedGeminiScheduler.selectAccountForApiKey(
           req.apiKey,
@@ -1502,15 +1544,18 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
         )
       } catch (error) {
         logger.error('Failed to select Gemini OAuth account (antigravity models):', error)
+
         return res.status(503).json({ error: 'No available Gemini OAuth accounts' })
       }
 
       const account = await geminiAccountService.getAccount(accountSelection.accountId)
+
       if (!account) {
         return res.status(503).json({ error: 'Gemini OAuth account not found' })
       }
 
       let proxyConfig = null
+
       if (account.proxy) {
         try {
           proxyConfig =
@@ -1528,6 +1573,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
 
       // 可选：根据 API Key 的模型限制过滤（黑名单语义）
       let filteredModels = models
+
       if (req.apiKey.enableModelRestriction && req.apiKey.restrictedModels?.length > 0) {
         filteredModels = models.filter((model) => !req.apiKey.restrictedModels.includes(model.id))
       }
@@ -1542,6 +1588,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
 
     // 1) 根据 API Key 绑定的账号/分组解析可访问模型集合（claude-console 账号的 supportedModels）
     let allowedSet = null
+
     try {
       allowedSet = await modelService.resolveAllowedModelsForApiKey(req.apiKey)
     } catch (e) {
@@ -1549,12 +1596,14 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
     }
 
     let filteredModels = models
+
     if (allowedSet && allowedSet.size > 0) {
       // 仅保留账号声明支持的模型；若 modelService 没收录但账号支持，仍补回，保证 Claude Code 能看到
       const matched = models.filter((m) => allowedSet.has(m.id))
       const matchedIds = new Set(matched.map((m) => m.id))
       const now = Math.floor(Date.now() / 1000)
       const supplements = []
+
       for (const id of allowedSet) {
         if (matchedIds.has(id)) {
           continue
@@ -1588,6 +1637,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
           }
         }
       }
+
       return m
     })
 
@@ -1747,6 +1797,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
     logger.warn(
       `🚫 Session binding validation failed (count_tokens): ${sessionValidation.code} for session ${originalSessionId}`
     )
+
     return res.status(400).json({
       error: {
         type: 'session_binding_error',
@@ -1759,9 +1810,11 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
   if (sessionValidation.isNewSession && originalSessionId) {
     if (isOldSession(req.body)) {
       const cfg = await claudeRelayConfigService.getConfig()
+
       logger.warn(
         `🚫 Old session rejected (count_tokens): sessionId=${originalSessionId}, messages.length=${req.body?.messages?.length}, tools.length=${req.body?.tools?.length || 0}, isOldSession=true`
       )
+
       return res.status(400).json({
         error: {
           type: 'session_binding_error',
@@ -1812,10 +1865,12 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
     // 🔍 claude-console 账户特殊处理：检查 count_tokens 端点是否可用
     if (accountType === 'claude-console') {
       const isUnavailable = await claudeConsoleAccountService.isCountTokensUnavailable(accountId)
+
       if (isUnavailable) {
         logger.info(
           `⏭️ count_tokens unavailable for Claude Console account ${accountId}, returning fallback response`
         )
+
         return { fallbackResponse: true }
       }
     }
@@ -1859,12 +1914,14 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
           markError
         )
       }
+
       return { fallbackResponse: true }
     }
 
     res.status(response.statusCode)
 
     const skipHeaders = ['content-encoding', 'transfer-encoding', 'content-length']
+
     Object.keys(response.headers).forEach((key) => {
       if (!skipHeaders.includes(key.toLowerCase())) {
         res.setHeader(key, response.headers[key])
@@ -1873,8 +1930,10 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
 
     try {
       const jsonData = JSON.parse(response.body)
+
       if (response.statusCode < 200 || response.statusCode >= 300) {
         const sanitizedData = sanitizeUpstreamError(jsonData)
+
         res.json(sanitizedData)
       } else {
         res.json(jsonData)
@@ -1884,6 +1943,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
     }
 
     logger.info(`✅ Token count request completed for key: ${req.apiKey.name}`)
+
     return { fallbackResponse: false }
   }
 
@@ -1896,6 +1956,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
         if (!res.headersSent) {
           return res.status(200).json({ input_tokens: 0 })
         }
+
         return
       }
 
@@ -1921,6 +1982,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
             if (!res.destroyed && !res.finished) {
               res.end()
             }
+
             return
           }
           attempt += 1
@@ -1936,6 +1998,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
         if (!res.destroyed && !res.finished) {
           res.end()
         }
+
         return
       }
 
@@ -1952,6 +2015,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
         if (!res.destroyed && !res.finished) {
           res.end()
         }
+
         return
       }
 
@@ -1968,6 +2032,7 @@ router.post('/v1/messages/count_tokens', authenticateApiKey, async (req, res) =>
       if (!res.destroyed && !res.finished) {
         res.end()
       }
+
       return
     }
   }

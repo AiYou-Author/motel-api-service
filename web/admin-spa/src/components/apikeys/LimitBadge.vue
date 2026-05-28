@@ -46,6 +46,7 @@ const props = defineProps({
 const progress = computed(() => {
   if (!props.limit || props.limit === 0) return 0
   const percentage = (props.current / props.limit) * 100
+
   return Math.min(percentage, 100)
 })
 
@@ -77,6 +78,7 @@ const iconClass = computed(() => {
 
 const progressClass = computed(() => {
   const p = progress.value
+
   if (p >= 100) return 'bg-red-500'
   if (p >= 80) return 'bg-yellow-500'
 

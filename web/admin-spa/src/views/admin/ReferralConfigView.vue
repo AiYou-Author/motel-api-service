@@ -14,12 +14,12 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">开启后用户可以使用推广功能，获得返佣奖励</p>
           </div>
           <button
-            @click="config.enabled = !config.enabled"
             :class="[
               'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
               config.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
             ]"
             type="button"
+            @click="config.enabled = !config.enabled"
           >
             <span
               :class="[
@@ -96,9 +96,9 @@
         <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
-            @click="saveConfig"
             :disabled="saving"
             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-500 dark:hover:bg-blue-600"
+            @click="saveConfig"
           >
             {{ saving ? '保存中…' : '保存配置' }}
           </button>
@@ -124,6 +124,7 @@ const saving = ref(false)
 const loadConfig = async () => {
   try {
     const data = await getReferralConfigApi()
+
     config.value = {
       enabled: data.enabled || false,
       globalRate: data.globalRate * 100 || 10,
@@ -139,6 +140,7 @@ const loadConfig = async () => {
 const loadPlans = async () => {
   try {
     const data = await getPlansApi(false) // 包含禁用套餐
+
     plans.value = data
   } catch (error) {
     showToast('加载套餐列表失败', 'error')
@@ -155,6 +157,7 @@ const saveConfig = async () => {
         Object.entries(config.value.planRates).map(([id, rate]) => [id, rate ? rate / 100 : undefined])
       )
     }
+
     await updateReferralConfigApi(saveData)
     showToast('配置保存成功', 'success')
   } catch (error) {

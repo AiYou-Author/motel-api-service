@@ -122,6 +122,7 @@ const props = defineProps({
 const costProgress = computed(() => {
   if (!props.costLimit || props.costLimit === 0) return 0
   const percentage = (props.currentCost / props.costLimit) * 100
+
   return Math.min(percentage, 100)
 })
 
@@ -129,6 +130,7 @@ const costProgress = computed(() => {
 const requestProgress = computed(() => {
   if (!props.requestLimit || props.requestLimit === 0) return 0
   const percentage = (props.currentRequests / props.requestLimit) * 100
+
   return Math.min(percentage, 100)
 })
 
@@ -137,12 +139,14 @@ const timeProgress = computed(() => {
   if (!props.rateLimitWindow || props.rateLimitWindow === 0) return 0
   const totalSeconds = props.rateLimitWindow * 60
   const elapsed = totalSeconds - props.remainingSeconds
+
   return Math.max(0, (elapsed / totalSeconds) * 100)
 })
 
 // 费用进度条颜色
 const getCostProgressBarClass = () => {
   const p = costProgress.value
+
   if (p >= 90) {
     return 'bg-gradient-to-r from-red-500 to-rose-600'
   } else if (p >= 70) {
@@ -155,6 +159,7 @@ const getCostProgressBarClass = () => {
 // 请求进度条颜色
 const getRequestProgressBarClass = () => {
   const p = requestProgress.value
+
   if (p >= 90) {
     return 'bg-gradient-to-r from-red-500 to-pink-600'
   } else if (p >= 70) {
@@ -167,6 +172,7 @@ const getRequestProgressBarClass = () => {
 // 费用文字颜色
 const getCostTextClass = () => {
   const p = costProgress.value
+
   if (p > 50) {
     return 'text-white drop-shadow-sm'
   } else {
@@ -176,6 +182,7 @@ const getCostTextClass = () => {
 
 const getCostValueTextClass = () => {
   const p = costProgress.value
+
   if (p > 50) {
     return 'text-white drop-shadow-md'
   } else {
@@ -186,6 +193,7 @@ const getCostValueTextClass = () => {
 // 请求文字颜色
 const getRequestTextClass = () => {
   const p = requestProgress.value
+
   if (p > 50) {
     return 'text-white drop-shadow-sm'
   } else {
@@ -195,6 +203,7 @@ const getRequestTextClass = () => {
 
 const getRequestValueTextClass = () => {
   const p = requestProgress.value
+
   if (p > 50) {
     return 'text-white drop-shadow-md'
   } else {

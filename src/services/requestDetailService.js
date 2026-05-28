@@ -61,14 +61,17 @@ const accountServices = {
 
 function clampRetentionHours(value) {
   const parsed = Number.parseInt(value, 10)
+
   if (!Number.isFinite(parsed)) {
     return DEFAULT_RETENTION_HOURS
   }
+
   return Math.min(Math.max(parsed, 1), MAX_RETENTION_HOURS)
 }
 
 function normalizeNumber(value, digits = null) {
   const num = Number(value)
+
   if (!Number.isFinite(num)) {
     return 0
   }
@@ -143,6 +146,7 @@ function buildCostBreakdownFromResult(costResult) {
 function createCostRecomputePatch(record = {}) {
   const storedCost = normalizeNumber(record.cost, 6)
   const storedRealCost = normalizeNumber(record.realCost, 6)
+
   if (storedCost > 0 || storedRealCost > 0) {
     return null
   }
@@ -153,6 +157,7 @@ function createCostRecomputePatch(record = {}) {
     usage.output_tokens +
     usage.cache_creation_input_tokens +
     usage.cache_read_input_tokens
+
   if (totalTokens <= 0) {
     return null
   }
@@ -160,6 +165,7 @@ function createCostRecomputePatch(record = {}) {
   try {
     const costResult = CostCalculator.calculateCost(usage, record.model || 'unknown')
     const totalCost = normalizeNumber(costResult?.costs?.total ?? costResult?.totalCost ?? 0, 6)
+
     if (totalCost <= 0) {
       return null
     }
@@ -180,12 +186,14 @@ function createCostRecomputePatch(record = {}) {
     }
   } catch (error) {
     logger.debug(`⚠️ Failed to recompute request detail cost: ${error.message}`)
+
     return null
   }
 }
 
 function prepareRecordForDisplay(record = {}) {
   const costPatch = createCostRecomputePatch(record)
+
   if (!costPatch) {
     return record
   }
@@ -223,6 +231,7 @@ function toIsoString(value) {
   }
 
   const date = value instanceof Date ? value : new Date(value)
+
   if (Number.isNaN(date.getTime())) {
     return null
   }
@@ -236,6 +245,7 @@ function toMillis(value) {
   }
 
   const date = value instanceof Date ? value : new Date(value)
+
   if (Number.isNaN(date.getTime())) {
     return null
   }
@@ -252,6 +262,7 @@ function safeJsonParse(value, label = 'request detail record') {
     return JSON.parse(value)
   } catch (error) {
     logger.warn(`⚠️ Failed to parse ${label}: ${error.message}`)
+
     return null
   }
 }
@@ -270,6 +281,7 @@ function normalizeOptionalFilterValue(value) {
   }
 
   const normalized = String(value).trim()
+
   return normalized ? normalized : null
 }
 
@@ -283,9 +295,11 @@ function createRequestDetailDateBoundarySignature(type, rawValue, effectiveValue
 
   const rawDate = rawValue instanceof Date ? rawValue : new Date(rawValue)
   const effectiveIso = toIsoString(effectiveValue)
+
   if (type === 'start') {
     const floorDate =
       boundaryValue instanceof Date ? boundaryValue : new Date(boundaryValue || Date.now())
+
     if (rawDate.getTime() <= floorDate.getTime()) {
       return {
         mode: 'retention_floor',
@@ -297,6 +311,7 @@ function createRequestDetailDateBoundarySignature(type, rawValue, effectiveValue
   if (type === 'end') {
     const ceilingDate =
       boundaryValue instanceof Date ? boundaryValue : new Date(boundaryValue || Date.now())
+
     if (rawDate.getTime() >= ceilingDate.getTime()) {
       return {
         mode: 'now_cap',
@@ -321,6 +336,7 @@ function normalizeRequestDetailDateBoundarySignature(boundary = {}, legacyValue 
 
   const allowedModes = new Set(['absent', 'fixed', 'retention_floor', 'now_cap'])
   const mode = allowedModes.has(boundary.mode) ? boundary.mode : legacyValue ? 'fixed' : 'absent'
+
   return {
     mode,
     value: toIsoString(boundary.value)
@@ -351,6 +367,7 @@ function requestDetailDateBoundarySignaturesMatch(snapshotBoundary, currentBound
     if (snapshotBoundary.mode === 'fixed') {
       return snapshotBoundary.value === currentBoundary.value
     }
+
     return true
   }
 
@@ -490,6 +507,7 @@ function updateAvailableFilterAccumulator(accumulator, record) {
   }
 
   const ts = toMillis(record.timestamp)
+
   if (ts !== null) {
     if (accumulator.earliest === null || ts < accumulator.earliest) {
       accumulator.earliest = ts
@@ -526,6 +544,7 @@ function updateAvailableFilterAccumulatorRaw(accumulator, record) {
   }
 
   const ts = toMillis(record.timestamp)
+
   if (ts !== null) {
     if (accumulator.earliest === null || ts < accumulator.earliest) {
       accumulator.earliest = ts
@@ -546,6 +565,7 @@ function restoreRecordTimestamp(record, fallbackTimestampMs) {
   }
 
   const timestampMs = Number(fallbackTimestampMs)
+
   if (Number.isFinite(timestampMs)) {
     record.timestamp = new Date(timestampMs).toISOString()
   }
@@ -634,6 +654,7 @@ function finalizeSummary(accumulator) {
 class RequestDetailService {
   async getSettings() {
     const config = await claudeRelayConfigService.getConfig()
+
     return {
       captureEnabled: config.requestDetailCaptureEnabled === true,
       retentionHours: clampRetentionHours(config.requestDetailRetentionHours),
@@ -749,11 +770,13 @@ class RequestDetailService {
   async captureRequestDetail(detail = {}) {
     try {
       const settings = await this.getSettings()
+
       if (!settings.captureEnabled) {
         return { captured: false, reason: 'disabled' }
       }
 
       const client = redis.getClient()
+
       if (!client) {
         return { captured: false, reason: 'redis_unavailable' }
       }
@@ -778,12 +801,14 @@ class RequestDetailService {
       return { captured: true, requestId }
     } catch (error) {
       logger.warn(`⚠️ Failed to capture request detail: ${error.message}`)
+
       return { captured: false, reason: 'error', message: error.message }
     }
   }
 
   async _loadRequestPointersInRange(startDate, endDate) {
     const client = redis.getClient()
+
     if (!client) {
       return []
     }
@@ -796,10 +821,12 @@ class RequestDetailService {
     for (const dayKey of dayKeys) {
       try {
         const entries = await client.zrangebyscore(dayKey, startMs, endMs, 'WITHSCORES')
+
         if (Array.isArray(entries) && entries.length > 0) {
           for (let index = 0; index < entries.length; index += 2) {
             const requestId = entries[index]
             const timestampMs = Number(entries[index + 1])
+
             if (requestId && Number.isFinite(timestampMs)) {
               requestIds.push({ requestId, timestampMs })
             }
@@ -811,6 +838,7 @@ class RequestDetailService {
     }
 
     const uniqueRequestIds = new Map()
+
     for (const item of requestIds) {
       uniqueRequestIds.set(item.requestId, item.timestampMs)
     }
@@ -823,11 +851,13 @@ class RequestDetailService {
 
   async _scanRequestDetailItemKeys(visitor) {
     const client = redis.getClient()
+
     if (!client) {
       return
     }
 
     let cursor = '0'
+
     do {
       const [nextCursor, keys] = await client.scan(
         cursor,
@@ -836,6 +866,7 @@ class RequestDetailService {
         'COUNT',
         REQUEST_DETAIL_SCAN_BATCH_SIZE
       )
+
       cursor = nextCursor
       if (Array.isArray(keys) && keys.length > 0) {
         await visitor(keys, client)
@@ -849,8 +880,10 @@ class RequestDetailService {
 
     await this._scanRequestDetailItemKeys(async (keys, client) => {
       const rawItems = await client.mget(keys)
+
       for (const rawItem of rawItems) {
         const parsed = safeJsonParse(rawItem)
+
         if (
           parsed &&
           Object.prototype.hasOwnProperty.call(parsed, 'requestBodySnapshot') &&
@@ -880,6 +913,7 @@ class RequestDetailService {
 
       rawItems.forEach((rawItem, index) => {
         const parsed = safeJsonParse(rawItem)
+
         if (
           !parsed ||
           !Object.prototype.hasOwnProperty.call(parsed, 'requestBodySnapshot') ||
@@ -916,11 +950,14 @@ class RequestDetailService {
     try {
       const keyData = await redis.getApiKey(keyId)
       const keyName = keyData?.name || keyData?.label || keyId
+
       cache.set(keyId, keyName)
+
       return keyName
     } catch (error) {
       logger.debug(`⚠️ Failed to resolve API key ${keyId}: ${error.message}`)
       cache.set(keyId, keyId)
+
       return keyId
     }
   }
@@ -932,6 +969,7 @@ class RequestDetailService {
 
     const normalizedType = accountType || 'unknown'
     const cacheKey = `${normalizedType}:${accountId}`
+
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey)
     }
@@ -947,6 +985,7 @@ class RequestDetailService {
     for (const [type, service] of servicesToTry) {
       try {
         let account = await service.getAccount(accountId)
+
         if (account && typeof account === 'object' && 'success' in account) {
           account = account.success ? account.data : null
         }
@@ -957,7 +996,9 @@ class RequestDetailService {
             accountType: type,
             accountTypeName: accountTypeNames[type] || accountTypeNames.unknown
           }
+
           cache.set(cacheKey, info)
+
           return info
         }
       } catch (error) {
@@ -971,7 +1012,9 @@ class RequestDetailService {
       accountType: normalizedType,
       accountTypeName: accountTypeNames[normalizedType] || accountTypeNames.unknown
     }
+
     cache.set(cacheKey, fallback)
+
     return fallback
   }
 
@@ -981,6 +1024,7 @@ class RequestDetailService {
 
     for (const [keyId, entry] of accumulator.apiKeyMap) {
       const name = await this._getApiKeyName(keyId, apiKeyCache)
+
       if (name) {
         entry.name = name
       }
@@ -988,6 +1032,7 @@ class RequestDetailService {
 
     for (const [accountId, entry] of accumulator.accountMap) {
       const accountInfo = await this._resolveAccountInfo(accountId, entry.accountType, accountCache)
+
       if (accountInfo) {
         entry.name = accountInfo.accountName
         entry.accountTypeName = accountInfo.accountTypeName
@@ -1001,6 +1046,7 @@ class RequestDetailService {
     }
 
     const dayKeys = listDayKeys(startDate, endDate)
+
     if (dayKeys.length === 0) {
       return null
     }
@@ -1010,14 +1056,17 @@ class RequestDetailService {
 
     if (typeof client.pipeline === 'function') {
       const pipeline = client.pipeline()
+
       dayKeys.forEach((dayKey) => {
         pipeline.zscore(dayKey, requestId)
       })
 
       const results = await pipeline.exec()
+
       if (Array.isArray(results)) {
         for (let index = 0; index < results.length; index += 1) {
           const [error, score] = results[index] || []
+
           if (error) {
             logger.debug(
               `⚠️ Failed to resolve request detail timestamp from ${dayKeys[index]}: ${error.message}`
@@ -1026,6 +1075,7 @@ class RequestDetailService {
           }
 
           const timestampMs = Number(score)
+
           if (Number.isFinite(timestampMs) && timestampMs >= startMs && timestampMs <= endMs) {
             return timestampMs
           }
@@ -1043,6 +1093,7 @@ class RequestDetailService {
       try {
         const score = await client.zscore(dayKey, requestId)
         const timestampMs = Number(score)
+
         if (Number.isFinite(timestampMs) && timestampMs >= startMs && timestampMs <= endMs) {
           return timestampMs
         }
@@ -1100,6 +1151,7 @@ class RequestDetailService {
     }
 
     const normalizedKeyword = String(keyword).trim().toLowerCase()
+
     if (!normalizedKeyword) {
       return true
     }
@@ -1185,6 +1237,7 @@ class RequestDetailService {
     rawItems.forEach((rawItem, index) => {
       const pointer = pointerBatch[index]
       const record = this._hydrateRawRecord(rawItem, pointer)
+
       if (record) {
         records.push({ record, pointer })
       }
@@ -1195,6 +1248,7 @@ class RequestDetailService {
 
   async _loadRecordsForPointers(pointers = [], client = redis.getClient()) {
     const recordItems = await this._loadPointerBatchRecords(pointers, client)
+
     return recordItems.map(({ record }) => record)
   }
 
@@ -1229,6 +1283,7 @@ class RequestDetailService {
 
   async _buildListQueryData(filters, effectiveStart, effectiveEnd, sortOrder) {
     const requestPointers = await this._loadRequestPointersInRange(effectiveStart, effectiveEnd)
+
     if (requestPointers.length === 0) {
       return {
         hasSourceRecords: false,
@@ -1315,6 +1370,7 @@ class RequestDetailService {
           }
 
           const displayRecord = prepareRecordForDisplay(record)
+
           updateSummaryAccumulator(summaryAccumulator, displayRecord)
 
           matchedPointers.push({
@@ -1341,14 +1397,17 @@ class RequestDetailService {
     }
 
     let rawSnapshot
+
     try {
       rawSnapshot = await client.get(`${REQUEST_DETAIL_QUERY_SNAPSHOT_PREFIX}${snapshotId}`)
     } catch (error) {
       logger.warn(`⚠️ Failed to read request detail query snapshot: ${error.message}`)
+
       return null
     }
 
     const parsedSnapshot = safeJsonParse(rawSnapshot, 'request detail query snapshot')
+
     if (
       !parsedSnapshot ||
       !requestDetailFilterSignaturesMatch(parsedSnapshot.filterSignature, filterSignature)
@@ -1387,6 +1446,7 @@ class RequestDetailService {
 
   async _storeQuerySnapshot(filterSignature, queryData, responseFilters, sortOrder) {
     const client = redis.getClient()
+
     if (!client || typeof client.set !== 'function') {
       return null
     }
@@ -1406,11 +1466,13 @@ class RequestDetailService {
     }
 
     const serializedSnapshot = JSON.stringify(snapshotPayload)
+
     if (Buffer.byteLength(serializedSnapshot, 'utf8') > MAX_REQUEST_DETAIL_SNAPSHOT_BYTES) {
       return null
     }
 
     const snapshotId = makeRequestDetailQuerySnapshotId()
+
     try {
       await client.set(
         `${REQUEST_DETAIL_QUERY_SNAPSHOT_PREFIX}${snapshotId}`,
@@ -1420,6 +1482,7 @@ class RequestDetailService {
       )
     } catch (error) {
       logger.warn(`⚠️ Failed to store request detail query snapshot: ${error.message}`)
+
       return null
     }
 
@@ -1515,6 +1578,7 @@ class RequestDetailService {
     )
 
     const snapshot = await this._loadQuerySnapshot(filters.snapshotId, filterSignature)
+
     if (snapshot) {
       return this._buildListResponse({
         settings,
@@ -1534,6 +1598,7 @@ class RequestDetailService {
       effectiveEnd,
       sortOrder
     )
+
     if (!queryData.hasSourceRecords) {
       return {
         ...emptyResult,
@@ -1567,6 +1632,7 @@ class RequestDetailService {
   async getRequestDetail(requestId) {
     const settings = await this.getSettings()
     const client = redis.getClient()
+
     if (!client) {
       return {
         captureEnabled: settings.captureEnabled,
@@ -1578,6 +1644,7 @@ class RequestDetailService {
 
     const raw = await client.get(`${REQUEST_DETAIL_ITEM_PREFIX}${requestId}`)
     const parsed = safeJsonParse(raw)
+
     if (!parsed) {
       return {
         captureEnabled: settings.captureEnabled,
@@ -1590,6 +1657,7 @@ class RequestDetailService {
     const now = new Date()
     const retentionStart = new Date(now.getTime() - settings.retentionHours * 3600 * 1000)
     let recordMs = toMillis(parsed.timestamp)
+
     if (recordMs === null) {
       recordMs = await this._findRequestTimestampInRange(requestId, retentionStart, now, client)
       if (recordMs === null) {
@@ -1614,6 +1682,7 @@ class RequestDetailService {
     }
 
     const [enrichedRecord] = await this._enrichRecords([parsed])
+
     return {
       captureEnabled: settings.captureEnabled,
       retentionHours: settings.retentionHours,

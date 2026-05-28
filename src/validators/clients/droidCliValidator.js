@@ -30,6 +30,7 @@ class DroidCliValidator {
 
       if (!uaMatch && !hasFactoryClientHeader) {
         logger.debug(`Droid CLI validation failed - UA mismatch: ${userAgent}`)
+
         return false
       }
 
@@ -37,9 +38,11 @@ class DroidCliValidator {
       logger.debug(
         `Droid CLI validation passed (UA: ${userAgent || 'N/A'}, header: ${factoryClientHeader || 'N/A'})`
       )
+
       return true
     } catch (error) {
       logger.error('Error in DroidCliValidator:', error)
+
       return false
     }
   }

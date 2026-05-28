@@ -35,6 +35,7 @@ function isProAccount(info) {
   if (info.hasClaudePro === true && info.hasClaudeMax !== true) {
     return true
   }
+
   // Local configured account type
   return info.accountType === 'claude_pro'
 }
@@ -218,6 +219,7 @@ class ClaudeAccountService {
       if (hasProfileScope) {
         try {
           const agent = this._createProxyAgent(proxy)
+
           await this.fetchAndUpdateAccountProfile(accountId, claudeAiOauth.accessToken, agent)
           logger.info(`📊 Successfully fetched profile info for new account: ${name}`)
         } catch (profileError) {
@@ -290,8 +292,10 @@ class ClaudeAccountService {
 
         // 重新获取账户数据（可能已被其他进程刷新）
         const updatedData = await redis.getClaudeAccount(accountId)
+
         if (updatedData && updatedData.accessToken) {
           const accessToken = this._decryptSensitiveData(updatedData.accessToken)
+
           return {
             success: true,
             accessToken,
@@ -365,6 +369,7 @@ class ClaudeAccountService {
             features: response.data.features,
             limits: response.data.limits
           }
+
           logger.info('🎯 Found subscription info in refresh response:', subscriptionInfo)
 
           // 将套餐信息存储在账户数据中
@@ -420,6 +425,7 @@ class ClaudeAccountService {
     } catch (error) {
       // 记录刷新失败
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (accountData) {
         logRefreshError(accountId, accountData.name, 'claude', error)
 
@@ -445,6 +451,7 @@ class ClaudeAccountService {
         // 发送Webhook通知
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: accountData.name,
@@ -481,6 +488,7 @@ class ClaudeAccountService {
       return accountData
     } catch (error) {
       logger.error('❌ Failed to get Claude account:', error)
+
       return null
     }
   }
@@ -510,13 +518,16 @@ class ClaudeAccountService {
         logger.info(`🔄 Token expired/expiring for account ${accountId}, attempting refresh...`)
         try {
           const refreshResult = await this.refreshAccountToken(accountId)
+
           return refreshResult.accessToken
         } catch (refreshError) {
           logger.warn(`⚠️ Token refresh failed for account ${accountId}: ${refreshError.message}`)
           // 如果刷新失败，仍然尝试使用当前token（可能是手动添加的长期有效token）
           const currentToken = this._decryptSensitiveData(accountData.accessToken)
+
           if (currentToken) {
             logger.info(`🔄 Using current token for account ${accountId} (refresh failed)`)
+
             return currentToken
           }
           throw refreshError
@@ -717,6 +728,7 @@ class ClaudeAccountService {
       }
     } catch (error) {
       logger.error(`❌ Failed to build Claude account overview for ${accountId}:`, error)
+
       return null
     }
   }
@@ -777,6 +789,7 @@ class ClaudeAccountService {
             field === 'tempUnavailable5xxTtlSeconds'
           ) {
             const normalizedTtl = normalizeOptionalNonNegativeInteger(value)
+
             updatedData[field] = normalizedTtl !== null ? normalizedTtl.toString() : ''
           } else if (field === 'subscriptionInfo') {
             // 处理订阅信息更新
@@ -786,6 +799,7 @@ class ClaudeAccountService {
             updatedData[field] = value ? value.toString() : ''
           } else if (field === 'extInfo') {
             const normalized = this._normalizeExtInfo(value, updates.claudeAiOauth)
+
             updatedData.extInfo = normalized ? JSON.stringify(normalized) : ''
             extInfoProvided = true
           } else if (field === 'claudeAiOauth') {
@@ -802,6 +816,7 @@ class ClaudeAccountService {
 
               if (!extInfoProvided) {
                 const normalized = this._normalizeExtInfo(value.extInfo, value)
+
                 if (normalized) {
                   updatedData.extInfo = JSON.stringify(normalized)
                 }
@@ -816,6 +831,7 @@ class ClaudeAccountService {
       // 如果新增了 refresh token（之前没有，现在有了），更新过期时间为10分钟
       if (updates.refreshToken && !oldRefreshToken && updates.refreshToken.trim()) {
         const newExpiresAt = Date.now() + 10 * 60 * 1000 // 10分钟
+
         updatedData.expiresAt = newExpiresAt.toString()
         logger.info(
           `🔄 New refresh token added for account ${accountId}, setting expiry to 10 minutes`
@@ -831,6 +847,7 @@ class ClaudeAccountService {
 
         if (providedExpiry - now > oneHour) {
           const newExpiresAt = now + 10 * 60 * 1000 // 10分钟
+
           updatedData.expiresAt = newExpiresAt.toString()
           logger.info(
             `🔄 Adjusted expiry time to 10 minutes for account ${accountId} with refresh token`
@@ -866,6 +883,7 @@ class ClaudeAccountService {
       if (updates.isActive === 'false' && accountData.isActive === 'true') {
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: updatedData.name || 'Unknown Account',
@@ -893,6 +911,7 @@ class ClaudeAccountService {
           'autoStoppedAt',
           'stoppedReason'
         ]
+
         await this._removeAccountFields(accountId, fieldsToRemove, 'manual_schedule_update')
       }
 
@@ -910,6 +929,7 @@ class ClaudeAccountService {
     try {
       // 首先从所有分组中移除此账户
       const accountGroupService = require('../accountGroupService')
+
       await accountGroupService.removeAccountFromAllGroups(accountId)
 
       const result = await redis.deleteClaudeAccount(accountId)
@@ -944,6 +964,7 @@ class ClaudeAccountService {
       logger.debug(
         `⏰ Account ${account.name} (${account.id}) expired at ${account.subscriptionExpiresAt}`
       )
+
       return true
     }
 
@@ -989,12 +1010,14 @@ class ClaudeAccountService {
               return true
             }
           }
+
           // Account without subscription info, default to supported (legacy data compatibility)
           return true
         })
 
         if (activeAccounts.length === 0) {
           const modelDesc = isNewOpus ? 'Opus 4.5+' : 'legacy Opus (requires Max subscription)'
+
           throw new Error(`No Claude accounts available that support ${modelDesc} model`)
         }
       }
@@ -1006,15 +1029,18 @@ class ClaudeAccountService {
       // 如果有会话哈希，检查是否有已映射的账户
       if (sessionHash) {
         const mappedAccountId = await redis.getSessionAccountMapping(sessionHash)
+
         if (mappedAccountId) {
           // 验证映射的账户是否仍然可用
           const mappedAccount = activeAccounts.find((acc) => acc.id === mappedAccountId)
+
           if (mappedAccount) {
             // 🚀 智能会话续期：剩余时间少于14天时自动续期到15天
             await redis.extendSessionAccountMappingTTL(sessionHash)
             logger.info(
               `🎯 Using sticky session account: ${mappedAccount.name} (${mappedAccountId}) for session ${sessionHash}`
             )
+
             return mappedAccountId
           } else {
             logger.warn(
@@ -1031,6 +1057,7 @@ class ClaudeAccountService {
       const sortedAccounts = activeAccounts.sort((a, b) => {
         const aLastUsed = new Date(a.lastUsedAt || 0).getTime()
         const bLastUsed = new Date(b.lastUsedAt || 0).getTime()
+
         return aLastUsed - bLastUsed // 最久未使用的优先
       })
 
@@ -1040,6 +1067,7 @@ class ClaudeAccountService {
       if (sessionHash) {
         // 从配置获取TTL（小时），转换为秒
         const ttlSeconds = (config.session?.stickyTtlHours || 1) * 60 * 60
+
         await redis.setSessionAccountMapping(sessionHash, selectedAccountId, ttlSeconds)
         logger.info(
           `🎯 Created new sticky session mapping: ${sortedAccounts[0].name} (${selectedAccountId}) for session ${sessionHash}`
@@ -1059,6 +1087,7 @@ class ClaudeAccountService {
       // 如果API Key绑定了专属账户，优先使用
       if (apiKeyData.claudeAccountId) {
         const boundAccount = await redis.getClaudeAccount(apiKeyData.claudeAccountId)
+
         if (
           boundAccount &&
           boundAccount.isActive === 'true' &&
@@ -1069,6 +1098,7 @@ class ClaudeAccountService {
           logger.info(
             `🎯 Using bound dedicated account: ${boundAccount.name} (${apiKeyData.claudeAccountId}) for API key ${apiKeyData.name}`
           )
+
           return apiKeyData.claudeAccountId
         } else {
           logger.warn(
@@ -1115,12 +1145,14 @@ class ClaudeAccountService {
               return true
             }
           }
+
           // Account without subscription info, default to supported (legacy data compatibility)
           return true
         })
 
         if (sharedAccounts.length === 0) {
           const modelDesc = isNewOpus ? 'Opus 4.5+' : 'legacy Opus (requires Max subscription)'
+
           throw new Error(`No shared Claude accounts available that support ${modelDesc} model`)
         }
       }
@@ -1132,12 +1164,15 @@ class ClaudeAccountService {
       // 如果有会话哈希，检查是否有已映射的账户
       if (sessionHash) {
         const mappedAccountId = await redis.getSessionAccountMapping(sessionHash)
+
         if (mappedAccountId) {
           // 验证映射的账户是否仍然在共享池中且可用
           const mappedAccount = sharedAccounts.find((acc) => acc.id === mappedAccountId)
+
           if (mappedAccount) {
             // 如果映射的账户被限流了，删除映射并重新选择
             const isRateLimited = await this.isAccountRateLimited(mappedAccountId)
+
             if (isRateLimited) {
               logger.warn(
                 `⚠️ Mapped account ${mappedAccountId} is rate limited, selecting new account`
@@ -1149,6 +1184,7 @@ class ClaudeAccountService {
               logger.info(
                 `🎯 Using sticky session shared account: ${mappedAccount.name} (${mappedAccountId}) for session ${sessionHash}`
               )
+
               return mappedAccountId
             }
           } else {
@@ -1167,8 +1203,10 @@ class ClaudeAccountService {
 
       for (const account of sharedAccounts) {
         const isRateLimited = await this.isAccountRateLimited(account.id)
+
         if (isRateLimited) {
           const rateLimitInfo = await this.getAccountRateLimitInfo(account.id)
+
           account._rateLimitInfo = rateLimitInfo // 临时存储限流信息
           rateLimitedAccounts.push(account)
         } else {
@@ -1185,6 +1223,7 @@ class ClaudeAccountService {
         candidateAccounts = rateLimitedAccounts.sort((a, b) => {
           const aRateLimitedAt = new Date(a._rateLimitInfo.rateLimitedAt).getTime()
           const bRateLimitedAt = new Date(b._rateLimitInfo.rateLimitedAt).getTime()
+
           return aRateLimitedAt - bRateLimitedAt // 最早限流的优先
         })
       } else {
@@ -1192,6 +1231,7 @@ class ClaudeAccountService {
         candidateAccounts = candidateAccounts.sort((a, b) => {
           const aLastUsed = new Date(a.lastUsedAt || 0).getTime()
           const bLastUsed = new Date(b.lastUsedAt || 0).getTime()
+
           return aLastUsed - bLastUsed // 最久未使用的优先
         })
       }
@@ -1206,6 +1246,7 @@ class ClaudeAccountService {
       if (sessionHash) {
         // 从配置获取TTL（小时），转换为秒
         const ttlSeconds = (config.session?.stickyTtlHours || 1) * 60 * 60
+
         await redis.setSessionAccountMapping(sessionHash, selectedAccountId, ttlSeconds)
         logger.info(
           `🎯 Created new sticky session mapping for shared account: ${candidateAccounts[0].name} (${selectedAccountId}) for session ${sessionHash}`
@@ -1215,6 +1256,7 @@ class ClaudeAccountService {
       logger.info(
         `🎯 Selected shared account: ${candidateAccounts[0].name} (${selectedAccountId}) for API key ${apiKeyData.name}`
       )
+
       return selectedAccountId
     } catch (error) {
       logger.error('❌ Failed to select account for API key:', error)
@@ -1225,6 +1267,7 @@ class ClaudeAccountService {
   // 🌐 创建代理agent（使用统一的代理工具）
   _createProxyAgent(proxyConfig) {
     const proxyAgent = ProxyHelper.createProxyAgent(proxyConfig)
+
     if (proxyAgent) {
       logger.info(
         `🌐 Using proxy for Claude request: ${ProxyHelper.getProxyDescription(proxyConfig)}`
@@ -1234,6 +1277,7 @@ class ClaudeAccountService {
     } else {
       logger.debug('🌐 No proxy configured for Claude request')
     }
+
     return proxyAgent
   }
 
@@ -1249,12 +1293,14 @@ class ClaudeAccountService {
 
       const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
       let encrypted = cipher.update(data, 'utf8', 'hex')
+
       encrypted += cipher.final('hex')
 
       // 将IV和加密数据一起返回，用:分隔
       return `${iv.toString('hex')}:${encrypted}`
     } catch (error) {
       logger.error('❌ Encryption error:', error)
+
       return data
     }
   }
@@ -1268,6 +1314,7 @@ class ClaudeAccountService {
     // 🎯 检查缓存
     const cacheKey = crypto.createHash('sha256').update(encryptedData).digest('hex')
     const cached = this._decryptCache.get(cacheKey)
+
     if (cached !== undefined) {
       return cached
     }
@@ -1279,12 +1326,14 @@ class ClaudeAccountService {
       if (encryptedData.includes(':')) {
         // 新格式：iv:encryptedData
         const parts = encryptedData.split(':')
+
         if (parts.length === 2) {
           const key = this._generateEncryptionKey()
           const iv = Buffer.from(parts[0], 'hex')
           const encrypted = parts[1]
 
           const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
+
           decrypted = decipher.update(encrypted, 'hex', 'utf8')
           decrypted += decipher.final('utf8')
 
@@ -1304,6 +1353,7 @@ class ClaudeAccountService {
       // 注意：在新版本Node.js中这将失败，但我们会捕获错误
       try {
         const decipher = crypto.createDecipher('aes-256-cbc', config.security.encryptionKey)
+
         decrypted = decipher.update(encryptedData, 'hex', 'utf8')
         decrypted += decipher.final('utf8')
 
@@ -1314,10 +1364,12 @@ class ClaudeAccountService {
       } catch (oldError) {
         // 如果旧方式也失败，返回原数据
         logger.warn('⚠️ Could not decrypt data, returning as-is:', oldError.message)
+
         return encryptedData
       }
     } catch (error) {
       logger.error('❌ Decryption error:', error)
+
       return encryptedData
     }
   }
@@ -1337,6 +1389,7 @@ class ClaudeAccountService {
       )
       logger.info('🔑 Encryption key derived and cached for performance optimization')
     }
+
     return this._encryptionKeyCache
   }
 
@@ -1362,6 +1415,7 @@ class ClaudeAccountService {
     }
 
     const num = Number(value)
+
     return Number.isFinite(num) ? num : null
   }
 
@@ -1394,6 +1448,7 @@ class ClaudeAccountService {
       return cleanedCount
     } catch (error) {
       logger.error('❌ Failed to cleanup error accounts:', error)
+
       return 0
     }
   }
@@ -1402,6 +1457,7 @@ class ClaudeAccountService {
   async markAccountRateLimited(accountId, sessionHash = null, rateLimitResetTimestamp = null) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -1417,11 +1473,13 @@ class ClaudeAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-official', 429, 'rate_limit')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
       // 设置限流状态和时间
       const updatedAccountData = { ...accountData }
+
       updatedAccountData.rateLimitedAt = new Date().toISOString()
       updatedAccountData.rateLimitStatus = 'limited'
       // 限流时停止调度，与 OpenAI 账号保持一致
@@ -1433,21 +1491,25 @@ class ClaudeAccountService {
       if (rateLimitResetTimestamp) {
         // 将Unix时间戳（秒）转换为毫秒并创建Date对象
         const resetTime = new Date(rateLimitResetTimestamp * 1000)
+
         updatedAccountData.rateLimitEndAt = resetTime.toISOString()
 
         // 计算当前会话窗口的开始时间（重置时间减去5小时）
         const windowStartTime = new Date(resetTime.getTime() - 5 * 60 * 60 * 1000)
+
         updatedAccountData.sessionWindowStart = windowStartTime.toISOString()
         updatedAccountData.sessionWindowEnd = resetTime.toISOString()
 
         const now = new Date()
         const minutesUntilEnd = Math.ceil((resetTime - now) / (1000 * 60))
+
         logger.warn(
           `🚫 Account marked as rate limited with accurate reset time: ${accountData.name} (${accountId}) - ${minutesUntilEnd} minutes remaining until ${resetTime.toISOString()}`
         )
       } else {
         // 获取或创建会话窗口（预估方式）
         const windowData = await this.updateSessionWindow(accountId, updatedAccountData)
+
         Object.assign(updatedAccountData, windowData)
 
         // 限流结束时间 = 会话窗口结束时间
@@ -1456,12 +1518,14 @@ class ClaudeAccountService {
           const windowEnd = new Date(updatedAccountData.sessionWindowEnd)
           const now = new Date()
           const minutesUntilEnd = Math.ceil((windowEnd - now) / (1000 * 60))
+
           logger.warn(
             `🚫 Account marked as rate limited until estimated session window ends: ${accountData.name} (${accountId}) - ${minutesUntilEnd} minutes remaining`
           )
         } else {
           // 如果没有会话窗口，使用默认1小时（兼容旧逻辑）
           const oneHourLater = new Date(Date.now() + 60 * 60 * 1000)
+
           updatedAccountData.rateLimitEndAt = oneHourLater.toISOString()
           logger.warn(
             `🚫 Account marked as rate limited (1 hour default): ${accountData.name} (${accountId})`
@@ -1480,6 +1544,7 @@ class ClaudeAccountService {
       // 发送Webhook通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name || 'Claude Account',
@@ -1504,16 +1569,19 @@ class ClaudeAccountService {
   async markAccountOpusRateLimited(accountId, rateLimitResetTimestamp = null) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
 
       const updatedAccountData = { ...accountData }
       const now = new Date()
+
       updatedAccountData.opusRateLimitedAt = now.toISOString()
 
       if (rateLimitResetTimestamp) {
         const resetTime = new Date(rateLimitResetTimestamp * 1000)
+
         updatedAccountData.opusRateLimitEndAt = resetTime.toISOString()
         logger.warn(
           `🚫 Account ${accountData.name} (${accountId}) reached Opus weekly cap, resets at ${resetTime.toISOString()}`
@@ -1526,6 +1594,7 @@ class ClaudeAccountService {
       }
 
       await redis.setClaudeAccount(accountId, updatedAccountData)
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to mark Opus rate limit for account: ${accountId}`, error)
@@ -1537,22 +1606,26 @@ class ClaudeAccountService {
   async clearAccountOpusRateLimit(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return { success: true }
       }
 
       const updatedAccountData = { ...accountData }
+
       delete updatedAccountData.opusRateLimitedAt
       delete updatedAccountData.opusRateLimitEndAt
 
       await redis.setClaudeAccount(accountId, updatedAccountData)
 
       const redisKey = `claude:account:${accountId}`
+
       if (redis.client && typeof redis.client.hdel === 'function') {
         await redis.client.hdel(redisKey, 'opusRateLimitedAt', 'opusRateLimitEndAt')
       }
 
       logger.info(`✅ Cleared Opus rate limit state for account ${accountId}`)
+
       return { success: true }
     } catch (error) {
       logger.error(`❌ Failed to clear Opus rate limit for account: ${accountId}`, error)
@@ -1564,6 +1637,7 @@ class ClaudeAccountService {
   async getAccountOpusRateLimitInfo(accountId, accountData = null) {
     try {
       const data = accountData || (await redis.getClaudeAccount(accountId))
+
       if (!data || Object.keys(data).length === 0 || !data.opusRateLimitEndAt) {
         return {
           isRateLimited: false,
@@ -1574,6 +1648,7 @@ class ClaudeAccountService {
       }
 
       const resetAtMs = Date.parse(data.opusRateLimitEndAt)
+
       if (Number.isNaN(resetAtMs)) {
         return {
           isRateLimited: false,
@@ -1584,9 +1659,11 @@ class ClaudeAccountService {
       }
 
       const nowMs = Date.now()
+
       if (nowMs >= resetAtMs) {
         // 自动清理过期标记，避免前端持续显示陈旧状态
         await this.clearAccountOpusRateLimit(accountId).catch(() => {})
+
         return {
           isRateLimited: false,
           rateLimitedAt: data.opusRateLimitedAt || null,
@@ -1603,6 +1680,7 @@ class ClaudeAccountService {
       }
     } catch (error) {
       logger.error(`❌ Failed to get Opus rate limit info for account: ${accountId}`, error)
+
       return {
         isRateLimited: false,
         rateLimitedAt: null,
@@ -1616,6 +1694,7 @@ class ClaudeAccountService {
   async isAccountOpusRateLimited(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return false
       }
@@ -1625,20 +1704,25 @@ class ClaudeAccountService {
       }
 
       const resetTime = new Date(accountData.opusRateLimitEndAt)
+
       if (Number.isNaN(resetTime.getTime())) {
         await this.clearAccountOpusRateLimit(accountId)
+
         return false
       }
 
       const now = new Date()
+
       if (now >= resetTime) {
         await this.clearAccountOpusRateLimit(accountId)
+
         return false
       }
 
       return true
     } catch (error) {
       logger.error(`❌ Failed to check Opus rate limit status for account: ${accountId}`, error)
+
       return false
     }
   }
@@ -1647,6 +1731,7 @@ class ClaudeAccountService {
   async clearExpiredOpusRateLimit(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return { success: true }
       }
@@ -1656,6 +1741,7 @@ class ClaudeAccountService {
       }
 
       const resetTime = new Date(accountData.opusRateLimitEndAt)
+
       if (Number.isNaN(resetTime.getTime()) || new Date() >= resetTime) {
         await this.clearAccountOpusRateLimit(accountId)
       }
@@ -1671,6 +1757,7 @@ class ClaudeAccountService {
   async removeAccountRateLimit(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -1679,6 +1766,7 @@ class ClaudeAccountService {
 
       // 清除限流状态
       const redisKey = `claude:account:${accountId}`
+
       await redis.client.hdel(redisKey, 'rateLimitedAt', 'rateLimitStatus', 'rateLimitEndAt')
       delete accountData.rateLimitedAt
       delete accountData.rateLimitStatus
@@ -1727,6 +1815,7 @@ class ClaudeAccountService {
   async isAccountRateLimited(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return false
       }
@@ -1745,6 +1834,7 @@ class ClaudeAccountService {
           // 如果当前时间超过限流结束时间，自动解除
           if (now >= rateLimitEndAt) {
             await this.removeAccountRateLimit(accountId)
+
             return false
           }
 
@@ -1757,6 +1847,7 @@ class ClaudeAccountService {
           // 如果限流超过1小时，自动解除
           if (hoursSinceRateLimit >= 1) {
             await this.removeAccountRateLimit(accountId)
+
             return false
           }
 
@@ -1767,6 +1858,7 @@ class ClaudeAccountService {
       return false
     } catch (error) {
       logger.error(`❌ Failed to check rate limit status for account: ${accountId}`, error)
+
       return false
     }
   }
@@ -1775,6 +1867,7 @@ class ClaudeAccountService {
   async getAccountRateLimitInfo(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return null
       }
@@ -1791,12 +1884,14 @@ class ClaudeAccountService {
         if (accountData.rateLimitEndAt) {
           ;({ rateLimitEndAt } = accountData)
           const endTime = new Date(accountData.rateLimitEndAt)
+
           minutesRemaining = Math.max(0, Math.ceil((endTime - now) / (1000 * 60)))
         } else {
           // 兼容旧数据：使用1小时限流
           minutesRemaining = Math.max(0, 60 - minutesSinceRateLimit)
           // 计算预期的结束时间
           const endTime = new Date(rateLimitedAt.getTime() + 60 * 60 * 1000)
+
           rateLimitEndAt = endTime.toISOString()
         }
 
@@ -1818,6 +1913,7 @@ class ClaudeAccountService {
       }
     } catch (error) {
       logger.error(`❌ Failed to get rate limit info for account: ${accountId}`, error)
+
       return null
     }
   }
@@ -1846,11 +1942,13 @@ class ClaudeAccountService {
         // 如果当前时间在窗口内，只更新最后请求时间
         if (currentTime < windowEnd) {
           accountData.lastRequestTime = now.toISOString()
+
           return accountData
         }
 
         // 窗口已过期，记录日志
         const windowStart = new Date(accountData.sessionWindowStart)
+
         logger.info(
           `⏰ Session window expired for account ${accountData.name} (${accountId}): ${windowStart.toISOString()} - ${new Date(windowEnd).toISOString()}`
         )
@@ -1887,6 +1985,7 @@ class ClaudeAccountService {
         // 发送Webhook通知
         try {
           const webhookNotifier = require('../../utils/webhookNotifier')
+
           await webhookNotifier.sendAccountAnomalyNotification({
             accountId,
             accountName: accountData.name || 'Claude Account',
@@ -1903,6 +2002,7 @@ class ClaudeAccountService {
 
       if (shouldClearSessionStatus || shouldClearFiveHourFlags) {
         const fieldsToRemove = []
+
         if (shouldClearFiveHourFlags) {
           fieldsToRemove.push('fiveHourAutoStopped', 'fiveHourStoppedAt')
         }
@@ -1927,6 +2027,7 @@ class ClaudeAccountService {
   _calculateSessionWindowStart(requestTime) {
     // 从当前时间开始创建窗口，只将分钟取整到整点
     const windowStart = new Date(requestTime)
+
     windowStart.setMinutes(0)
     windowStart.setSeconds(0)
     windowStart.setMilliseconds(0)
@@ -1937,7 +2038,9 @@ class ClaudeAccountService {
   // 🕐 计算会话窗口结束时间
   _calculateSessionWindowEnd(startTime) {
     const endTime = new Date(startTime)
+
     endTime.setHours(endTime.getHours() + 5) // 加5小时
+
     return endTime
   }
 
@@ -1968,6 +2071,7 @@ class ClaudeAccountService {
   async getSessionWindowInfo(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         return null
       }
@@ -2022,6 +2126,7 @@ class ClaudeAccountService {
       }
     } catch (error) {
       logger.error(`❌ Failed to get session window info for account ${accountId}:`, error)
+
       return null
     }
   }
@@ -2030,6 +2135,7 @@ class ClaudeAccountService {
   async fetchOAuthUsage(accountId, accessToken = null, agent = null) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -2079,6 +2185,7 @@ class ClaudeAccountService {
       }
 
       logger.warn(`⚠️ Failed to fetch OAuth usage for account ${accountId}: ${response.status}`)
+
       return null
     } catch (error) {
       // 403 错误通常表示使用的是 Setup Token 而非 OAuth
@@ -2086,6 +2193,7 @@ class ClaudeAccountService {
         logger.debug(
           `⚠️ OAuth usage API returned 403 for account ${accountId}. This account likely uses Setup Token instead of OAuth.`
         )
+
         return null
       }
 
@@ -2094,6 +2202,7 @@ class ClaudeAccountService {
         `❌ Failed to fetch OAuth usage for account ${accountId}:`,
         error.response?.data || error.message
       )
+
       return null
     }
   }
@@ -2190,6 +2299,7 @@ class ClaudeAccountService {
     updates.claudeUsageUpdatedAt = new Date().toISOString()
 
     const accountData = await redis.getClaudeAccount(accountId)
+
     if (accountData && Object.keys(accountData).length > 0) {
       Object.assign(accountData, updates)
       await redis.setClaudeAccount(accountId, accountData)
@@ -2204,12 +2314,14 @@ class ClaudeAccountService {
   async fetchAndUpdateAccountProfile(accountId, accessToken = null, agent = null) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
 
       // 检查账户是否有 user:profile 权限
       const hasProfileScope = accountData.scopes && accountData.scopes.includes('user:profile')
+
       if (!hasProfileScope) {
         logger.warn(
           `⚠️ Account ${accountId} does not have user:profile scope, cannot fetch profile`
@@ -2345,6 +2457,7 @@ class ClaudeAccountService {
 
         // 跳过没有 user:profile 权限的账号（Setup Token 账号）
         const hasProfileScope = account.scopes && account.scopes.includes('user:profile')
+
         if (!hasProfileScope) {
           logger.info(
             `⏩ Skipping account without user:profile scope: ${account.name} (${account.id})`
@@ -2361,8 +2474,10 @@ class ClaudeAccountService {
         try {
           // 获取有效的 access token
           const accessToken = await this.getValidAccessToken(account.id)
+
           if (accessToken) {
             const profileInfo = await this.fetchAndUpdateAccountProfile(account.id, accessToken)
+
             successCount++
             results.push({
               accountId: account.id,
@@ -2470,6 +2585,7 @@ class ClaudeAccountService {
       }
     } catch (error) {
       logger.error('❌ Failed to initialize session windows:', error)
+
       return {
         total: 0,
         validWindows: 0,
@@ -2501,11 +2617,13 @@ class ClaudeAccountService {
 
     try {
       const errorConfig = ERROR_CONFIG[errorType]
+
       if (!errorConfig) {
         throw new Error(`Unsupported error type: ${errorType}`)
       }
 
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -2519,14 +2637,17 @@ class ClaudeAccountService {
           `🛡️ Account ${accountData.name} (${accountId}) has auto-protection disabled, skipping ${errorType} marking`
         )
         const statusCode = errorType === 'unauthorized' ? 401 : 403
+
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-official', statusCode, errorType)
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
       // 更新账户状态
       const updatedAccountData = { ...accountData }
+
       updatedAccountData.status = errorConfig.status
       updatedAccountData.schedulable = 'false' // 设置为不可调度
       updatedAccountData.errorMessage = errorConfig.errorMessage
@@ -2548,6 +2669,7 @@ class ClaudeAccountService {
       // 发送Webhook通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name,
@@ -2582,6 +2704,7 @@ class ClaudeAccountService {
   async resetAccountStatus(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -2653,22 +2776,27 @@ class ClaudeAccountService {
         'autoStoppedAt',
         'stoppedReason'
       ]
+
       await redis.client.hdel(`claude:account:${accountId}`, ...fieldsToDelete)
 
       // 清除401错误计数
       const errorKey = `claude_account:${accountId}:401_errors`
+
       await redis.client.del(errorKey)
 
       // 清除限流状态（如果存在）
       const rateLimitKey = `ratelimit:${accountId}`
+
       await redis.client.del(rateLimitKey)
 
       // 清除5xx错误计数
       const serverErrorKey = `claude_account:${accountId}:5xx_errors`
+
       await redis.client.del(serverErrorKey)
 
       // 清除过载状态
       const overloadKey = `account:overload:${accountId}`
+
       await redis.client.del(overloadKey)
 
       // 清除临时不可用状态
@@ -2744,6 +2872,7 @@ class ClaudeAccountService {
       return cleanedCount
     } catch (error) {
       logger.error('❌ Failed to cleanup temp_error accounts:', error)
+
       return 0
     }
   }
@@ -2774,9 +2903,11 @@ class ClaudeAccountService {
       const key = `claude_account:${accountId}:5xx_errors`
 
       const count = await redis.client.get(key)
+
       return parseInt(count) || 0
     } catch (error) {
       logger.error(`❌ Failed to get 5xx error count for account ${accountId}:`, error)
+
       return 0
     }
   }
@@ -2802,6 +2933,7 @@ class ClaudeAccountService {
   async markAccountTempError(accountId, sessionHash = null) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         throw new Error('Account not found')
       }
@@ -2817,11 +2949,13 @@ class ClaudeAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-official', 500, 'server_error')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
       // 更新账户状态
       const updatedAccountData = { ...accountData }
+
       updatedAccountData.status = 'temp_error' // 新增的临时错误状态
       updatedAccountData.schedulable = 'false' // 设置为不可调度
       updatedAccountData.errorMessage = 'Account temporarily disabled due to consecutive 500 errors'
@@ -2837,6 +2971,7 @@ class ClaudeAccountService {
         async () => {
           try {
             const account = await redis.getClaudeAccount(accountId)
+
             if (account && account.status === 'temp_error' && account.tempErrorAt) {
               // 验证是否确实过了 5 分钟（防止重复定时器）
               const tempErrorAt = new Date(account.tempErrorAt)
@@ -2896,6 +3031,7 @@ class ClaudeAccountService {
       // 发送Webhook通知
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name,
@@ -2923,19 +3059,24 @@ class ClaudeAccountService {
         logger.warn(
           `Invalid parameters for updateSessionWindowStatus: accountId=${accountId}, status=${status}`
         )
+
         return
       }
 
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData || Object.keys(accountData).length === 0) {
         logger.warn(`Account not found: ${accountId}`)
+
         return
       }
 
       // 验证状态值是否有效
       const validStatuses = ['allowed', 'allowed_warning', 'rejected']
+
       if (!validStatuses.includes(status)) {
         logger.warn(`Invalid session window status: ${status} for account ${accountId}`)
+
         return
       }
 
@@ -2956,8 +3097,10 @@ class ClaudeAccountService {
             accountData.sessionWindowEnd || accountData.sessionWindowStart || 'unknown'
 
           let warningCount = 0
+
           if (accountData.fiveHourWarningWindow === windowIdentifier) {
             const parsedCount = parseInt(accountData.fiveHourWarningCount || '0', 10)
+
             warningCount = Number.isNaN(parsedCount) ? 0 : parsedCount
           }
 
@@ -2987,6 +3130,7 @@ class ClaudeAccountService {
             // 发送Webhook通知
             try {
               const webhookNotifier = require('../../utils/webhookNotifier')
+
               await webhookNotifier.sendAccountAnomalyNotification({
                 accountId,
                 accountName: accountData.name || 'Claude Account',
@@ -3025,6 +3169,7 @@ class ClaudeAccountService {
   async markAccountOverloaded(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData) {
         throw new Error('Account not found')
       }
@@ -3040,6 +3185,7 @@ class ClaudeAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'claude-official', 529, 'overload')
           .catch(() => {})
+
         return { success: true, skipped: true }
       }
 
@@ -3048,6 +3194,7 @@ class ClaudeAccountService {
 
       if (overloadMinutes === 0) {
         logger.info('⏭️ 529 error handling is disabled')
+
         return { success: false, error: '529 error handling is disabled' }
       }
 
@@ -3076,11 +3223,13 @@ class ClaudeAccountService {
       }
 
       const updatedAccountData = { ...accountData, ...updates }
+
       await redis.setClaudeAccount(accountId, updatedAccountData)
 
       return { success: true, accountName: accountData.name, duration: overloadMinutes }
     } catch (error) {
       logger.error(`❌ Failed to mark account as overloaded: ${accountId}`, error)
+
       // 不抛出错误，避免影响主请求流程
       return { success: false, error: error.message }
     }
@@ -3091,6 +3240,7 @@ class ClaudeAccountService {
     try {
       // 如果529处理未启用，直接返回false
       const overloadMinutes = config.overloadHandling?.enabled || 0
+
       if (overloadMinutes === 0) {
         return false
       }
@@ -3107,6 +3257,7 @@ class ClaudeAccountService {
       return false
     } catch (error) {
       logger.error(`❌ Failed to check if account is overloaded: ${accountId}`, error)
+
       return false
     }
   }
@@ -3115,11 +3266,13 @@ class ClaudeAccountService {
   async removeAccountOverload(accountId) {
     try {
       const accountData = await redis.getClaudeAccount(accountId)
+
       if (!accountData) {
         throw new Error('Account not found')
       }
 
       const overloadKey = `account:overload:${accountId}`
+
       await redis.del(overloadKey)
 
       logger.info(`✅ Account ${accountData.name} (${accountId}) overload status removed`)
@@ -3127,6 +3280,7 @@ class ClaudeAccountService {
       // 清理账号上的错误信息
       if (accountData.errorMessage && accountData.errorMessage.includes('529错误')) {
         const updatedAccountData = { ...accountData }
+
         delete updatedAccountData.errorMessage
         delete updatedAccountData.lastOverloadAt
         await redis.setClaudeAccount(accountId, updatedAccountData)
@@ -3167,6 +3321,7 @@ class ClaudeAccountService {
           try {
             // 尝试获取锁
             const lockAcquired = await redis.setAccountLock(lockKey, lockValue, lockTTL)
+
             if (!lockAcquired) {
               logger.debug(
                 `⏭️ Account ${account.name} (${account.id}) is being processed by another instance`
@@ -3176,6 +3331,7 @@ class ClaudeAccountService {
 
             // 重新获取账号数据，确保是最新的
             const latestAccount = await redis.getClaudeAccount(account.id)
+
             if (
               !latestAccount ||
               latestAccount.fiveHourAutoStopped !== 'true' ||
@@ -3256,6 +3412,7 @@ class ClaudeAccountService {
               await redis.setClaudeAccount(account.id, updatedAccountData)
 
               const fieldsToRemove = ['fiveHourAutoStopped', 'fiveHourStoppedAt']
+
               if (newWindowStart && newWindowEnd) {
                 fieldsToRemove.push('sessionWindowStatus', 'sessionWindowStatusUpdatedAt')
               }
@@ -3397,9 +3554,11 @@ class ClaudeAccountService {
 
     try {
       const parsed = JSON.parse(value)
+
       return parsed && typeof parsed === 'object' ? parsed : null
     } catch (error) {
       logger.warn('⚠️ 解析扩展信息失败，已忽略：', error.message)
+
       return null
     }
   }
@@ -3417,11 +3576,13 @@ class ClaudeAccountService {
 
     try {
       const parsed = JSON.parse(value)
+
       return parsed && typeof parsed === 'object' ? parsed : null
     } catch (error) {
       logger.warn(
         `⚠️ Failed to parse ${fieldName} for Claude account ${accountId || 'unknown'}, ignored: ${error.message}`
       )
+
       return null
     }
   }
@@ -3432,6 +3593,7 @@ class ClaudeAccountService {
     }
 
     const filteredFields = fields.filter((field) => typeof field === 'string' && field.trim())
+
     if (filteredFields.length === 0) {
       return
     }

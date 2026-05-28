@@ -14,6 +14,7 @@ router.get('/info', authenticateUser, async (req, res) => {
       referralService.getWalletBalance(userId),
       referralService.getCommissionConfig()
     ])
+
     res.json({
       code,
       invitedCount: invitedIds.length,
@@ -34,6 +35,7 @@ router.get('/records', authenticateUser, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100)
     const offset = parseInt(req.query.offset) || 0
     const { total, records } = await referralService.getCommissionRecords({ userId, limit, offset })
+
     res.json({ total, records })
   } catch (error) {
     logger.error('❌ Error getting commission records:', error)
@@ -48,6 +50,7 @@ router.get('/withdrawals', authenticateUser, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100)
     const offset = parseInt(req.query.offset) || 0
     const { total, requests } = await referralService.getWithdrawRequests({ userId, limit, offset })
+
     res.json({ total, requests })
   } catch (error) {
     logger.error('❌ Error getting withdrawal requests:', error)
@@ -72,6 +75,7 @@ router.post('/withdraw', authenticateUser, async (req, res) => {
     }
 
     const config = await referralService.getCommissionConfig()
+
     if (!config.enabled) {
       return res.status(403).json({ error: 'FEATURE_DISABLED', message: '推广返佣功能未开启' })
     }
@@ -82,6 +86,7 @@ router.post('/withdraw', authenticateUser, async (req, res) => {
       accountInfo,
       note: note || ''
     })
+
     res.status(201).json({ success: true, request })
   } catch (error) {
     const errorMap = {
@@ -89,6 +94,7 @@ router.post('/withdraw', authenticateUser, async (req, res) => {
       INVALID_AMOUNT: { code: 400, message: '提现金额无效' }
     }
     const hit = errorMap[error.message]
+
     if (hit) {
       return res.status(hit.code).json({ error: error.message, message: hit.message })
     }

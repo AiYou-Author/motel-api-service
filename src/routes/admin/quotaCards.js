@@ -16,6 +16,7 @@ const { authenticateAdmin } = require('../../middleware/auth')
 router.get('/quota-cards/limits', authenticateAdmin, async (req, res) => {
   try {
     const config = await quotaCardService.getLimitsConfig()
+
     res.json({ success: true, data: config })
   } catch (error) {
     logger.error('❌ Failed to get quota card limits:', error)
@@ -32,6 +33,7 @@ router.put('/quota-cards/limits', authenticateAdmin, async (req, res) => {
       maxExpiryDays,
       maxTotalCostLimit
     })
+
     res.json({ success: true, data: config })
   } catch (error) {
     logger.error('❌ Failed to save quota card limits:', error)
@@ -66,6 +68,7 @@ router.get('/quota-cards', authenticateAdmin, async (req, res) => {
 router.get('/quota-cards/stats', authenticateAdmin, async (req, res) => {
   try {
     const stats = await quotaCardService.getCardStats()
+
     res.json({
       success: true,
       data: stats
@@ -83,6 +86,7 @@ router.get('/quota-cards/stats', authenticateAdmin, async (req, res) => {
 router.get('/quota-cards/:id', authenticateAdmin, async (req, res) => {
   try {
     const card = await quotaCardService.getCardById(req.params.id)
+
     if (!card) {
       return res.status(404).json({
         success: false,
@@ -127,6 +131,7 @@ router.post('/quota-cards', authenticateAdmin, async (req, res) => {
     }
 
     let result
+
     if (count > 1) {
       result = await quotaCardService.createCardsBatch(options, Math.min(count, 100))
     } else {
@@ -150,6 +155,7 @@ router.post('/quota-cards', authenticateAdmin, async (req, res) => {
 router.delete('/quota-cards/:id', authenticateAdmin, async (req, res) => {
   try {
     const result = await quotaCardService.deleteCard(req.params.id)
+
     res.json({
       success: true,
       data: result

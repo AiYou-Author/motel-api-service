@@ -9,24 +9,28 @@ describe('Logger', () => {
   describe('log levels', () => {
     it('should call info method', () => {
       const message = 'Test info message';
+
       logger.info(message);
       expect(logger.info).toHaveBeenCalledWith(message);
     });
 
     it('should call error method', () => {
       const message = 'Test error message';
+
       logger.error(message);
       expect(logger.error).toHaveBeenCalledWith(message);
     });
 
     it('should call warn method', () => {
       const message = 'Test warning message';
+
       logger.warn(message);
       expect(logger.warn).toHaveBeenCalledWith(message);
     });
 
     it('should call debug method', () => {
       const message = 'Test debug message';
+
       logger.debug(message);
       expect(logger.debug).toHaveBeenCalledWith(message);
     });

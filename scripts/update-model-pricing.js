@@ -60,12 +60,15 @@ function backupExistingFile() {
     try {
       fs.copyFileSync(config.pricingFile, config.backupFile)
       log.info('Backed up existing pricing file')
+
       return true
     } catch (error) {
       log.warn(`Failed to backup existing file: ${error.message}`)
+
       return false
     }
   }
+
   return false
 }
 
@@ -75,12 +78,15 @@ function restoreBackup() {
     try {
       fs.copyFileSync(config.backupFile, config.pricingFile)
       log.info('Restored from backup')
+
       return true
     } catch (error) {
       log.error(`Failed to restore backup: ${error.message}`)
+
       return false
     }
   }
+
   return false
 }
 
@@ -93,6 +99,7 @@ function downloadPricingData() {
     const request = https.get(config.pricingUrl, (response) => {
       if (response.statusCode !== 200) {
         reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`))
+
         return
       }
 
@@ -118,9 +125,11 @@ function downloadPricingData() {
 
           // 保存到文件
           const formattedJson = JSON.stringify(jsonData, null, 2)
+
           fs.writeFileSync(config.pricingFile, formattedJson)
 
           const hash = crypto.createHash('sha256').update(formattedJson).digest('hex')
+
           fs.writeFileSync(config.hashFile, `${hash}\n`)
 
           const modelCount = Object.keys(jsonData).length
@@ -163,6 +172,7 @@ function useFallback() {
 
   if (!fs.existsSync(config.fallbackFile)) {
     log.error(`Fallback file not found: ${config.fallbackFile}`)
+
     return false
   }
 
@@ -174,12 +184,14 @@ function useFallback() {
     fs.writeFileSync(config.pricingFile, JSON.stringify(jsonData, null, 2))
 
     const modelCount = Object.keys(jsonData).length
+
     log.warn(`Using fallback pricing data for ${modelCount} models`)
     log.info('Note: Fallback data may be outdated. Try updating again later.')
 
     return true
   } catch (error) {
     log.error(`Failed to use fallback: ${error.message}`)
+
     return false
   }
 }
@@ -193,6 +205,7 @@ function showCurrentStatus() {
     const ageInDays = Math.floor(ageInHours / 24)
 
     let ageString = ''
+
     if (ageInDays > 0) {
       ageString = `${ageInDays} day${ageInDays > 1 ? 's' : ''} and ${ageInHours % 24} hour${ageInHours % 24 !== 1 ? 's' : ''}`
     } else {
@@ -203,6 +216,7 @@ function showCurrentStatus() {
 
     try {
       const data = JSON.parse(fs.readFileSync(config.pricingFile, 'utf8'))
+
       log.info(`Current file contains ${Object.keys(data).length} models`)
     } catch (error) {
       log.warn('Current file exists but could not be parsed')

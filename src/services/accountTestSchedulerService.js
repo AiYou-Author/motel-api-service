@@ -30,6 +30,7 @@ class AccountTestSchedulerService {
     if (!cronExpression || cronExpression.length > 100) {
       return false
     }
+
     return cron.validate(cronExpression)
   }
 
@@ -39,6 +40,7 @@ class AccountTestSchedulerService {
   async start() {
     if (this.isStarted) {
       logger.warn('⚠️ Account test scheduler is already running')
+
       return
     }
 
@@ -95,6 +97,7 @@ class AccountTestSchedulerService {
             .then((accounts) => accounts.map((acc) => ({ ...acc, platform })))
             .catch((error) => {
               logger.warn(`⚠️ Failed to load test accounts for platform ${platform}:`, error)
+
               return []
             })
         )
@@ -112,10 +115,12 @@ class AccountTestSchedulerService {
         }
 
         const accountKey = `${platform}:${accountId}`
+
         activeAccountKeys.add(accountKey)
 
         // 检查是否需要更新任务
         const existingTask = this.scheduledTasks.get(accountKey)
+
         if (existingTask) {
           // 如果 cron 表达式和模型都没变，不需要更新
           if (existingTask.cronExpression === cronExpression && existingTask.model === model) {
@@ -159,6 +164,7 @@ class AccountTestSchedulerService {
     // 验证 cron 表达式
     if (!this.validateCronExpression(cronExpression)) {
       logger.error(`❌ Invalid cron expression for ${accountKey}: ${cronExpression}`)
+
       return
     }
 
@@ -195,6 +201,7 @@ class AccountTestSchedulerService {
     // 避免重复测试
     if (this.testingAccounts.has(accountKey)) {
       logger.debug(`⏳ Account ${accountKey} is already being tested, skipping`)
+
       return
     }
 
@@ -270,6 +277,7 @@ class AccountTestSchedulerService {
    */
   async _testClaudeAccount(accountId, model) {
     const claudeRelayService = require('./relay/claudeRelayService')
+
     return await claudeRelayService.testAccountConnectionSync(accountId, model)
   }
 
@@ -312,6 +320,7 @@ class AccountTestSchedulerService {
    */
   async triggerTest(accountId, platform, model = 'claude-sonnet-4-5-20250929') {
     logger.info(`🎯 Manual test triggered for ${platform} account: ${accountId} (model: ${model})`)
+
     return await this._runAccountTest(accountId, platform, model)
   }
 
@@ -374,6 +383,7 @@ class AccountTestSchedulerService {
 
     // 停止现有任务
     const existingTask = this.scheduledTasks.get(accountKey)
+
     if (existingTask) {
       existingTask.task.stop()
       this.scheduledTasks.delete(accountKey)
@@ -394,6 +404,7 @@ class AccountTestSchedulerService {
    */
   getStatus() {
     const tasks = []
+
     for (const [accountKey, taskInfo] of this.scheduledTasks.entries()) {
       tasks.push({
         accountKey,

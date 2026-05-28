@@ -52,6 +52,7 @@ class ClaudeRelayConfigService {
     if (!requestBody?.metadata?.user_id) {
       return null
     }
+
     return metadataUserIdHelper.extractSessionId(requestBody.metadata.user_id)
   }
 
@@ -67,8 +68,10 @@ class ClaudeRelayConfigService {
       }
 
       const client = redis.getClient()
+
       if (!client) {
         logger.warn('⚠️ Redis not connected, using default config')
+
         return { ...DEFAULT_CONFIG }
       }
 
@@ -81,9 +84,11 @@ class ClaudeRelayConfigService {
       }
 
       configCacheTime = Date.now()
+
       return configCache
     } catch (error) {
       logger.error('❌ Failed to get Claude relay config:', error)
+
       return { ...DEFAULT_CONFIG }
     }
   }
@@ -131,6 +136,7 @@ class ClaudeRelayConfigService {
    */
   async isClaudeCodeOnlyEnabled() {
     const cfg = await this.getConfig()
+
     return cfg.claudeCodeOnlyEnabled === true
   }
 
@@ -140,6 +146,7 @@ class ClaudeRelayConfigService {
    */
   async isGlobalSessionBindingEnabled() {
     const cfg = await this.getConfig()
+
     return cfg.globalSessionBindingEnabled === true
   }
 
@@ -149,6 +156,7 @@ class ClaudeRelayConfigService {
    */
   async getSessionBindingErrorMessage() {
     const cfg = await this.getConfig()
+
     return cfg.sessionBindingErrorMessage || DEFAULT_CONFIG.sessionBindingErrorMessage
   }
 
@@ -164,6 +172,7 @@ class ClaudeRelayConfigService {
 
     try {
       const client = redis.getClient()
+
       if (!client) {
         return null
       }
@@ -174,9 +183,11 @@ class ClaudeRelayConfigService {
       if (data) {
         return JSON.parse(data)
       }
+
       return null
     } catch (error) {
       logger.error(`❌ Failed to get session binding for ${originalSessionId}:`, error)
+
       return null
     }
   }
@@ -233,6 +244,7 @@ class ClaudeRelayConfigService {
 
     try {
       const binding = await this.getOriginalSessionBinding(originalSessionId)
+
       if (!binding) {
         return
       }
@@ -260,6 +272,7 @@ class ClaudeRelayConfigService {
    */
   async isOriginalSessionBound(originalSessionId) {
     const binding = await this.getOriginalSessionBinding(originalSessionId)
+
     return binding !== null
   }
 
@@ -278,6 +291,7 @@ class ClaudeRelayConfigService {
       const { accountId } = binding
 
       let accountService
+
       switch (accountType) {
         case 'claude-official':
           accountService = require('./account/claudeAccountService')
@@ -293,6 +307,7 @@ class ClaudeRelayConfigService {
           break
         default:
           logger.warn(`Unknown account type for validation: ${accountType}`)
+
           return false
       }
 
@@ -301,6 +316,7 @@ class ClaudeRelayConfigService {
       // getAccount() 直接返回账户数据对象或 null，不是 { success, data } 格式
       if (!account) {
         logger.warn(`Session binding account not found: ${accountId} (${accountType})`)
+
         return false
       }
 
@@ -311,6 +327,7 @@ class ClaudeRelayConfigService {
         logger.warn(
           `Session binding account not active: ${accountId} (${accountType}), isActive: ${accountData.isActive}`
         )
+
         return false
       }
 
@@ -319,12 +336,14 @@ class ClaudeRelayConfigService {
         logger.warn(
           `Session binding account has error status: ${accountId} (${accountType}), status: ${accountData.status}`
         )
+
         return false
       }
 
       return true
     } catch (error) {
       logger.error(`❌ Failed to validate bound account ${binding.accountId}:`, error)
+
       return false
     }
   }
@@ -357,6 +376,7 @@ class ClaudeRelayConfigService {
         logger.info(
           `🔗 Session binding ignored for non-official account type: ${existingBinding.accountType}`
         )
+
         return { valid: true }
       }
 
@@ -394,11 +414,13 @@ class ClaudeRelayConfigService {
 
     try {
       const client = redis.getClient()
+
       if (!client) {
         return
       }
 
       const key = `${SESSION_BINDING_PREFIX}${originalSessionId}`
+
       await client.del(key)
       logger.info(`🗑️ Session binding deleted: ${originalSessionId}`)
     } catch (error) {
@@ -413,6 +435,7 @@ class ClaudeRelayConfigService {
   async getSessionBindingStats() {
     try {
       const client = redis.getClient()
+
       if (!client) {
         return { totalBindings: 0 }
       }
@@ -428,6 +451,7 @@ class ClaudeRelayConfigService {
           'COUNT',
           100
         )
+
         cursor = newCursor
         count += keys.length
       } while (cursor !== '0')
@@ -437,6 +461,7 @@ class ClaudeRelayConfigService {
       }
     } catch (error) {
       logger.error('❌ Failed to get session binding stats:', error)
+
       return { totalBindings: 0 }
     }
   }

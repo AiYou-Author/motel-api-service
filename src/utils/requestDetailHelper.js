@@ -16,6 +16,7 @@ function toFiniteNumber(value) {
   }
 
   const num = Number(value)
+
   if (!Number.isFinite(num)) {
     return null
   }
@@ -29,6 +30,7 @@ function maskSensitiveValue(value) {
   }
 
   const str = String(value)
+
   if (str.length <= 8) {
     return '[REDACTED]'
   }
@@ -59,6 +61,7 @@ function getValueCharLength(value) {
 
   try {
     const json = JSON.stringify(value)
+
     if (typeof json === 'string') {
       return json.length
     }
@@ -79,11 +82,13 @@ function normalizeNonEmptyString(value) {
   }
 
   const trimmed = value.trim()
+
   return trimmed ? trimmed : null
 }
 
 function normalizeInteger(value) {
   const num = toFiniteNumber(value)
+
   if (num === null) {
     return null
   }
@@ -112,6 +117,7 @@ function summarizeToolEntry(value) {
   }
 
   const summary = {}
+
   if (typeof value.type === 'string' && value.type) {
     summary.type = value.type
   }
@@ -132,11 +138,13 @@ function summarizeToolEntry(value) {
 
 function extractOpenAIReasoningInfo(payload) {
   const effort = normalizeNonEmptyString(payload?.reasoning?.effort)
+
   if (effort) {
     return createReasoningInfo(effort, 'reasoning.effort')
   }
 
   const rootEffort = normalizeNonEmptyString(payload?.reasoning_effort)
+
   if (rootEffort) {
     return createReasoningInfo(rootEffort, 'reasoning_effort')
   }
@@ -146,6 +154,7 @@ function extractOpenAIReasoningInfo(payload) {
 
 function extractAnthropicReasoningInfo(payload) {
   const outputEffort = normalizeNonEmptyString(payload?.output_config?.effort)
+
   if (outputEffort) {
     return createReasoningInfo(outputEffort, 'output_config.effort')
   }
@@ -157,6 +166,7 @@ function extractAnthropicReasoningInfo(payload) {
   }
 
   const thinkingString = normalizeNonEmptyString(thinking)
+
   if (thinkingString) {
     return createReasoningInfo(thinkingString, 'thinking')
   }
@@ -204,6 +214,7 @@ function extractAnthropicReasoningInfo(payload) {
 
 function extractGeminiReasoningInfo(payload) {
   const thinkingConfig = payload?.generationConfig?.thinkingConfig
+
   if (!thinkingConfig || typeof thinkingConfig !== 'object' || Array.isArray(thinkingConfig)) {
     return createReasoningInfo()
   }
@@ -211,6 +222,7 @@ function extractGeminiReasoningInfo(payload) {
   const thinkingLevel = normalizeNonEmptyString(
     thinkingConfig.thinkingLevel || thinkingConfig.thinking_level
   )
+
   if (thinkingLevel) {
     return createReasoningInfo(thinkingLevel, 'generationConfig.thinkingConfig.thinkingLevel')
   }
@@ -218,6 +230,7 @@ function extractGeminiReasoningInfo(payload) {
   const thinkingBudget = normalizeInteger(
     thinkingConfig.thinkingBudget ?? thinkingConfig.thinking_budget
   )
+
   if (thinkingBudget === -1) {
     return createReasoningInfo('dynamic', 'generationConfig.thinkingConfig.thinkingBudget')
   }
@@ -253,6 +266,7 @@ function extractRequestReasoningInfo(payload) {
 
   for (const extractor of extractors) {
     const result = extractor(payload)
+
     if (result.reasoningDisplay) {
       return result
     }
@@ -267,6 +281,7 @@ function parsePreviewJson(preview) {
   }
 
   const directCandidate = preview.trim()
+
   try {
     return JSON.parse(directCandidate)
   } catch (error) {
@@ -274,11 +289,13 @@ function parsePreviewJson(preview) {
   }
 
   const suffixMatch = directCandidate.match(PREVIEW_TRUNCATION_SUFFIX_PATTERN)
+
   if (!suffixMatch) {
     return null
   }
 
   const withoutSuffix = directCandidate.slice(0, -suffixMatch[0].length)
+
   try {
     return JSON.parse(withoutSuffix)
   } catch (error) {
@@ -292,16 +309,19 @@ function extractPreviewReasoningInfo(preview) {
   }
 
   const parsed = parsePreviewJson(preview)
+
   if (parsed) {
     return extractRequestReasoningInfo(parsed)
   }
 
   const openAIEffort = preview.match(/"reasoning"\s*:\s*\{[\s\S]{0,240}?"effort"\s*:\s*"([^"]+)"/)
+
   if (openAIEffort?.[1]) {
     return createReasoningInfo(openAIEffort[1], 'reasoning.effort')
   }
 
   const legacyOpenAIEffort = preview.match(/"reasoning_effort"\s*:\s*"([^"]+)"/)
+
   if (legacyOpenAIEffort?.[1]) {
     return createReasoningInfo(legacyOpenAIEffort[1], 'reasoning_effort')
   }
@@ -309,11 +329,13 @@ function extractPreviewReasoningInfo(preview) {
   const anthropicOutputEffort = preview.match(
     /"output_config"\s*:\s*\{[\s\S]{0,240}?"effort"\s*:\s*"([^"]+)"/
   )
+
   if (anthropicOutputEffort?.[1]) {
     return createReasoningInfo(anthropicOutputEffort[1], 'output_config.effort')
   }
 
   const thinkingSegmentIndex = preview.indexOf('"thinking"')
+
   if (thinkingSegmentIndex >= 0) {
     const thinkingSegment = preview.slice(thinkingSegmentIndex, thinkingSegmentIndex + 320)
     const thinkingType = thinkingSegment.match(/"type"\s*:\s*"([^"]+)"/)?.[1] || null
@@ -337,6 +359,7 @@ function extractPreviewReasoningInfo(preview) {
   }
 
   const geminiSegmentIndex = preview.indexOf('"thinkingConfig"')
+
   if (geminiSegmentIndex >= 0) {
     const geminiSegment = preview.slice(geminiSegmentIndex, geminiSegmentIndex + 320)
     const thinkingLevel = geminiSegment.match(/"thinkingLevel"\s*:\s*"([^"]+)"/)?.[1] || null
@@ -353,6 +376,7 @@ function extractPreviewReasoningInfo(preview) {
           : budgetValue === 0
             ? 'none'
             : formatReasoningBudget(budgetValue)
+
       return createReasoningInfo(display, 'generationConfig.thinkingConfig.thinkingBudget')
     }
   }
@@ -363,14 +387,17 @@ function extractPreviewReasoningInfo(preview) {
 function resolveRequestDetailReasoning(detail = {}) {
   const storedDisplay = normalizeNonEmptyString(detail.reasoningDisplay)
   const storedSource = normalizeNonEmptyString(detail.reasoningSource)
+
   if (storedDisplay) {
     return createReasoningInfo(storedDisplay, storedSource)
   }
 
   const snapshot = detail.requestBodySnapshot
+
   if (snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)) {
     if (typeof snapshot.preview === 'string') {
       const previewResult = extractPreviewReasoningInfo(snapshot.preview)
+
       if (previewResult.reasoningDisplay) {
         return previewResult
       }
@@ -400,6 +427,7 @@ function sanitizeValue(value, ctx) {
     if (SENSITIVE_KEY_PATTERN.test(keyPath)) {
       return maskSensitiveValue(value)
     }
+
     return truncateString(value, maxStringChars)
   }
 
@@ -419,6 +447,7 @@ function sanitizeValue(value, ctx) {
     if (Array.isArray(value)) {
       return `[Array(${value.length})]`
     }
+
     return '[Object]'
   }
 
@@ -445,8 +474,10 @@ function sanitizeValue(value, ctx) {
     }
 
     const result = {}
+
     for (const [key, childValue] of Object.entries(value)) {
       const childPath = keyPath ? `${keyPath}.${key}` : key
+
       if (key === ENCRYPTED_CONTENT_KEY) {
         result[key] = createOmittedValue(childValue)
         continue
@@ -491,6 +522,7 @@ function sanitizeValue(value, ctx) {
 
 function enforceTotalSize(snapshot, maxTotalChars = DEFAULT_MAX_TOTAL_CHARS) {
   let json = ''
+
   try {
     json = JSON.stringify(snapshot)
   } catch (error) {
@@ -536,22 +568,26 @@ function getRequestEndpoint(req) {
   }
 
   const originalUrl = req.originalUrl || req.url || req.path || null
+
   if (!originalUrl) {
     return null
   }
 
   const queryIndex = originalUrl.indexOf('?')
+
   return queryIndex >= 0 ? originalUrl.slice(0, queryIndex) : originalUrl
 }
 
 function toTimestampMs(value) {
   const numericValue = toFiniteNumber(value)
+
   if (numericValue !== null) {
     return numericValue
   }
 
   if (value instanceof Date) {
     const dateValue = value.getTime()
+
     return Number.isFinite(dateValue) ? dateValue : null
   }
 
@@ -560,6 +596,7 @@ function toTimestampMs(value) {
   }
 
   const parsed = Date.parse(value)
+
   return Number.isFinite(parsed) ? parsed : null
 }
 
@@ -622,6 +659,7 @@ function extractOpenAICacheReadTokens(usage = {}) {
     }
 
     const parsed = Number(value)
+
     if (!Number.isNaN(parsed)) {
       return Math.max(0, parsed)
     }

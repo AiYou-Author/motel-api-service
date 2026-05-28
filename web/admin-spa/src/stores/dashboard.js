@@ -91,6 +91,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const readFromStorage = (key, fallback) => {
     try {
       const value = localStorage.getItem(key)
+
       return value || fallback
     } catch (error) {
       return fallback
@@ -108,7 +109,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const normalizePresetForGranularity = (preset, granularity) => {
     const options = getPresetOptions(granularity)
     const hasPreset = options.some((opt) => opt.value === preset)
-    if (hasPreset) return preset
+
+    if (hasPreset) {return preset}
+
     return granularity === 'hour' ? 'last24h' : defaultPreset
   }
 
@@ -175,6 +178,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   // 公共函数：根据预设计算时间范围
   function getPresetTimeRange(preset) {
     const now = new Date()
+
     switch (preset) {
       case 'today': {
         return { start: getSystemTimezoneDay(now, true), end: getSystemTimezoneDay(now, false) }
@@ -184,7 +188,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
       case 'yesterday': {
         const yesterday = new Date()
+
         yesterday.setDate(yesterday.getDate() - 1)
+
         return {
           start: getSystemTimezoneDay(yesterday, true),
           end: getSystemTimezoneDay(yesterday, false)
@@ -192,7 +198,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
       case 'dayBefore': {
         const dayBefore = new Date()
+
         dayBefore.setDate(dayBefore.getDate() - 2)
+
         return {
           start: getSystemTimezoneDay(dayBefore, true),
           end: getSystemTimezoneDay(dayBefore, false)
@@ -233,6 +241,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
           monthly: { today: 'monthly', all: 'monthly' },
           all: { today: 'today', all: 'all' }
         }
+
         costsParams = periodMapping[timeRange] || costsParams
       }
 
@@ -325,10 +334,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
           url += `&endDate=${encodeURIComponent(dateFilter.value.customRange[1])}`
         } else if (dateFilter.value.type === 'preset') {
           const { start, end } = getPresetTimeRange(dateFilter.value.preset)
+
           url += `&startDate=${encodeURIComponent(start.toISOString())}`
           url += `&endDate=${encodeURIComponent(end.toISOString())}`
         } else {
           const now = new Date()
+
           url += `&startDate=${encodeURIComponent(new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString())}`
           url += `&endDate=${encodeURIComponent(now.toISOString())}`
         }
@@ -337,6 +348,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
 
       const response = await getUsageStatsApi(url)
+
       if (response.success) {
         trendData.value = response.data
       }
@@ -347,6 +359,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function loadModelStats(period = 'daily', granularity = null) {
     const currentGranularity = granularity || getEffectiveGranularity()
+
     try {
       let url = `/admin/model-stats?period=${period}`
 
@@ -356,6 +369,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
           url += `&endDate=${encodeURIComponent(dateFilter.value.customRange[1])}`
         } else if (currentGranularity === 'hour' && dateFilter.value.type === 'preset') {
           const { start, end } = getPresetTimeRange(dateFilter.value.preset)
+
           url += `&startDate=${encodeURIComponent(start.toISOString())}`
           url += `&endDate=${encodeURIComponent(end.toISOString())}`
         }
@@ -364,13 +378,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
         const option = dateFilter.value.presetOptions.find(
           (opt) => opt.value === dateFilter.value.preset
         )
+
         if (option) {
           let startDate, endDate
+
           if (dateFilter.value.preset === 'today') {
             startDate = getSystemTimezoneDay(now, true)
             endDate = getSystemTimezoneDay(now, false)
           } else {
             const daysAgo = new Date()
+
             daysAgo.setDate(daysAgo.getDate() - (option.days - 1))
             startDate = getSystemTimezoneDay(daysAgo, true)
             endDate = getSystemTimezoneDay(now, false)
@@ -381,6 +398,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
 
       const response = await getUsageStatsApi(url)
+
       if (response.success) {
         dashboardModelStats.value = response.data
       }
@@ -391,6 +409,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function loadApiKeysTrend(metric = 'requests', granularity = null) {
     const currentGranularity = granularity || getEffectiveGranularity()
+
     try {
       let url = '/admin/api-keys-usage-trend?'
       let days = 7
@@ -403,10 +422,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
           url += `&endDate=${encodeURIComponent(dateFilter.value.customRange[1])}`
         } else if (dateFilter.value.type === 'preset') {
           const { start, end } = getPresetTimeRange(dateFilter.value.preset)
+
           url += `&startDate=${encodeURIComponent(start.toISOString())}`
           url += `&endDate=${encodeURIComponent(end.toISOString())}`
         } else {
           const now = new Date()
+
           url += `&startDate=${encodeURIComponent(new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())}`
           url += `&endDate=${encodeURIComponent(now.toISOString())}`
         }
@@ -425,6 +446,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       url += `&metric=${metric}`
 
       const response = await getUsageStatsApi(url)
+
       if (response.success) {
         apiKeysTrendData.value = {
           data: response.data || [],
@@ -439,6 +461,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function loadAccountUsageTrend(group = accountUsageGroup.value, granularity = null) {
     const currentGranularity = granularity || getEffectiveGranularity()
+
     try {
       let url = '/admin/account-usage-trend?'
       let days = 7
@@ -451,10 +474,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
           url += `&endDate=${encodeURIComponent(dateFilter.value.customRange[1])}`
         } else if (dateFilter.value.type === 'preset') {
           const { start, end } = getPresetTimeRange(dateFilter.value.preset)
+
           url += `&startDate=${encodeURIComponent(start.toISOString())}`
           url += `&endDate=${encodeURIComponent(end.toISOString())}`
         } else {
           const now = new Date()
+
           url += `&startDate=${encodeURIComponent(new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())}`
           url += `&endDate=${encodeURIComponent(now.toISOString())}`
         }
@@ -473,6 +498,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       url += `&group=${group}`
 
       const response = await getUsageStatsApi(url)
+
       if (response.success) {
         accountUsageTrendData.value = {
           data: response.data || [],
@@ -501,6 +527,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
     if (trendGranularity.value === 'hour') {
       const range = getPresetTimeRange(normalizedPreset)
+
       startDate = range.start
       endDate = range.end
     } else {
@@ -526,6 +553,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       const hours = String(localTime.getHours()).padStart(2, '0')
       const minutes = String(localTime.getMinutes()).padStart(2, '0')
       const seconds = String(localTime.getSeconds()).padStart(2, '0')
+
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
     }
 
@@ -559,6 +587,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         const [datePart, timePart] = timeStr.split(' ')
         const [year, month, day] = datePart.split('-').map(Number)
         const [hours, minutes, seconds] = timePart.split(':').map(Number)
+
         return new Date(year, month - 1, day, hours, minutes, seconds)
       }
 
@@ -568,15 +597,19 @@ export const useDashboardStore = defineStore('dashboard', () => {
       if (trendGranularity.value === 'hour') {
         // 小时粒度：限制 24 小时
         const hoursDiff = (end - start) / (1000 * 60 * 60)
+
         if (hoursDiff > 24) {
           showToast('小时粒度下日期范围不能超过24小时', 'warning')
+
           return
         }
       } else {
         // 天粒度：限制 31 天
         const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+
         if (daysDiff > 31) {
           showToast('日期范围不能超过 31 天', 'warning')
+
           return
         }
       }
@@ -591,6 +624,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   function setTrendGranularity(granularity, options = {}) {
     const { silent = false, skipSave = false, presetOverride } = options
+
     trendGranularity.value = granularity
 
     // 根据粒度更新预设选项
@@ -606,9 +640,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
         const start = new Date(dateFilter.value.customRange[0])
         const end = new Date(dateFilter.value.customRange[1])
         const hoursDiff = (end - start) / (1000 * 60 * 60)
+
         if (hoursDiff > 24) {
           showToast('小时粒度下日期范围不能超过24小时，已切换到近24小时', 'warning')
           setDateFilterPreset('last24h', { silent, skipSave })
+
           return
         }
       }
@@ -625,6 +661,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       if (!silent) {
         refreshChartsData()
       }
+
       return
     }
 
@@ -675,6 +712,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
         const start = new Date(dateFilter.value.customRange[0])
         const end = new Date(dateFilter.value.customRange[1])
         const hoursDiff = Math.ceil((end - start) / (1000 * 60 * 60))
+
         days = Math.ceil(hoursDiff / 24) || 1
       } else {
         days = calculateDaysBetween(dateFilter.value.customStart, dateFilter.value.customEnd)
@@ -692,15 +730,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   function setAccountUsageGroup(group) {
     accountUsageGroup.value = group
+
     return loadAccountUsageTrend(group, getEffectiveGranularity())
   }
 
   function calculateDaysBetween(start, end) {
-    if (!start || !end) return 7
+    if (!start || !end) {return 7}
     const startDate = new Date(start)
     const endDate = new Date(end)
     const diffTime = Math.abs(endDate - startDate)
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
     return diffDays || 7
   }
 

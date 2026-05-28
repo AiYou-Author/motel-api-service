@@ -5,6 +5,7 @@ const { maskToken } = require('./tokenMask')
 
 // 确保日志目录存在
 const logDir = path.join(process.cwd(), 'logs')
+
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true })
 }

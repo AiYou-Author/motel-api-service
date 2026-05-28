@@ -2314,12 +2314,15 @@ const searchKeyword = ref('')
 const PAGE_SIZE_STORAGE_KEY = 'accountsPageSize'
 const getInitialPageSize = () => {
   const saved = localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
+
   if (saved) {
     const parsedSize = parseInt(saved, 10)
+
     if ([10, 20, 50, 100].includes(parsedSize)) {
       return parsedSize
     }
   }
+
   return 10
 }
 const pageSizeOptions = [10, 20, 50, 100]
@@ -2339,6 +2342,7 @@ const errorHistoryTarget = ref({ accountType: '', accountId: '', accountName: ''
 const platformToAccountType = (platform) => {
   if (platform === 'claude' || platform === 'claude-oauth') return 'claude-official'
   if (platform === 'azure_openai') return 'azure-openai'
+
   return platform
 }
 
@@ -2365,6 +2369,7 @@ const resolveTempUnavailableStatusForAccount = (tempStatuses, account) => {
 
   for (const accountType of accountTypeAliases) {
     const key = `${accountType}:${account.id}`
+
     if (tempStatuses[key]) {
       return tempStatuses[key]
     }
@@ -2510,6 +2515,7 @@ const getPlatformsForFilter = (filter) => {
   if (filter === 'all') return allPlatformKeys
   if (platformGroupMap[filter]) return platformGroupMap[filter]
   if (allPlatformKeys.includes(filter)) return [filter]
+
   return allPlatformKeys
 }
 
@@ -2540,6 +2546,7 @@ const groupOptions = computed(() => {
     { value: 'all', label: '所有账户', icon: 'fa-globe' },
     { value: 'ungrouped', label: '未分组账户', icon: 'fa-user' }
   ]
+
   accountGroups.value.forEach((group) => {
     options.push({
       value: group.id,
@@ -2554,6 +2561,7 @@ const groupOptions = computed(() => {
               : 'fa-robot'
     })
   })
+
   return options
 })
 
@@ -2586,6 +2594,7 @@ const collectAccountSearchableStrings = (account) => {
   baseFields.forEach((field) => {
     if (typeof field === 'string') {
       const trimmed = field.trim()
+
       if (trimmed) {
         values.add(trimmed)
       }
@@ -2596,6 +2605,7 @@ const collectAccountSearchableStrings = (account) => {
     account.groupInfos.forEach((group) => {
       if (group && typeof group.name === 'string') {
         const trimmed = group.name.trim()
+
         if (trimmed) {
           values.add(trimmed)
         }
@@ -2606,8 +2616,10 @@ const collectAccountSearchableStrings = (account) => {
   Object.entries(account || {}).forEach(([key, value]) => {
     if (typeof value === 'string') {
       const lowerKey = key.toLowerCase()
+
       if (lowerKey.includes('name') || lowerKey.includes('email')) {
         const trimmed = value.trim()
+
         if (trimmed) {
           values.add(trimmed)
         }
@@ -2620,6 +2632,7 @@ const collectAccountSearchableStrings = (account) => {
 
 const accountMatchesKeyword = (account, normalizedKeyword) => {
   if (!normalizedKeyword) return true
+
   return collectAccountSearchableStrings(account).some((value) =>
     value.toLowerCase().includes(normalizedKeyword)
   )
@@ -2642,6 +2655,7 @@ const showResetButton = (account) => {
     'azure-openai',
     'azure_openai'
   ]
+
   return supportedPlatforms.includes(account.platform) && isAccountRoutingBlocked(account)
 }
 
@@ -2713,6 +2727,7 @@ const getAccountActions = (account) => {
 const openAccountUsageModal = async (account) => {
   if (!canViewUsage(account)) {
     showToast('该账户类型暂不支持查看详情', 'warning')
+
     return
   }
 
@@ -2725,8 +2740,10 @@ const openAccountUsageModal = async (account) => {
   accountUsageGeneratedAt.value = ''
 
   const response = await httpApis.getAccountUsageHistoryApi(account.id, account.platform, 30)
+
   if (response.success) {
     const data = response.data || {}
+
     accountUsageHistory.value = data.history || []
     accountUsageSummary.value = data.summary || {}
     accountUsageOverview.value = data.overview || {}
@@ -2763,6 +2780,7 @@ const canTestAccount = (account) => {
 const openAccountTestModal = (account) => {
   if (!canTestAccount(account)) {
     showToast('该账户类型暂不支持测试', 'warning')
+
     return
   }
   testingAccount.value = account
@@ -2778,6 +2796,7 @@ const closeAccountTestModal = () => {
 const openScheduledTestModal = (account) => {
   if (!canTestAccount(account)) {
     showToast('该账户类型暂不支持定时测试', 'warning')
+
     return
   }
   scheduledTestAccount.value = account
@@ -2810,6 +2829,7 @@ const closeBalanceScriptModal = () => {
 const handleBalanceScriptSaved = async () => {
   showToast('余额脚本已保存', 'success')
   const account = selectedAccountForScript.value
+
   closeBalanceScriptModal()
 
   if (!account?.id || !account?.platform) {
@@ -2822,6 +2842,7 @@ const handleBalanceScriptSaved = async () => {
       platform: account.platform,
       queryApi: false
     })
+
     if (res?.success && res.data) {
       handleBalanceRefreshed(account.id, res.data)
     }
@@ -2835,8 +2856,10 @@ const sortedAccounts = computed(() => {
   let sourceAccounts = accounts.value
 
   const keyword = searchKeyword.value.trim()
+
   if (keyword) {
     const normalizedKeyword = keyword.toLowerCase()
+
     sourceAccounts = sourceAccounts.filter((account) =>
       accountMatchesKeyword(account, normalizedKeyword)
     )
@@ -2865,6 +2888,7 @@ const sortedAccounts = computed(() => {
         // 其他: 非限流的异常账户（未激活或被阻止）
         return !isRateLimited && (!account.isActive || isBlocked)
       }
+
       return true
     })
   }
@@ -2913,11 +2937,13 @@ const sortedAccounts = computed(() => {
       // 都未限流或都限流时，按剩余时间升序
       if (aMinutes < bMinutes) return -1
       if (aMinutes > bMinutes) return 1
+
       return 0
     }
 
     if (aVal < bVal) return accountsSortOrder.value === 'asc' ? -1 : 1
     if (aVal > bVal) return accountsSortOrder.value === 'asc' ? 1 : -1
+
     return 0
   })
 
@@ -2926,6 +2952,7 @@ const sortedAccounts = computed(() => {
 
 const totalPages = computed(() => {
   const total = sortedAccounts.value.length
+
   return Math.ceil(total / pageSize.value) || 0
 })
 
@@ -2955,6 +2982,7 @@ const accountStats = computed(() => {
       const normal = platformAccounts.filter((acc) => {
         const isRateLimited = isAccountRateLimited(acc)
         const isBlocked = acc.status === 'blocked' || acc.status === 'unauthorized'
+
         return !isRateLimited && acc.isActive && !isBlocked && acc.schedulable !== false
       }).length
 
@@ -2962,6 +2990,7 @@ const accountStats = computed(() => {
       const unschedulable = platformAccounts.filter((acc) => {
         const isRateLimited = isAccountRateLimited(acc)
         const isBlocked = acc.status === 'blocked' || acc.status === 'unauthorized'
+
         return !isRateLimited && acc.isActive && !isBlocked && acc.schedulable === false
       }).length
 
@@ -2969,31 +2998,37 @@ const accountStats = computed(() => {
       const other = platformAccounts.filter((acc) => {
         const isRateLimited = isAccountRateLimited(acc)
         const isBlocked = acc.status === 'blocked' || acc.status === 'unauthorized'
+
         return !isRateLimited && (!acc.isActive || isBlocked)
       }).length
 
       const rateLimit0_1h = rateLimitedAccounts.filter((acc) => {
         const minutes = getRateLimitRemainingMinutes(acc)
+
         return minutes > 0 && minutes <= 60
       }).length
 
       const rateLimit1_5h = rateLimitedAccounts.filter((acc) => {
         const minutes = getRateLimitRemainingMinutes(acc)
+
         return minutes > 60 && minutes <= 300
       }).length
 
       const rateLimit5_12h = rateLimitedAccounts.filter((acc) => {
         const minutes = getRateLimitRemainingMinutes(acc)
+
         return minutes > 300 && minutes <= 720
       }).length
 
       const rateLimit12_24h = rateLimitedAccounts.filter((acc) => {
         const minutes = getRateLimitRemainingMinutes(acc)
+
         return minutes > 720 && minutes <= 1440
       }).length
 
       const rateLimitOver24h = rateLimitedAccounts.filter((acc) => {
         const minutes = getRateLimitRemainingMinutes(acc)
+
         return minutes > 1440
       }).length
 
@@ -3027,6 +3062,7 @@ const accountStatsTotal = computed(() => {
       total.rateLimitOver24h += stat.rateLimitOver24h
       total.other += stat.other
       total.total += stat.total
+
       return total
     },
     {
@@ -3072,42 +3108,53 @@ const pageNumbers = computed(() => {
 
 const shouldShowFirstPage = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return pages[0] > 1
 })
 
 const shouldShowLastPage = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return pages[pages.length - 1] < totalPages.value
 })
 
 const showLeadingEllipsis = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return shouldShowFirstPage.value && pages[0] > 2
 })
 
 const showTrailingEllipsis = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return shouldShowLastPage.value && pages[pages.length - 1] < totalPages.value - 1
 })
 
 const paginatedAccounts = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
+
   return sortedAccounts.value.slice(start, end)
 })
 
 const canRefreshVisibleBalances = computed(() => {
   const targets = paginatedAccounts.value
+
   if (!Array.isArray(targets) || targets.length === 0) {
     return false
   }
 
   return targets.some((account) => {
     const info = account?.balanceInfo
+
     return info?.scriptEnabled !== false && !!info?.scriptConfigured
   })
 })
@@ -3116,6 +3163,7 @@ const refreshBalanceTooltip = computed(() => {
   if (accountsLoading.value) return '正在加载账户...'
   if (refreshingBalances.value) return '刷新中...'
   if (!canRefreshVisibleBalances.value) return '当前页未配置余额脚本，无法刷新'
+
   return '刷新当前页余额（仅对已配置余额脚本的账户生效）'
 })
 
@@ -3123,6 +3171,7 @@ const refreshBalanceTooltip = computed(() => {
 const handleBalanceRefreshed = (accountId, balanceInfo) => {
   accounts.value = accounts.value.map((account) => {
     if (account.id !== accountId) return account
+
     return { ...account, balanceInfo }
   })
 }
@@ -3130,6 +3179,7 @@ const handleBalanceRefreshed = (accountId, balanceInfo) => {
 // 余额请求错误回调（仅提示，不中断页面）
 const handleBalanceError = (_accountId, error) => {
   const message = error?.message || '余额查询失败'
+
   showToast(message, 'error')
 }
 
@@ -3138,17 +3188,20 @@ const refreshVisibleBalances = async () => {
   if (refreshingBalances.value) return
 
   const targets = paginatedAccounts.value
+
   if (!targets || targets.length === 0) {
     return
   }
 
   const eligibleTargets = targets.filter((account) => {
     const info = account?.balanceInfo
+
     return info?.scriptEnabled !== false && !!info?.scriptConfigured
   })
 
   if (eligibleTargets.length === 0) {
     showToast('当前页没有配置余额脚本的账户', 'warning')
+
     return
   }
 
@@ -3162,6 +3215,7 @@ const refreshVisibleBalances = async () => {
           const response = await httpApis.refreshAccountBalanceApi(account.id, {
             platform: account.platform
           })
+
           return { id: account.id, success: !!response?.success, data: response?.data || null }
         } catch (error) {
           return { id: account.id, success: false, error: error?.message || '刷新失败' }
@@ -3173,6 +3227,7 @@ const refreshVisibleBalances = async () => {
       if (item.success && item.data) {
         map[item.id] = item.data
       }
+
       return map
     }, {})
 
@@ -3180,10 +3235,13 @@ const refreshVisibleBalances = async () => {
     const failCount = results.length - successCount
 
     const skippedText = skippedCount > 0 ? `，跳过 ${skippedCount} 个未配置脚本` : ''
+
     if (Object.keys(updatedMap).length > 0) {
       accounts.value = accounts.value.map((account) => {
         const balanceInfo = updatedMap[account.id]
+
         if (!balanceInfo) return account
+
         return { ...account, balanceInfo }
       })
     }
@@ -3226,6 +3284,7 @@ const handleSelectAll = () => {
     })
   } else {
     const currentIds = new Set(paginatedAccounts.value.map((account) => account.id))
+
     selectedAccounts.value = selectedAccounts.value.filter((id) => !currentIds.has(id))
   }
   updateSelectAllState()
@@ -3244,6 +3303,7 @@ const toggleSelectionMode = () => {
 
 const cleanupSelectedAccounts = () => {
   const validIds = new Set(accounts.value.map((account) => account.id))
+
   selectedAccounts.value = selectedAccounts.value.filter((id) => validIds.has(id))
   updateSelectAllState()
 }
@@ -3251,11 +3311,13 @@ const cleanupSelectedAccounts = () => {
 // 异步加载余额缓存（按平台批量拉取，避免逐行请求）
 const loadBalanceCacheForAccounts = async () => {
   const current = accounts.value
+
   if (!Array.isArray(current) || current.length === 0) {
     return
   }
 
   const platforms = Array.from(new Set(current.map((acc) => acc.platform).filter(Boolean)))
+
   if (platforms.length === 0) {
     return
   }
@@ -3264,9 +3326,11 @@ const loadBalanceCacheForAccounts = async () => {
     platforms.map(async (platform) => {
       try {
         const res = await httpApis.getBalanceByPlatformApi(platform, { queryApi: false })
+
         return { platform, success: !!res?.success, data: res?.data || [] }
       } catch (error) {
         console.debug(`Failed to load balance cache for ${platform}:`, error)
+
         return { platform, success: false, data: [] }
       }
     })
@@ -3275,12 +3339,15 @@ const loadBalanceCacheForAccounts = async () => {
   const balanceMap = responses.reduce((map, item) => {
     if (!item.success) return map
     const list = Array.isArray(item.data) ? item.data : []
+
     list.forEach((entry) => {
       const accountId = entry?.data?.accountId
+
       if (accountId) {
         map[accountId] = entry.data
       }
     })
+
     return map
   }, {})
 
@@ -3300,6 +3367,7 @@ const loadAccounts = async (forceReload = false) => {
   try {
     // 构建查询参数（用于其他筛选情况）
     const params = {}
+
     if (platformFilter.value !== 'all' && !platformGroupMap[platformFilter.value]) {
       params.platform = platformFilter.value
     }
@@ -3318,12 +3386,14 @@ const loadAccounts = async (forceReload = false) => {
     const platformResults = await Promise.all(
       platformsToFetch.map(async (platform) => {
         const handler = platformRequestHandlers[platform]
+
         if (!handler) {
           return { platform, success: true, data: [], message: '' }
         }
 
         try {
           const res = await handler(params)
+
           return {
             platform,
             success: !!res?.success,
@@ -3332,17 +3402,20 @@ const loadAccounts = async (forceReload = false) => {
           }
         } catch (error) {
           console.debug(`Failed to load ${platform} accounts:`, error)
+
           return { platform, success: false, data: [], message: error?.message || '' }
         }
       })
     )
 
     const failedPlatforms = platformResults.filter((item) => !item.success)
+
     if (failedPlatforms.length > 0) {
       const failedLabels = failedPlatforms.map((item) => item.platform).join(', ')
       const firstErrorMessage =
         failedPlatforms.find((item) => typeof item.message === 'string' && item.message.trim())
           ?.message || ''
+
       showToast(
         `以下平台账户加载失败：${failedLabels}${firstErrorMessage ? `（${firstErrorMessage}）` : ''}`,
         'warning'
@@ -3355,51 +3428,63 @@ const loadAccounts = async (forceReload = false) => {
 
     const appendAccounts = (platform, data) => {
       const list = Array.isArray(data) ? data : []
+
       if (list.length === 0) return
 
       switch (platform) {
         case 'claude': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.claudeAccountId?.[acc.id] || 0
+
             return { ...acc, platform: 'claude', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
         case 'claude-console': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.claudeConsoleAccountId?.[acc.id] || 0
+
             return { ...acc, platform: 'claude-console', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
         case 'bedrock': {
           const items = list.map((acc) => ({ ...acc, platform: 'bedrock', boundApiKeysCount: 0 }))
+
           allAccounts.push(...items)
           break
         }
         case 'gemini': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.geminiAccountId?.[acc.id] || 0
+
             return { ...acc, platform: 'gemini', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
         case 'openai': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.openaiAccountId?.[acc.id] || 0
+
             return { ...acc, platform: 'openai', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
         case 'azure_openai': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.azureOpenaiAccountId?.[acc.id] || 0
+
             return { ...acc, platform: 'azure_openai', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
@@ -3409,22 +3494,27 @@ const loadAccounts = async (forceReload = false) => {
         }
         case 'ccr': {
           const items = list.map((acc) => ({ ...acc, platform: 'ccr', boundApiKeysCount: 0 }))
+
           allAccounts.push(...items)
           break
         }
         case 'droid': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.droidAccountId?.[acc.id] || acc.boundApiKeysCount || 0
+
             return { ...acc, platform: 'droid', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
         case 'gemini-api': {
           const items = list.map((acc) => {
             const boundApiKeysCount = counts.geminiAccountId?.[`api:${acc.id}`] || 0
+
             return { ...acc, platform: 'gemini-api', boundApiKeysCount }
           })
+
           allAccounts.push(...items)
           break
         }
@@ -3442,6 +3532,7 @@ const loadAccounts = async (forceReload = false) => {
     if (openaiResponsesRaw.length > 0) {
       const responsesAccounts = openaiResponsesRaw.map((acc) => {
         const boundApiKeysCount = counts.openaiAccountId?.[`responses:${acc.id}`] || 0
+
         return { ...acc, platform: 'openai-responses', boundApiKeysCount }
       })
 
@@ -3450,6 +3541,7 @@ const loadAccounts = async (forceReload = false) => {
 
     // 根据分组筛选器过滤账户
     let filteredAccounts = allAccounts
+
     if (groupFilter.value !== 'all') {
       if (groupFilter.value === 'ungrouped') {
         // 筛选未分组的账户（没有 groupInfos 或 groupInfos 为空数组）
@@ -3462,6 +3554,7 @@ const loadAccounts = async (forceReload = false) => {
           if (!account.groupInfos || account.groupInfos.length === 0) {
             return false
           }
+
           // 检查账户是否属于选中的分组
           return account.groupInfos.some((group) => group.id === groupFilter.value)
         })
@@ -3470,6 +3563,7 @@ const loadAccounts = async (forceReload = false) => {
 
     filteredAccounts = filteredAccounts.map((account) => {
       const proxyConfig = normalizeProxyData(account.proxyConfig || account.proxy)
+
       return {
         ...account,
         proxyConfig: proxyConfig || null
@@ -3479,13 +3573,17 @@ const loadAccounts = async (forceReload = false) => {
     // 获取临时不可用状态并附加到账户数据
     try {
       const tempRes = await httpApis.getTempUnavailableApi()
+
       if (tempRes?.success && tempRes.data) {
         const tempStatuses = tempRes.data
+
         filteredAccounts = filteredAccounts.map((account) => {
           const tempStatus = resolveTempUnavailableStatusForAccount(tempStatuses, account)
+
           if (tempStatus) {
             return { ...account, tempUnavailable: tempStatus }
           }
+
           return account
         })
       }
@@ -3517,12 +3615,15 @@ const loadAccounts = async (forceReload = false) => {
 // 异步加载 Claude 账户的 Usage 数据
 const loadClaudeUsage = async () => {
   const response = await httpApis.getClaudeAccountsUsageApi()
+
   if (response.success && response.data) {
     const usageMap = response.data
+
     accounts.value = accounts.value.map((account) => {
       if (account.platform === 'claude' && usageMap[account.id]) {
         return { ...account, claudeUsage: usageMap[account.id] }
       }
+
       return account
     })
   }
@@ -3584,6 +3685,7 @@ const clearSearch = () => {
 const loadBindingCounts = async (forceReload = false) => {
   if (!forceReload && bindingCountsLoaded.value) return
   const response = await httpApis.getAccountsBindingCountsApi()
+
   if (response.success) {
     bindingCounts.value = response.data || {}
     bindingCountsLoaded.value = true
@@ -3594,6 +3696,7 @@ const loadBindingCounts = async (forceReload = false) => {
 const loadApiKeys = async (forceReload = false) => {
   if (!forceReload && apiKeysLoaded.value) return
   const response = await httpApis.getApiKeysApi()
+
   if (response.success) {
     apiKeys.value = response.data?.items || response.data || []
     apiKeysLoaded.value = true
@@ -3604,6 +3707,7 @@ const loadApiKeys = async (forceReload = false) => {
 const loadAccountGroups = async (forceReload = false) => {
   if (!forceReload && groupsLoaded.value) return
   const response = await httpApis.getAccountGroupsApi()
+
   if (response.success) {
     accountGroups.value = response.data || []
     groupsLoaded.value = true
@@ -3638,6 +3742,7 @@ function normalizeProxyData(proxy) {
   }
 
   let proxyObject = proxy
+
   if (typeof proxy === 'string') {
     try {
       proxyObject = JSON.parse(proxy)
@@ -3696,6 +3801,7 @@ function normalizeProxyData(proxy) {
 // 格式化代理信息显示
 const formatProxyDisplay = (proxy) => {
   const parsed = normalizeProxyData(proxy)
+
   if (!parsed) {
     return null
   }
@@ -3703,6 +3809,7 @@ const formatProxyDisplay = (proxy) => {
   const typeShort = parsed.type.toLowerCase() === 'socks5' ? 'S5' : parsed.type.toUpperCase()
 
   let host = parsed.host
+
   if (host.length > 15) {
     host = host.substring(0, 12) + '...'
   }
@@ -3741,6 +3848,7 @@ const formatRemainingTime = (minutes) => {
   if (hours > 0) {
     return `${hours}小时${mins}分钟`
   }
+
   return `${mins}分钟`
 }
 
@@ -3763,12 +3871,14 @@ const formatRateLimitTime = (minutes) => {
     if (hours > 0) {
       return `${days}天${hours}小时`
     }
+
     return `${days}天`
   } else if (hours > 0) {
     // 超过1小时但不到1天，显示小时和分钟
     if (mins > 0) {
       return `${hours}小时${mins}分钟`
     }
+
     return `${hours}小时`
   } else {
     // 不到1小时，只显示分钟
@@ -3782,12 +3892,15 @@ const formatTempUnavailableTime = (seconds) => {
   seconds = Math.floor(seconds)
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
+
   if (mins > 0) return `${mins}m${secs > 0 ? secs + 's' : ''}`
+
   return `${secs}s`
 }
 
 const toPositiveInteger = (value) => {
   const parsed = Number(value)
+
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0
 }
 
@@ -3798,11 +3911,13 @@ const getTempUnavailableRemainingSeconds = (tempUnavailable) => {
   )
 
   const recoveryAt = getTempUnavailableRecoveryAt(tempUnavailable)
+
   if (!recoveryAt) {
     return serverRemainingSeconds
   }
 
   const recoveryAtTimestamp = new Date(recoveryAt).getTime()
+
   if (Number.isNaN(recoveryAtTimestamp)) {
     return serverRemainingSeconds
   }
@@ -3815,11 +3930,13 @@ const getTempUnavailableRemainingSeconds = (tempUnavailable) => {
   if (serverRemainingSeconds <= 0) {
     return liveRemainingSeconds
   }
+
   return Math.min(serverRemainingSeconds, liveRemainingSeconds)
 }
 
 const getTempUnavailableCooldownSeconds = (tempUnavailable) => {
   if (!tempUnavailable) return 0
+
   return toPositiveInteger(tempUnavailable.cooldownSeconds)
 }
 
@@ -3828,6 +3945,7 @@ const getTempUnavailableRecoveryAt = (tempUnavailable) => {
 
   if (tempUnavailable.expiresAt) {
     const expiresAt = new Date(tempUnavailable.expiresAt)
+
     if (!Number.isNaN(expiresAt.getTime())) {
       return tempUnavailable.expiresAt
     }
@@ -3836,6 +3954,7 @@ const getTempUnavailableRecoveryAt = (tempUnavailable) => {
   if (tempUnavailable.markedAt) {
     const markedAt = new Date(tempUnavailable.markedAt)
     const cooldownSeconds = getTempUnavailableCooldownSeconds(tempUnavailable)
+
     if (!Number.isNaN(markedAt.getTime()) && cooldownSeconds > 0) {
       return new Date(markedAt.getTime() + cooldownSeconds * 1000).toISOString()
     }
@@ -3846,9 +3965,11 @@ const getTempUnavailableRecoveryAt = (tempUnavailable) => {
 
 const formatTempUnavailableRecoveryAt = (tempUnavailable) => {
   const recoveryAt = getTempUnavailableRecoveryAt(tempUnavailable)
+
   if (!recoveryAt) return ''
 
   const recoveryDate = new Date(recoveryAt)
+
   if (Number.isNaN(recoveryDate.getTime())) return ''
 
   const month = `${recoveryDate.getMonth() + 1}`.padStart(2, '0')
@@ -3856,6 +3977,7 @@ const formatTempUnavailableRecoveryAt = (tempUnavailable) => {
   const hours = `${recoveryDate.getHours()}`.padStart(2, '0')
   const minutes = `${recoveryDate.getMinutes()}`.padStart(2, '0')
   const seconds = `${recoveryDate.getSeconds()}`.padStart(2, '0')
+
   return `${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
@@ -3865,19 +3987,23 @@ const getTempUnavailableTooltipContent = (tempUnavailable) => {
   const details = []
   const statusCodeText = tempUnavailable.statusCode ? `HTTP ${tempUnavailable.statusCode}` : ''
   const errorTypeText = tempUnavailable.errorType || 'upstream_error'
+
   details.push(`${errorTypeText}${statusCodeText ? ` (${statusCodeText})` : ''}`)
 
   const cooldownSeconds = getTempUnavailableCooldownSeconds(tempUnavailable)
+
   if (cooldownSeconds > 0) {
     details.push(`内部冷却 ${formatTempUnavailableTime(cooldownSeconds)}`)
   }
 
   const remainingSeconds = getTempUnavailableRemainingSeconds(tempUnavailable)
+
   if (remainingSeconds > 0) {
     details.push(`剩余 ${formatTempUnavailableTime(remainingSeconds)}`)
   }
 
   const recoveryAtText = formatTempUnavailableRecoveryAt(tempUnavailable)
+
   if (recoveryAtText) {
     details.push(`预计恢复 ${recoveryAtText}`)
   }
@@ -3911,6 +4037,7 @@ const getRateLimitRemainingMinutes = (account) => {
 
   if (typeof account.rateLimitStatus === 'object') {
     const status = account.rateLimitStatus
+
     if (Number.isFinite(status.minutesRemaining)) {
       return Math.max(0, Math.ceil(status.minutesRemaining))
     }
@@ -3922,6 +4049,7 @@ const getRateLimitRemainingMinutes = (account) => {
     }
     if (status.rateLimitResetAt) {
       const diffMs = new Date(status.rateLimitResetAt).getTime() - Date.now()
+
       return diffMs > 0 ? Math.ceil(diffMs / 60000) : 0
     }
   }
@@ -3931,6 +4059,7 @@ const getRateLimitRemainingMinutes = (account) => {
     const now = new Date().getTime()
     const untilTime = new Date(account.rateLimitUntil).getTime()
     const diff = untilTime - now
+
     return diff > 0 ? Math.ceil(diff / 60000) : 0
   }
 
@@ -3957,8 +4086,10 @@ const editAccount = (account) => {
 
 const getBoundApiKeysForAccount = (account) => {
   if (!account || !account.id) return []
+
   return apiKeys.value.filter((key) => {
     const accountId = account.id
+
     return (
       key.claudeAccountId === accountId ||
       key.claudeConsoleAccountId === accountId ||
@@ -4000,9 +4131,12 @@ const resolveAccountDeleteEndpoint = (account) => {
 
 const performAccountDeletion = async (account) => {
   const endpoint = resolveAccountDeleteEndpoint(account)
+
   if (!endpoint) return { success: false, message: '不支持的账户类型' }
   const data = await httpApis.deleteAccountByEndpointApi(endpoint)
+
   if (data.success) return { success: true, data }
+
   return { success: false, message: data.message || '删除失败' }
 }
 
@@ -4012,6 +4146,7 @@ const deleteAccount = async (account) => {
   const boundKeysCount = boundKeys.length
 
   let confirmMessage = `确定要删除账户 "${account.name}" 吗？`
+
   if (boundKeysCount > 0) {
     confirmMessage += `\n\n⚠️ 注意：此账号有 ${boundKeysCount} 个 API Key 绑定。`
     confirmMessage += `\n删除后，这些 API Key 将自动切换为共享池模式。`
@@ -4027,6 +4162,7 @@ const deleteAccount = async (account) => {
   if (result.success) {
     const data = result.data
     let toastMessage = '账户已成功删除'
+
     if (data?.unboundKeys > 0) {
       toastMessage += `，${data.unboundKeys} 个 API Key 已切换为共享池模式`
     }
@@ -4050,6 +4186,7 @@ const deleteAccount = async (account) => {
 const batchDeleteAccounts = async () => {
   if (selectedAccounts.value.length === 0) {
     showToast('请先选择要删除的账户', 'warning')
+
     return
   }
 
@@ -4062,6 +4199,7 @@ const batchDeleteAccounts = async () => {
     showToast('选中的账户已不存在', 'warning')
     selectedAccounts.value = []
     updateSelectAllState()
+
     return
   }
 
@@ -4074,6 +4212,7 @@ const batchDeleteAccounts = async () => {
     confirmMessage += '\n\n⚠️ 以下账户存在绑定的 API Key，将自动解绑：'
     boundInfo.forEach(({ account, boundKeys }) => {
       const displayName = account.name || account.email || account.accountName || account.id
+
       confirmMessage += `\n- ${displayName}: ${boundKeys.length} 个`
     })
     confirmMessage += '\n删除后，这些 API Key 将切换为共享池模式。'
@@ -4082,6 +4221,7 @@ const batchDeleteAccounts = async () => {
   confirmMessage += '\n\n请再次确认是否继续。'
 
   const confirmed = await showConfirm('批量删除账户', confirmMessage, '删除', '取消')
+
   if (!confirmed) return
 
   let successCount = 0
@@ -4091,6 +4231,7 @@ const batchDeleteAccounts = async () => {
 
   for (const account of targets) {
     const result = await performAccountDeletion(account)
+
     if (result.success) {
       successCount += 1
       totalUnboundKeys += result.data?.unboundKeys || 0
@@ -4105,6 +4246,7 @@ const batchDeleteAccounts = async () => {
 
   if (successCount > 0) {
     let toastMessage = `成功删除 ${successCount} 个账户`
+
     if (totalUnboundKeys > 0) {
       toastMessage += `，${totalUnboundKeys} 个 API Key 已切换为共享池模式`
     }
@@ -4121,6 +4263,7 @@ const batchDeleteAccounts = async () => {
 
   if (failedCount > 0) {
     const detailMessage = failedDetails.map((item) => `${item.name}: ${item.message}`).join('\n')
+
     showToast(
       `有 ${failedCount} 个账户删除失败:\n${detailMessage}`,
       successCount > 0 ? 'warning' : 'error'
@@ -4160,6 +4303,7 @@ const TOGGLE_SCHEDULABLE_ENDPOINT_MAP = {
 
 const resolveEndpointByPlatform = (mapping, platform, id) => {
   const builder = mapping[platform]
+
   return typeof builder === 'function' ? builder(id) : ''
 }
 
@@ -4185,13 +4329,16 @@ const resetAccountStatus = async (account) => {
       account.platform,
       account.id
     )
+
     if (!endpoint) {
       showToast('不支持的账户类型', 'error')
       account.isResetting = false
+
       return
     }
 
     const data = await httpApis.testAccountByEndpointApi(endpoint)
+
     if (data.success) {
       showToast('账户状态已重置', 'success')
       loadAccounts(true)
@@ -4215,13 +4362,16 @@ const toggleSchedulable = async (account) => {
     account.platform,
     account.id
   )
+
   if (!endpoint) {
     showToast('该账户类型暂不支持调度控制', 'warning')
     account.isTogglingSchedulable = false
+
     return
   }
 
   const data = await httpApis.toggleAccountStatusApi(endpoint)
+
   if (data.success) {
     account.schedulable = data.schedulable
     showToast(data.schedulable ? '已启用调度' : '已禁用调度', 'success')
@@ -4255,6 +4405,7 @@ const getClaudeAuthType = (account) => {
   if (!account.lastRefreshAt || account.lastRefreshAt === '') {
     return 'Setup' // 缩短显示文本
   }
+
   return 'OAuth'
 }
 
@@ -4335,6 +4486,7 @@ const getDroidApiKeyCount = (account) => {
   if (typeof account.apiKeys === 'string' && account.apiKeys.trim()) {
     try {
       const parsed = JSON.parse(account.apiKeys)
+
       if (Array.isArray(parsed)) {
         // 只计算状态不是 'error' 的 API Keys
         return parsed.filter((apiKey) => apiKey.status !== 'error').length
@@ -4353,6 +4505,7 @@ const getDroidApiKeyCount = (account) => {
 
   for (const candidate of candidates) {
     const value = Number(candidate)
+
     if (Number.isFinite(value) && value >= 0) {
       return value
     }
@@ -4518,17 +4671,20 @@ const getSchedulableReason = (account) => {
 
 const normalizeReasonText = (reason) => {
   if (typeof reason !== 'string') return ''
+
   return reason.trim()
 }
 
 const dedupeRoutingReasons = (reasons) => {
   const normalized = reasons.map(normalizeReasonText).filter(Boolean)
+
   return Array.from(new Set(normalized))
 }
 
 const isAccountExpiredForRouting = (account) => {
   if (!account || !account.expiresAt) return false
   if (account.platform !== 'claude-console' && account.platform !== 'bedrock') return false
+
   return isExpired(account.expiresAt)
 }
 
@@ -4610,6 +4766,7 @@ const getRoutingBlockReasons = (account) => {
 
   if (isAccountRateLimited(account)) {
     const minutes = getRateLimitRemainingMinutes(account)
+
     reasons.push(
       minutes > 0 ? `触发限流（约 ${formatRateLimitTime(minutes)} 后恢复）` : '触发限流（429）'
     )
@@ -4621,6 +4778,7 @@ const getRoutingBlockReasons = (account) => {
     const recoveryAtText = formatTempUnavailableRecoveryAt(account.tempUnavailable)
 
     const detailParts = []
+
     if (cooldownSeconds > 0) {
       detailParts.push(`内部冷却 ${formatTempUnavailableTime(cooldownSeconds)}`)
     }
@@ -4635,6 +4793,7 @@ const getRoutingBlockReasons = (account) => {
     const tempReason = account.tempUnavailable.errorType
       ? `临时暂停（${account.tempUnavailable.errorType}${account.tempUnavailable.statusCode ? ` / HTTP ${account.tempUnavailable.statusCode}` : ''}${detailText}）`
       : `临时暂停${detailParts.length > 0 ? `（${detailParts.join('，')}）` : ''}`
+
     reasons.push(tempReason)
   }
 
@@ -4642,6 +4801,7 @@ const getRoutingBlockReasons = (account) => {
     const opusMinutes = Number.isFinite(account.opusRateLimitStatus.minutesRemaining)
       ? Math.max(0, Math.ceil(account.opusRateLimitStatus.minutesRemaining))
       : 0
+
     reasons.push(
       opusMinutes > 0
         ? `Opus 模型限流中（约 ${formatRateLimitTime(opusMinutes)} 后恢复）`
@@ -4658,6 +4818,7 @@ const getRoutingBlockReasons = (account) => {
   }
 
   const deduped = dedupeRoutingReasons(reasons)
+
   if (deduped.length === 0 && isAccountRoutingBlocked(account)) {
     return ['调度器判定不可路由（无详细原因）']
   }
@@ -4667,6 +4828,7 @@ const getRoutingBlockReasons = (account) => {
 
 const getRoutingBlockReasonSummary = (account) => {
   const reasons = getRoutingBlockReasons(account)
+
   return reasons.length > 0 ? reasons.join('；') : '无'
 }
 
@@ -4701,6 +4863,7 @@ const getAccountStatusText = (account) => {
   if (account.status === 'error' || !account.isActive) return '错误'
   // 配额超限时显示"正常"（不显示"已暂停"）
   if (account.schedulable === false && !isQuotaExceeded(account)) return '已暂停'
+
   // 否则正常（包括配额超限状态）
   return '正常'
 }
@@ -4734,6 +4897,7 @@ const getAccountStatusClass = (account) => {
   if (account.schedulable === false && !isQuotaExceeded(account)) {
     return 'bg-gray-100 text-gray-800'
   }
+
   return 'bg-green-100 text-green-800'
 }
 
@@ -4766,6 +4930,7 @@ const getAccountStatusDotClass = (account) => {
   if (account.schedulable === false && !isQuotaExceeded(account)) {
     return 'bg-gray-500'
   }
+
   return 'bg-green-500'
 }
 
@@ -4827,6 +4992,7 @@ const formatClaudeUsagePercent = (window) => {
   if (!window || window.utilization === null || window.utilization === undefined) {
     return '-'
   }
+
   return `${window.utilization}%`
 }
 
@@ -4835,18 +5001,21 @@ const getClaudeUsageWidth = (window) => {
   if (!window || window.utilization === null || window.utilization === undefined) {
     return '0%'
   }
+
   return `${window.utilization}%`
 }
 
 // 获取 Claude 使用率进度条颜色
 const getClaudeUsageBarClass = (window) => {
   const util = window?.utilization || 0
+
   if (util < 60) {
     return 'bg-gradient-to-r from-blue-500 to-indigo-600'
   }
   if (util < 90) {
     return 'bg-gradient-to-r from-yellow-500 to-orange-500'
   }
+
   return 'bg-gradient-to-r from-red-500 to-red-600'
 }
 
@@ -4865,17 +5034,20 @@ const formatClaudeRemaining = (window) => {
     if (hours > 0) {
       return `${days}天${hours}小时`
     }
+
     return `${days}天`
   }
   if (hours > 0) {
     if (minutes > 0) {
       return `${hours}小时${minutes}分钟`
     }
+
     return `${hours}小时`
   }
   if (minutes > 0) {
     return `${minutes}分钟`
   }
+
   return `${Math.floor(seconds % 60)}秒`
 }
 
@@ -4919,6 +5091,7 @@ const normalizeCodexUsagePercent = (usageItem) => {
 // OpenAI 限额进度条颜色
 const getCodexUsageBarClass = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) {
     return 'bg-gradient-to-r from-gray-300 to-gray-400'
   }
@@ -4928,24 +5101,29 @@ const getCodexUsageBarClass = (usageItem) => {
   if (percent >= 75) {
     return 'bg-gradient-to-r from-yellow-500 to-orange-500'
   }
+
   return 'bg-gradient-to-r from-emerald-500 to-teal-500'
 }
 
 // 百分比显示
 const formatCodexUsagePercent = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) {
     return '--'
   }
+
   return `${percent.toFixed(1)}%`
 }
 
 // 进度条宽度
 const getCodexUsageWidth = (usageItem) => {
   const percent = normalizeCodexUsagePercent(usageItem)
+
   if (percent === null) {
     return '0%'
   }
+
   return `${percent}%`
 }
 
@@ -4954,6 +5132,7 @@ const getCodexWindowLabel = (type) => {
   if (type === 'secondary') {
     return '周限'
   }
+
   return '5h'
 }
 
@@ -4964,6 +5143,7 @@ const formatCodexRemaining = (usageItem) => {
   }
 
   let seconds = usageItem.remainingSeconds
+
   if (seconds === null || seconds === undefined) {
     seconds = usageItem.resetAfterSeconds
   }
@@ -4983,17 +5163,20 @@ const formatCodexRemaining = (usageItem) => {
     if (hours > 0) {
       return `${days}天${hours}小时`
     }
+
     return `${days}天`
   }
   if (hours > 0) {
     if (minutes > 0) {
       return `${hours}小时${minutes}分钟`
     }
+
     return `${hours}小时`
   }
   if (minutes > 0) {
     return `${minutes}分钟`
   }
+
   return `${secs}秒`
 }
 
@@ -5003,6 +5186,7 @@ const formatCost = (cost) => {
   if (cost < 0.0001) return cost.toExponential(2)
   if (cost < 0.01) return cost.toFixed(6)
   if (cost < 1) return cost.toFixed(4)
+
   return cost.toFixed(2)
 }
 
@@ -5010,7 +5194,9 @@ const formatCost = (cost) => {
 const getQuotaUsagePercent = (account) => {
   const used = Number(account?.usage?.daily?.cost || 0)
   const quota = Number(account?.dailyQuota || 0)
+
   if (!quota || quota <= 0) return 0
+
   return (used / quota) * 100
 }
 
@@ -5018,14 +5204,17 @@ const getQuotaUsagePercent = (account) => {
 const getQuotaBarClass = (percent) => {
   if (percent >= 90) return 'bg-red-500'
   if (percent >= 70) return 'bg-yellow-500'
+
   return 'bg-green-500'
 }
 
 // 并发使用百分比（Claude Console）
 const getConsoleConcurrencyPercent = (account) => {
   const max = Number(account?.maxConcurrentTasks || 0)
+
   if (!max || max <= 0) return 0
   const active = Number(account?.activeTaskCount || 0)
+
   return Math.min(100, (active / max) * 100)
 }
 
@@ -5033,20 +5222,24 @@ const getConsoleConcurrencyPercent = (account) => {
 const getConcurrencyBarClass = (percent) => {
   if (percent >= 100) return 'bg-red-500'
   if (percent >= 80) return 'bg-yellow-500'
+
   return 'bg-green-500'
 }
 
 // 并发标签颜色（Claude Console）
 const getConcurrencyLabelClass = (account) => {
   const max = Number(account?.maxConcurrentTasks || 0)
+
   if (!max || max <= 0) return 'text-gray-500 dark:text-gray-400'
   const active = Number(account?.activeTaskCount || 0)
+
   if (active >= max) {
     return 'text-red-600 dark:text-red-400'
   }
   if (active >= max * 0.8) {
     return 'text-yellow-600 dark:text-yellow-400'
   }
+
   return 'text-gray-700 dark:text-gray-200'
 }
 
@@ -5054,7 +5247,9 @@ const getConcurrencyLabelClass = (account) => {
 const formatRemainingQuota = (account) => {
   const used = Number(account?.usage?.daily?.cost || 0)
   const quota = Number(account?.dailyQuota || 0)
+
   if (!quota || quota <= 0) return '0.00'
+
   return Math.max(0, quota - used).toFixed(2)
 }
 
@@ -5130,6 +5325,7 @@ watch(accounts, () => {
 const formatExpireDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
+
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -5139,6 +5335,7 @@ const formatExpireDate = (dateString) => {
 
 const isExpired = (expiresAt) => {
   if (!expiresAt) return false
+
   return new Date(expiresAt) < new Date()
 }
 
@@ -5147,6 +5344,7 @@ const isExpiringSoon = (expiresAt) => {
   const now = new Date()
   const expireDate = new Date(expiresAt)
   const daysUntilExpire = (expireDate - now) / (1000 * 60 * 60 * 24)
+
   return daysUntilExpire > 0 && daysUntilExpire <= 7
 }
 
@@ -5168,12 +5366,14 @@ const handleSaveAccountExpiry = async ({ accountId, expiresAt }) => {
 
     if (!account) {
       showToast('未找到账户', 'error')
+
       return
     }
 
     // 定义每个平台的端点和参数名
     // 注意：部分平台使用 :accountId，部分使用 :id
     let endpoint = ''
+
     switch (account.platform) {
       case 'claude':
       case 'claude-oauth':
@@ -5205,12 +5405,14 @@ const handleSaveAccountExpiry = async ({ accountId, expiresAt }) => {
         break
       default:
         showToast(`不支持的平台类型: ${account.platform}`, 'error')
+
         return
     }
 
     const data = await httpApis.updateAccountByEndpointApi(endpoint, {
       expiresAt: expiresAt || null
     })
+
     if (data.success) {
       showToast('账户到期时间已更新', 'success')
       account.expiresAt = expiresAt || null

@@ -144,10 +144,12 @@ function createRes() {
     headersSent: false,
     status: jest.fn((code) => {
       res.statusCode = code
+
       return res
     }),
     json: jest.fn((payload) => {
       res.payload = payload
+
       return res
     }),
     setHeader: jest.fn((key, value) => {
@@ -155,9 +157,11 @@ function createRes() {
     }),
     set: jest.fn((key, value) => {
       res.headers[key] = value
+
       return res
     })
   }
+
   return res
 }
 

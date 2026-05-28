@@ -22,6 +22,7 @@ router.get('/concurrency', authenticateAdmin, async (req, res) => {
     const statusWithQueue = await Promise.all(
       status.map(async (s) => {
         const queueCount = await redis.getConcurrencyQueueCount(s.apiKeyId)
+
         return {
           ...s,
           queueCount
@@ -159,6 +160,7 @@ router.get('/concurrency-queue/stats', authenticateAdmin, async (req, res) => {
 router.delete('/concurrency-queue/:apiKeyId', authenticateAdmin, async (req, res) => {
   try {
     const { apiKeyId } = req.params
+
     await redis.clearConcurrencyQueue(apiKeyId)
 
     logger.warn(`🧹 Admin ${req.admin?.username || 'unknown'} cleared queue for key ${apiKeyId}`)

@@ -506,6 +506,7 @@ const filteredUsers = computed(() => {
   // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     filtered = filtered.filter(
       (user) =>
         user.username.toLowerCase().includes(query) ||
@@ -522,6 +523,7 @@ const filteredUsers = computed(() => {
   // Apply status filter
   if (selectedStatus.value !== '') {
     const isActive = selectedStatus.value === 'true'
+
     filtered = filtered.filter((user) => user.isActive === isActive)
   }
 
@@ -533,6 +535,7 @@ const loadUsers = async () => {
   try {
     // Build params object, only including parameters with actual values
     const params = {}
+
     if (selectedRole.value && selectedRole.value.trim() !== '') {
       params.role = selectedRole.value
     }
@@ -614,6 +617,7 @@ const handleConfirmAction = async () => {
 
       if (response.success) {
         const userIndex = users.value.findIndex((u) => u.id === user.id)
+
         if (userIndex !== -1) {
           users.value[userIndex].isActive = !user.isActive
         }

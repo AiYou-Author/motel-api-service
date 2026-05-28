@@ -167,8 +167,10 @@ const fetchHistory = async (offset = 0) => {
     offset,
     limit: PAGE_SIZE
   })
+
   if (res.success) {
     const data = res.data || []
+
     if (offset === 0) {
       list.value = data
     } else {
@@ -219,6 +221,7 @@ const formatBody = (body) => {
       return body
     }
   }
+
   return JSON.stringify(body, null, 2)
 }
 
@@ -229,6 +232,7 @@ const statusClass = (status) => {
     return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
   if (status === 401 || status === 403)
     return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
+
   return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
 }
 </script>

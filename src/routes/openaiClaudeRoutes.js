@@ -105,6 +105,7 @@ router.get('/v1/models', authenticateApiKey, async (req, res) => {
       }
     })
   }
+
   return undefined
 })
 
@@ -179,6 +180,7 @@ router.get('/v1/models/:model', authenticateApiKey, async (req, res) => {
       }
     })
   }
+
   return undefined
 })
 
@@ -213,6 +215,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
     // 模型限制（黑名单）：命中受限模型则拒绝
     if (apiKeyData.enableModelRestriction && apiKeyData.restrictedModels?.length > 0) {
       const effectiveModel = getEffectiveModel(claudeRequest.model || '')
+
       if (apiKeyData.restrictedModels.includes(effectiveModel)) {
         return res.status(403).json({
           error: {
@@ -229,6 +232,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
 
     // 选择可用的Claude账户
     let accountSelection
+
     try {
       accountSelection = await unifiedClaudeScheduler.selectAccountForApiKey(
         apiKeyData,
@@ -238,6 +242,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
     } catch (error) {
       if (error.code === 'CLAUDE_DEDICATED_RATE_LIMITED') {
         const limitMessage = claudeRelayService._buildStandardRateLimitMessage(error.rateLimitEndAt)
+
         return res.status(403).json({
           error: 'upstream_rate_limited',
           message: limitMessage
@@ -292,6 +297,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
             req.headers['anthropic-beta'] ||
             req.headers['Anthropic-Beta'] ||
             req.headers['ANTHROPIC-BETA']
+
           if (requestBetaHeader) {
             usageWithRequestMeta.request_anthropic_beta = requestBetaHeader
           }
@@ -386,6 +392,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
 
       // 根据账户类型选择转发服务
       let claudeResponse
+
       if (accountType === 'claude-console') {
         // Claude Console 账户使用 Console 转发服务
         claudeResponse = await claudeConsoleRelayService.relayRequest(
@@ -410,10 +417,12 @@ async function handleChatCompletion(req, res, apiKeyData) {
 
       // 解析 Claude 响应
       let claudeData
+
       try {
         claudeData = JSON.parse(claudeResponse.body)
       } catch (error) {
         logger.error('❌ Failed to parse Claude response:', error)
+
         return res.status(502).json({
           error: {
             message: 'Invalid response from Claude API',
@@ -451,6 +460,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
           req.headers['anthropic-beta'] ||
           req.headers['Anthropic-Beta'] ||
           req.headers['ANTHROPIC-BETA']
+
         if (requestBetaHeader) {
           usageWithRequestMeta.request_anthropic_beta = requestBetaHeader
         }
@@ -510,6 +520,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
     }
 
     const duration = Date.now() - startTime
+
     logger.info(`✅ OpenAI-Claude request completed in ${duration}ms`)
   } catch (error) {
     // 客户端主动断开连接是正常情况，使用 INFO 级别
@@ -526,6 +537,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
         res.status(499).end()
       } else {
         const status = error.status || 500
+
         res.status(status).json({
           error: {
             message: getSafeMessage(error),
@@ -541,6 +553,7 @@ async function handleChatCompletion(req, res, apiKeyData) {
       abortController = null
     }
   }
+
   return undefined
 }
 
@@ -567,6 +580,7 @@ router.post('/v1/completions', authenticateApiKey, async (req, res) => {
 
     // 将传统 completions 格式转换为 chat 格式
     const originalBody = req.body
+
     req.body = {
       model: originalBody.model,
       messages: [
@@ -599,6 +613,7 @@ router.post('/v1/completions', authenticateApiKey, async (req, res) => {
       }
     })
   }
+
   return undefined
 })
 

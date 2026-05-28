@@ -9,27 +9,33 @@ const UPSTREAM_RESPONSE_DUMP_FILENAME = 'antigravity-upstream-responses-dump.jso
 
 function isEnabled() {
   const raw = process.env[UPSTREAM_RESPONSE_DUMP_ENV]
+
   if (!raw) {
     return false
   }
   const normalized = String(raw).trim().toLowerCase()
+
   return normalized === '1' || normalized === 'true'
 }
 
 function getMaxBytes() {
   const raw = process.env[UPSTREAM_RESPONSE_DUMP_MAX_BYTES_ENV]
+
   if (!raw) {
     return 2 * 1024 * 1024
   }
   const parsed = Number.parseInt(raw, 10)
+
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 2 * 1024 * 1024
   }
+
   return parsed
 }
 
 function safeJsonStringify(payload, maxBytes) {
   let json = ''
+
   try {
     json = JSON.stringify(payload)
   } catch (e) {
@@ -45,6 +51,7 @@ function safeJsonStringify(payload, maxBytes) {
   }
 
   const truncated = Buffer.from(json, 'utf8').subarray(0, maxBytes).toString('utf8')
+
   return JSON.stringify({
     type: 'antigravity_upstream_response_dump_truncated',
     maxBytes,
@@ -88,6 +95,7 @@ async function dumpAntigravityUpstreamResponse(responseInfo) {
   }
 
   const line = `${safeJsonStringify(record, maxBytes)}\n`
+
   try {
     await safeRotatingAppend(filename, line)
   } catch (e) {
@@ -120,6 +128,7 @@ async function dumpAntigravityStreamEvent(eventInfo) {
   }
 
   const line = `${safeJsonStringify(record, maxBytes)}\n`
+
   try {
     await safeRotatingAppend(filename, line)
   } catch (e) {
@@ -154,6 +163,7 @@ async function dumpAntigravityStreamSummary(summaryInfo) {
   }
 
   const line = `${safeJsonStringify(record, maxBytes)}\n`
+
   try {
     await safeRotatingAppend(filename, line)
   } catch (e) {

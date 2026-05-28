@@ -22,6 +22,7 @@ describe('metadataUserIdHelper', () => {
   describe('parse()', () => {
     it('should parse old format with empty accountUuid', () => {
       const result = parse(OLD_FORMAT)
+
       expect(result).toEqual({
         deviceId: 'd98385411c93cd074b2cefd5c9831fe77f24a53e4ecdcd1f830bba586fe62cb9',
         accountUuid: '',
@@ -32,6 +33,7 @@ describe('metadataUserIdHelper', () => {
 
     it('should parse old format with non-empty accountUuid', () => {
       const result = parse(OLD_FORMAT_WITH_UUID)
+
       expect(result).toEqual({
         deviceId: 'd98385411c93cd074b2cefd5c9831fe77f24a53e4ecdcd1f830bba586fe62cb9',
         accountUuid: 'abc-123',
@@ -42,6 +44,7 @@ describe('metadataUserIdHelper', () => {
 
     it('should parse JSON format', () => {
       const result = parse(JSON_FORMAT)
+
       expect(result).toEqual({
         deviceId: 'd61f8a2c3b4e5f6071829a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f70810169',
         accountUuid: '',
@@ -52,6 +55,7 @@ describe('metadataUserIdHelper', () => {
 
     it('should parse JSON format with accountUuid', () => {
       const result = parse(JSON_FORMAT_WITH_UUID)
+
       expect(result).toEqual({
         deviceId: 'd61f8a2c3b4e5f6071829a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f70810169',
         accountUuid: 'some-uuid-value',
@@ -68,6 +72,7 @@ describe('metadataUserIdHelper', () => {
         some_future_field: 'value'
       })
       const result = parse(extended)
+
       expect(result).not.toBeNull()
       expect(result.sessionId).toBe('11111111-2222-3333-4444-555555555555')
       expect(result.isJsonFormat).toBe(true)
@@ -75,11 +80,13 @@ describe('metadataUserIdHelper', () => {
 
     it('should return null for invalid JSON (missing device_id)', () => {
       const invalid = JSON.stringify({ account_uuid: '', session_id: 'abc' })
+
       expect(parse(invalid)).toBeNull()
     })
 
     it('should return null for invalid JSON (missing session_id)', () => {
       const invalid = JSON.stringify({ device_id: 'abc', account_uuid: '' })
+
       expect(parse(invalid)).toBeNull()
     })
 
@@ -125,6 +132,7 @@ describe('metadataUserIdHelper', () => {
         sessionId: '17cf0fd3-d51b-4b59-977d-b899dafb3022',
         isJsonFormat: false
       })
+
       expect(result).toBe(OLD_FORMAT)
     })
 
@@ -135,6 +143,7 @@ describe('metadataUserIdHelper', () => {
         sessionId: '17cf0fd3-d51b-4b59-977d-b899dafb3022',
         isJsonFormat: false
       })
+
       expect(result).toBe(OLD_FORMAT_WITH_UUID)
     })
 
@@ -146,6 +155,7 @@ describe('metadataUserIdHelper', () => {
         isJsonFormat: true
       })
       const parsed = JSON.parse(result)
+
       expect(parsed.device_id).toBe(
         'd61f8a2c3b4e5f6071829a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f70810169'
       )
@@ -157,17 +167,20 @@ describe('metadataUserIdHelper', () => {
   describe('roundtrip consistency', () => {
     it('old format parse → build should produce identical string', () => {
       const parsed = parse(OLD_FORMAT)
+
       expect(build(parsed)).toBe(OLD_FORMAT)
     })
 
     it('old format with uuid parse → build should produce identical string', () => {
       const parsed = parse(OLD_FORMAT_WITH_UUID)
+
       expect(build(parsed)).toBe(OLD_FORMAT_WITH_UUID)
     })
 
     it('JSON format parse → build should produce equivalent JSON', () => {
       const parsed = parse(JSON_FORMAT)
       const rebuilt = build(parsed)
+
       expect(JSON.parse(rebuilt)).toEqual(JSON.parse(JSON_FORMAT))
     })
   })

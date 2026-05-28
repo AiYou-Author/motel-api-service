@@ -191,6 +191,7 @@ const newTagName = ref('')
 const loadTags = async () => {
   loading.value = true
   const res = await getApiKeyTagsDetailsApi()
+
   loading.value = false
   if (res.success) {
     tags.value = res.data
@@ -202,6 +203,7 @@ const createTag = async () => {
 
   creating.value = true
   const res = await createApiKeyTagApi(newTagInput.value.trim())
+
   creating.value = false
 
   if (res.success) {
@@ -226,6 +228,7 @@ const executeDelete = async () => {
   processing.value = true
   const tagName = confirmingTag.value.name
   const res = await deleteApiKeyTagApi(tagName)
+
   processing.value = false
 
   if (res.success) {
@@ -250,6 +253,7 @@ const executeRename = async () => {
   processing.value = true
   const oldName = renamingTag.value.name
   const res = await renameApiKeyTagApi(oldName, newTagName.value.trim())
+
   processing.value = false
 
   if (res.success) {

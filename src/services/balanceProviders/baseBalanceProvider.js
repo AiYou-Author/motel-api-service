@@ -47,8 +47,10 @@ class BaseBalanceProvider {
     }
 
     const proxyConfig = account.proxyConfig || account.proxy
+
     if (proxyConfig) {
       const agent = ProxyHelper.createProxyAgent(proxyConfig)
+
       if (agent) {
         config.httpAgent = agent
         config.httpsAgent = agent
@@ -58,6 +60,7 @@ class BaseBalanceProvider {
 
     try {
       const response = await axios(config)
+
       return {
         success: true,
         data: response.data,
@@ -67,10 +70,12 @@ class BaseBalanceProvider {
     } catch (error) {
       const status = error.response?.status
       const message = error.response?.data?.message || error.message || '请求失败'
+
       this.logger.debug(`余额 Provider HTTP 请求失败: ${url} (${this.platform})`, {
         status,
         message
       })
+
       return { success: false, status, error: message }
     }
   }
@@ -125,6 +130,7 @@ class BaseBalanceProvider {
       return await fn()
     } catch (error) {
       this.logger.error(`余额 Provider 执行失败: ${this.platform}`, error)
+
       return fallbackValue
     }
   }

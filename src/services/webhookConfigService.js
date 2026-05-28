@@ -14,6 +14,7 @@ class WebhookConfigService {
   async getConfig() {
     try {
       const configStr = await redis.client.get(this.DEFAULT_CONFIG_KEY)
+
       if (!configStr) {
         // 返回默认配置
         return this.getDefaultConfig()
@@ -31,6 +32,7 @@ class WebhookConfigService {
       return storedConfig
     } catch (error) {
       logger.error('获取webhook配置失败:', error)
+
       return this.getDefaultConfig()
     }
   }
@@ -156,6 +158,7 @@ class WebhookConfigService {
             throw new Error('Telegram API 基础地址格式无效')
           }
           const { protocol } = new URL(platform.apiBaseUrl)
+
           if (!['http:', 'https:'].includes(protocol)) {
             throw new Error('Telegram API 基础地址仅支持 http 或 https 协议')
           }
@@ -167,6 +170,7 @@ class WebhookConfigService {
           }
           const proxyProtocol = new URL(platform.proxyUrl).protocol
           const supportedProtocols = ['http:', 'https:', 'socks4:', 'socks4a:', 'socks5:']
+
           if (!supportedProtocols.includes(proxyProtocol)) {
             throw new Error('Telegram 代理仅支持 http/https/socks 协议')
           }
@@ -234,6 +238,7 @@ class WebhookConfigService {
             'update',
             'alert'
           ]
+
           if (!validSounds.includes(platform.sound)) {
             logger.warn(`⚠️ 未知的Bark声音: ${platform.sound}`)
           }
@@ -242,6 +247,7 @@ class WebhookConfigService {
         // 验证级别参数
         if (platform.level) {
           const validLevels = ['active', 'timeSensitive', 'passive', 'critical']
+
           if (!validLevels.includes(platform.level)) {
             throw new Error(`无效的Bark通知级别: ${platform.level}`)
           }
@@ -283,9 +289,11 @@ class WebhookConfigService {
 
         // 验证接收邮箱
         const toEmails = Array.isArray(platform.to) ? platform.to : [platform.to]
+
         for (const email of toEmails) {
           // 提取实际邮箱地址（如果是 Name <email> 格式）
           const actualEmail = email.includes('<') ? email.match(/<([^>]+)>/)?.[1] : email
+
           if (!actualEmail || !simpleEmailRegex.test(actualEmail)) {
             throw new Error(`无效的接收邮箱格式: ${email}`)
           }
@@ -296,6 +304,7 @@ class WebhookConfigService {
           const actualFromEmail = platform.from.includes('<')
             ? platform.from.match(/<([^>]+)>/)?.[1]
             : platform.from
+
           if (!actualFromEmail || !simpleEmailRegex.test(actualFromEmail)) {
             throw new Error(`无效的发送邮箱格式: ${platform.from}`)
           }
@@ -311,6 +320,7 @@ class WebhookConfigService {
   isValidUrl(url) {
     try {
       new URL(url)
+
       return true
     } catch {
       return false
@@ -378,6 +388,7 @@ class WebhookConfigService {
       const config = await this.getConfig()
 
       const index = config.platforms.findIndex((p) => p.id === platformId)
+
       if (index === -1) {
         throw new Error('找不到指定的webhook平台')
       }
@@ -413,6 +424,7 @@ class WebhookConfigService {
       await this.saveConfig(config)
 
       logger.info(`✅ 已删除webhook平台: ${platformId}`)
+
       return true
     } catch (error) {
       logger.error('删除webhook平台失败:', error)
@@ -428,6 +440,7 @@ class WebhookConfigService {
       const config = await this.getConfig()
 
       const platform = config.platforms.find((p) => p.id === platformId)
+
       if (!platform) {
         throw new Error('找不到指定的webhook平台')
       }
@@ -438,6 +451,7 @@ class WebhookConfigService {
       await this.saveConfig(config)
 
       logger.info(`✅ Webhook平台 ${platformId} 已${platform.enabled ? '启用' : '禁用'}`)
+
       return platform
     } catch (error) {
       logger.error('切换webhook平台状态失败:', error)
@@ -459,6 +473,7 @@ class WebhookConfigService {
       return config.platforms.filter((p) => p.enabled)
     } catch (error) {
       logger.error('获取启用的webhook平台失败:', error)
+
       return []
     }
   }

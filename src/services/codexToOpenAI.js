@@ -30,6 +30,7 @@ class CodexToOpenAIConverter {
    */
   convertStreamChunk(eventData, model, state) {
     const { type } = eventData
+
     if (!type) {
       return []
     }
@@ -89,11 +90,13 @@ class CodexToOpenAIConverter {
     const toolCalls = []
 
     const output = resp.output || []
+
     for (const item of output) {
       if (item.type === 'reasoning') {
         const summaryTexts = (item.summary || [])
           .filter((s) => s.type === 'summary_text')
           .map((s) => s.text)
+
         if (summaryTexts.length > 0) {
           message.reasoning_content = (message.reasoning_content || '') + summaryTexts.join('')
         }
@@ -101,6 +104,7 @@ class CodexToOpenAIConverter {
         const contentTexts = (item.content || [])
           .filter((c) => c.type === 'output_text')
           .map((c) => c.text)
+
         if (contentTexts.length > 0) {
           message.content = (message.content || '') + contentTexts.join('')
         }
@@ -123,6 +127,7 @@ class CodexToOpenAIConverter {
     // response.failed → 返回 error 结构（与流式 _handleResponseError 一致）
     if (resp.status === 'failed') {
       const err = resp.error || {}
+
       return {
         error: {
           message: err.message || 'Response failed',
@@ -143,6 +148,7 @@ class CodexToOpenAIConverter {
     }
 
     const usage = this._mapUsage(resp.usage)
+
     if (usage) {
       result.usage = usage
     }
@@ -154,16 +160,19 @@ class CodexToOpenAIConverter {
 
   _handleResponseCreated(eventData, state) {
     const resp = eventData.response || {}
+
     state.responseId = resp.id || ''
     if (resp.created_at) {
       state.createdAt = this._parseCreatedAt(resp.created_at)
     }
     state.model = resp.model || ''
+
     return []
   }
 
   _handleOutputItemAdded(eventData, model, state) {
     const { item } = eventData
+
     if (!item || item.type !== 'function_call') {
       return []
     }
@@ -186,6 +195,7 @@ class CodexToOpenAIConverter {
 
   _handleArgumentsDelta(eventData, model, state) {
     state.hasReceivedArgumentsDelta = true
+
     return this._emitChunk(state, model, {
       tool_calls: [
         {
@@ -215,6 +225,7 @@ class CodexToOpenAIConverter {
 
   _handleOutputItemDone(eventData, model, state) {
     const { item } = eventData
+
     if (!item || item.type !== 'function_call') {
       return []
     }
@@ -222,11 +233,13 @@ class CodexToOpenAIConverter {
     // 如果已经通过 output_item.added 通知过，不重复输出
     if (state.hasToolCallAnnounced) {
       state.hasToolCallAnnounced = false
+
       return []
     }
 
     // Fallback：未收到 added 事件，输出完整 tool call
     state.functionCallIndex++
+
     return this._emitChunk(state, model, {
       tool_calls: [
         {
@@ -253,6 +266,7 @@ class CodexToOpenAIConverter {
     }
 
     const usage = this._mapUsage(resp.usage)
+
     if (usage) {
       chunk.usage = usage
     }
@@ -267,6 +281,7 @@ class CodexToOpenAIConverter {
     // response.failed → 转为 error SSE 事件（保留错误语义）
     if (resp.status === 'failed') {
       const err = resp.error || {}
+
       results.push(
         `data: ${JSON.stringify({
           error: {
@@ -281,12 +296,14 @@ class CodexToOpenAIConverter {
     // response.incomplete 及其他非 failed 状态 → 带 finish_reason 的终止 chunk
     if (resp.status !== 'failed') {
       const chunk = this._makeChunk(state, model)
+
       if (state.functionCallIndex >= 0) {
         chunk.choices[0].finish_reason = 'tool_calls'
       } else {
         chunk.choices[0].finish_reason = this._mapResponseStatus(resp)
       }
       const usage = this._mapUsage(resp.usage)
+
       if (usage) {
         chunk.usage = usage
       }
@@ -305,6 +322,7 @@ class CodexToOpenAIConverter {
         code: eventData.code || null
       }
     }
+
     return [`data: ${JSON.stringify(errorObj)}\n\n`]
   }
 
@@ -312,11 +330,13 @@ class CodexToOpenAIConverter {
 
   _emitChunk(state, model, delta) {
     const chunk = this._makeChunk(state, model)
+
     if (!state.roleSent) {
       delta.role = 'assistant'
       state.roleSent = true
     }
     chunk.choices[0].delta = delta
+
     return [`data: ${JSON.stringify(chunk)}\n\n`]
   }
 
@@ -332,19 +352,23 @@ class CodexToOpenAIConverter {
 
   _mapResponseStatus(resp) {
     const { status } = resp
+
     if (!status || status === 'completed') {
       return 'stop'
     }
     if (status === 'incomplete') {
       const reason = resp.incomplete_details?.reason
+
       if (reason === 'max_output_tokens') {
         return 'length'
       }
       if (reason === 'content_filter') {
         return 'content_filter'
       }
+
       return 'length'
     }
+
     // failed, cancelled, etc.
     return 'stop'
   }
@@ -357,6 +381,7 @@ class CodexToOpenAIConverter {
       return createdAt
     }
     const ts = Math.floor(new Date(createdAt).getTime() / 1000)
+
     return isNaN(ts) ? Math.floor(Date.now() / 1000) : ts
   }
 
@@ -369,6 +394,7 @@ class CodexToOpenAIConverter {
       completion_tokens: usage.output_tokens || 0,
       total_tokens: usage.total_tokens || 0
     }
+
     if (usage.input_tokens_details?.cached_tokens > 0) {
       result.prompt_tokens_details = { cached_tokens: usage.input_tokens_details.cached_tokens }
     }
@@ -377,6 +403,7 @@ class CodexToOpenAIConverter {
         reasoning_tokens: usage.output_tokens_details.reasoning_tokens
       }
     }
+
     return result
   }
 
@@ -474,6 +501,7 @@ class CodexToOpenAIConverter {
 
     // 收集所有工具名（tools + assistant.tool_calls），统一构建缩短映射
     const allToolNames = new Set()
+
     if (chatBody.tools) {
       for (const t of chatBody.tools) {
         if (t.type === 'function' && t.function?.name) {
@@ -513,6 +541,7 @@ class CodexToOpenAIConverter {
     // response_format → text.format
     if (chatBody.response_format) {
       const text = this._convertResponseFormat(chatBody.response_format)
+
       if (text && Object.keys(text).length > 0) {
         result.text = text
       }
@@ -544,11 +573,13 @@ class CodexToOpenAIConverter {
         .map((c) => c.text)
         .join('')
     }
+
     return String(content || '')
   }
 
   _wrapContent(content, role) {
     const textType = role === 'assistant' ? 'output_text' : 'input_text'
+
     if (typeof content === 'string') {
       return [{ type: textType, text: content }]
     }
@@ -569,6 +600,7 @@ class CodexToOpenAIConverter {
         })
         .filter(Boolean)
     }
+
     return [{ type: textType, text: String(content || '') }]
   }
 
@@ -585,6 +617,7 @@ class CodexToOpenAIConverter {
           return null
         }
         const tool = { type: 'function', name: this._shortenToolName(t.function.name) }
+
         if (t.function.description) {
           tool.description = t.function.description
         }
@@ -594,6 +627,7 @@ class CodexToOpenAIConverter {
         if (t.function.strict !== undefined) {
           tool.strict = t.function.strict
         }
+
         return tool
       })
       .filter(Boolean)
@@ -607,8 +641,10 @@ class CodexToOpenAIConverter {
       if (tc.type === 'function' && tc.function?.name) {
         return { type: 'function', name: this._shortenToolName(tc.function.name) }
       }
+
       return tc
     }
+
     return tc
   }
 
@@ -621,6 +657,7 @@ class CodexToOpenAIConverter {
     }
     if (rf.type === 'json_schema' && rf.json_schema) {
       const format = { type: 'json_schema' }
+
       if (rf.json_schema.name) {
         format.name = rf.json_schema.name
       }
@@ -630,8 +667,10 @@ class CodexToOpenAIConverter {
       if (rf.json_schema.schema) {
         format.schema = rf.json_schema.schema
       }
+
       return { format }
     }
+
     return {}
   }
 
@@ -646,16 +685,20 @@ class CodexToOpenAIConverter {
       return this._toolNameMap[name]
     }
     const LIMIT = 64
+
     if (name.length <= LIMIT) {
       return name
     }
     if (name.startsWith('mcp__')) {
       const idx = name.lastIndexOf('__')
+
       if (idx > 0) {
         const candidate = `mcp__${name.slice(idx + 2)}`
+
         return candidate.length > LIMIT ? candidate.slice(0, LIMIT) : candidate
       }
     }
+
     return name.slice(0, LIMIT)
   }
 
@@ -675,11 +718,14 @@ class CodexToOpenAIConverter {
       }
       if (n.startsWith('mcp__')) {
         const idx = n.lastIndexOf('__')
+
         if (idx > 0) {
           const cand = `mcp__${n.slice(idx + 2)}`
+
           return cand.length > LIMIT ? cand.slice(0, LIMIT) : cand
         }
       }
+
       return n.slice(0, LIMIT)
     }
 
@@ -688,10 +734,12 @@ class CodexToOpenAIConverter {
         return cand
       }
       const base = cand
+
       for (let i = 1; ; i++) {
         const suffix = `_${i}`
         const allowed = LIMIT - suffix.length
         const tmp = (base.length > allowed ? base.slice(0, allowed) : base) + suffix
+
         if (!used.has(tmp)) {
           return tmp
         }
@@ -700,9 +748,11 @@ class CodexToOpenAIConverter {
 
     for (const n of names) {
       const short = makeUnique(baseCandidate(n))
+
       used.add(short)
       map[n] = short
     }
+
     return map
   }
 

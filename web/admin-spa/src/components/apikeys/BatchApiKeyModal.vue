@@ -242,8 +242,10 @@ const baseName = computed(() => {
     const firstKey = props.apiKeys[0]
     // 提取基础名称（去掉 _1, _2 等后缀）
     const match = firstKey.name.match(/^(.+)_\d+$/)
+
     return match ? match[1] : firstKey.name
   }
+
   return ''
 })
 
@@ -256,6 +258,7 @@ const getPermissionText = () => {
     claude: '仅 Claude',
     gemini: '仅 Gemini'
   }
+
   return permissionMap[permissions] || permissions
 }
 
@@ -263,6 +266,7 @@ const getPermissionText = () => {
 const getExpiryText = () => {
   if (props.apiKeys.length === 0) return '未知'
   const expiresAt = props.apiKeys[0].expiresAt
+
   if (!expiresAt) return '永不过期'
 
   const expiryDate = new Date(expiresAt)
@@ -272,6 +276,7 @@ const getExpiryText = () => {
   if (diffDays <= 7) return `${diffDays}天`
   if (diffDays <= 30) return `${Math.ceil(diffDays / 7)}周`
   if (diffDays <= 365) return `${Math.ceil(diffDays / 30)}个月`
+
   return `${Math.ceil(diffDays / 365)}年`
 }
 
@@ -309,10 +314,12 @@ const downloadApiKeys = () => {
   // 创建下载链接
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
+
   link.href = url
 
   // 生成文件名（包含时间戳）
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+
   link.download = `api-keys-${baseName.value}-${timestamp}.txt`
 
   // 触发下载
@@ -335,6 +342,7 @@ const handleClose = async () => {
     '返回下载',
     'warning'
   )
+
   if (confirmed) {
     emit('close')
   }
@@ -349,6 +357,7 @@ const handleDirectClose = async () => {
     '返回下载',
     'warning'
   )
+
   if (confirmed) {
     emit('close')
   }

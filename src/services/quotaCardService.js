@@ -21,11 +21,13 @@ class QuotaCardService {
   async getLimitsConfig() {
     try {
       const configStr = await redis.client.get(this.LIMITS_CONFIG_KEY)
+
       if (configStr) {
         return JSON.parse(configStr)
       }
       // 没有 Redis 配置时，使用 config.js 默认值
       const config = require('../../config/config')
+
       return (
         config.quotaCardLimits || {
           enabled: true,
@@ -35,6 +37,7 @@ class QuotaCardService {
       )
     } catch (error) {
       logger.error('❌ Failed to get limits config:', error)
+
       return { enabled: true, maxExpiryDays: 90, maxTotalCostLimit: 1000 }
     }
   }
@@ -52,8 +55,10 @@ class QuotaCardService {
         maxTotalCostLimit: Number.isNaN(parsedCost) ? 1000 : parsedCost,
         updatedAt: new Date().toISOString()
       }
+
       await redis.client.set(this.LIMITS_CONFIG_KEY, JSON.stringify(newConfig))
       logger.info('✅ Quota card limits config saved')
+
       return newConfig
     } catch (error) {
       logger.error('❌ Failed to save limits config:', error)
@@ -67,9 +72,11 @@ class QuotaCardService {
   _generateCardCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // 排除容易混淆的字符
     let code = ''
+
     for (let i = 0; i < 12; i++) {
       code += chars.charAt(crypto.randomInt(chars.length))
     }
+
     return `${this.CARD_CODE_PREFIX}_${code.slice(0, 4)}_${code.slice(4, 8)}_${code.slice(8, 12)}`
   }
 
@@ -176,11 +183,14 @@ class QuotaCardService {
    */
   async createCardsBatch(options = {}, count = 1) {
     const cards = []
+
     for (let i = 0; i < count; i++) {
       const card = await this.createCard(options)
+
       cards.push(card)
     }
     logger.success(`🎫 Batch created ${count} cards`)
+
     return cards
   }
 
@@ -190,12 +200,15 @@ class QuotaCardService {
   async getCardByCode(code) {
     try {
       const cardId = await redis.client.get(`quota_card_code:${code}`)
+
       if (!cardId) {
         return null
       }
+
       return await this.getCardById(cardId)
     } catch (error) {
       logger.error('❌ Failed to get card by code:', error)
+
       return null
     }
   }
@@ -206,6 +219,7 @@ class QuotaCardService {
   async getCardById(cardId) {
     try {
       const cardData = await redis.client.hgetall(`${this.CARD_PREFIX}${cardId}`)
+
       if (!cardData || Object.keys(cardData).length === 0) {
         return null
       }
@@ -233,6 +247,7 @@ class QuotaCardService {
       }
     } catch (error) {
       logger.error('❌ Failed to get card:', error)
+
       return null
     }
   }
@@ -249,6 +264,7 @@ class QuotaCardService {
       const { status, limit = 100, offset = 0 } = options
 
       let cardIds
+
       if (status) {
         cardIds = await redis.client.smembers(`quota_cards:status:${status}`)
       } else {
@@ -257,8 +273,10 @@ class QuotaCardService {
 
       // 排序（按创建时间倒序）
       const cards = []
+
       for (const cardId of cardIds) {
         const card = await this.getCardById(cardId)
+
         if (card) {
           cards.push(card)
         }
@@ -278,6 +296,7 @@ class QuotaCardService {
       }
     } catch (error) {
       logger.error('❌ Failed to get all cards:', error)
+
       return { cards: [], total: 0, limit: 100, offset: 0 }
     }
   }
@@ -294,6 +313,7 @@ class QuotaCardService {
     try {
       // 获取卡信息
       const card = await this.getCardByCode(code)
+
       if (!card) {
         throw new Error('卡号不存在')
       }
@@ -301,6 +321,7 @@ class QuotaCardService {
       // 检查卡状态
       if (card.status !== 'unused') {
         const statusMap = { used: '已使用', expired: '已过期', revoked: '已撤销' }
+
         throw new Error(`卡片${statusMap[card.status] || card.status}，无法兑换`)
       }
 
@@ -314,6 +335,7 @@ class QuotaCardService {
       // 获取 API Key 信息
       const apiKeyService = require('./apiKeyService')
       const keyData = await redis.getApiKey(apiKeyId)
+
       if (!keyData || Object.keys(keyData).length === 0) {
         throw new Error('API Key 不存在')
       }
@@ -343,6 +365,7 @@ class QuotaCardService {
         // 上限保护：检查是否超过最大额度限制
         if (limits.enabled && limits.maxTotalCostLimit > 0) {
           const maxAllowed = limits.maxTotalCostLimit - beforeLimit
+
           if (amountToAdd > maxAllowed) {
             amountToAdd = Math.max(0, maxAllowed)
             warnings.push(
@@ -354,6 +377,7 @@ class QuotaCardService {
 
         if (amountToAdd > 0) {
           const result = await apiKeyService.addTotalCostLimit(apiKeyId, amountToAdd)
+
           afterLimit = result.newTotalCostLimit
           quotaAdded = amountToAdd
         }
@@ -362,11 +386,13 @@ class QuotaCardService {
       if (card.type === 'time' || card.type === 'combo') {
         // 计算新的过期时间
         let baseDate = beforeExpiry ? new Date(beforeExpiry) : new Date()
+
         if (baseDate < new Date()) {
           baseDate = new Date()
         }
 
         let newExpiry = new Date(baseDate)
+
         switch (card.timeUnit) {
           case 'hours':
             newExpiry.setTime(newExpiry.getTime() + card.timeAmount * 60 * 60 * 1000)
@@ -382,6 +408,7 @@ class QuotaCardService {
         // 上限保护：检查是否超过最大有效期
         if (limits.enabled && limits.maxExpiryDays > 0) {
           const maxExpiry = new Date()
+
           maxExpiry.setDate(maxExpiry.getDate() + limits.maxExpiryDays)
           if (newExpiry > maxExpiry) {
             newExpiry = maxExpiry
@@ -391,9 +418,11 @@ class QuotaCardService {
         }
 
         const result = await apiKeyService.extendExpiry(apiKeyId, card.timeAmount, card.timeUnit)
+
         // 如果有上限保护，使用截断后的时间
         if (limits.enabled && limits.maxExpiryDays > 0) {
           const maxExpiry = new Date()
+
           maxExpiry.setDate(maxExpiry.getDate() + limits.maxExpiryDays)
           if (new Date(result.newExpiresAt) > maxExpiry) {
             await redis.client.hset(`apikey:${apiKeyId}`, 'expiresAt', maxExpiry.toISOString())
@@ -403,6 +432,7 @@ class QuotaCardService {
               0,
               Math.ceil((maxExpiry - baseDate) / (1000 * 60 * 60 * 24))
             )
+
             timeAdded = actualDays
             actualTimeUnit = 'days'
           } else {
@@ -490,6 +520,7 @@ class QuotaCardService {
     try {
       // 获取核销记录
       const redemptionData = await redis.client.hgetall(`${this.REDEMPTION_PREFIX}${redemptionId}`)
+
       if (!redemptionData || Object.keys(redemptionData).length === 0) {
         throw new Error('Redemption record not found')
       }
@@ -503,11 +534,13 @@ class QuotaCardService {
 
       // 撤销效果
       let actualDeducted = 0
+
       if (parseFloat(redemptionData.quotaAdded) > 0) {
         const result = await apiKeyService.deductTotalCostLimit(
           redemptionData.apiKeyId,
           parseFloat(redemptionData.quotaAdded)
         )
+
         ;({ actualDeducted } = result)
       }
 
@@ -525,6 +558,7 @@ class QuotaCardService {
 
       // 更新卡状态
       const { cardId } = redemptionData
+
       await redis.client.hset(`${this.CARD_PREFIX}${cardId}`, {
         status: 'revoked',
         revokedAt: now,
@@ -564,6 +598,7 @@ class QuotaCardService {
       const { userId, apiKeyId, limit = 100, offset = 0 } = options
 
       let redemptionIds
+
       if (userId) {
         redemptionIds = await redis.client.smembers(`redemptions:user:${userId}`)
       } else if (apiKeyId) {
@@ -573,8 +608,10 @@ class QuotaCardService {
       }
 
       const redemptions = []
+
       for (const id of redemptionIds) {
         const data = await redis.client.hgetall(`${this.REDEMPTION_PREFIX}${id}`)
+
         if (data && Object.keys(data).length > 0) {
           redemptions.push({
             id: data.id,
@@ -617,6 +654,7 @@ class QuotaCardService {
       }
     } catch (error) {
       logger.error('❌ Failed to get redemptions:', error)
+
       return { redemptions: [], total: 0, limit: 100, offset: 0 }
     }
   }
@@ -627,6 +665,7 @@ class QuotaCardService {
   async deleteCard(cardId) {
     try {
       const card = await this.getCardById(cardId)
+
       if (!card) {
         throw new Error('Card not found')
       }
@@ -657,11 +696,13 @@ class QuotaCardService {
    */
   async _updateCardStatus(cardId, newStatus) {
     const card = await this.getCardById(cardId)
+
     if (!card) {
       return
     }
 
     const oldStatus = card.status
+
     await redis.client.hset(`${this.CARD_PREFIX}${cardId}`, 'status', newStatus)
 
     // 更新状态索引
@@ -690,6 +731,7 @@ class QuotaCardService {
       }
     } catch (error) {
       logger.error('❌ Failed to get card stats:', error)
+
       return { total: 0, unused: 0, redeemed: 0, revoked: 0, expired: 0 }
     }
   }

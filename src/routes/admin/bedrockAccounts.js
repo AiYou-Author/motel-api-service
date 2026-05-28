@@ -21,6 +21,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
   try {
     const { platform, groupId } = req.query
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success) {
       return res
         .status(500)
@@ -40,8 +41,10 @@ router.get('/', authenticateAdmin, async (req, res) => {
       if (groupId === 'ungrouped') {
         // 筛选未分组账户
         const filteredAccounts = []
+
         for (const account of accounts) {
           const groups = await accountGroupService.getAccountGroups(account.id)
+
           if (!groups || groups.length === 0) {
             filteredAccounts.push(account)
           }
@@ -50,6 +53,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
       } else {
         // 筛选特定分组的账户
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       }
     }
@@ -62,6 +66,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
           const groupInfos = await accountGroupService.getAccountGroups(account.id)
 
           const formattedAccount = formatAccountExpiry(account)
+
           return {
             ...formattedAccount,
             groupInfos,
@@ -79,6 +84,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
           try {
             const groupInfos = await accountGroupService.getAccountGroups(account.id)
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos,
@@ -93,6 +99,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
               `⚠️ Failed to get group info for account ${account.id}:`,
               groupError.message
             )
+
             return {
               ...account,
               groupInfos: [],
@@ -110,6 +117,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: accountsWithStats })
   } catch (error) {
     logger.error('❌ Failed to get Bedrock accounts:', error)
+
     return res.status(500).json({ error: 'Failed to get Bedrock accounts', message: error.message })
   }
 })
@@ -172,9 +180,11 @@ router.post('/', authenticateAdmin, async (req, res) => {
 
     logger.success(`☁️ Admin created Bedrock account: ${name}`)
     const formattedAccount = formatAccountExpiry(result.data)
+
     return res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('❌ Failed to create Bedrock account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to create Bedrock account', message: error.message })
@@ -224,9 +234,11 @@ router.put('/:accountId', authenticateAdmin, async (req, res) => {
     }
 
     logger.success(`📝 Admin updated Bedrock account: ${accountId}`)
+
     return res.json({ success: true, message: 'Bedrock account updated successfully' })
   } catch (error) {
     logger.error('❌ Failed to update Bedrock account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to update Bedrock account', message: error.message })
@@ -250,11 +262,13 @@ router.delete('/:accountId', authenticateAdmin, async (req, res) => {
     }
 
     let message = 'Bedrock账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
 
     logger.success(`🗑️ Admin deleted Bedrock account: ${accountId}, unbound ${unboundCount} keys`)
+
     return res.json({
       success: true,
       message,
@@ -262,6 +276,7 @@ router.delete('/:accountId', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to delete Bedrock account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to delete Bedrock account', message: error.message })
@@ -274,6 +289,7 @@ router.put('/:accountId/toggle', authenticateAdmin, async (req, res) => {
     const { accountId } = req.params
 
     const accountResult = await bedrockAccountService.getAccount(accountId)
+
     if (!accountResult.success) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -294,9 +310,11 @@ router.put('/:accountId/toggle', authenticateAdmin, async (req, res) => {
         newStatus ? 'active' : 'inactive'
       }`
     )
+
     return res.json({ success: true, isActive: newStatus })
   } catch (error) {
     logger.error('❌ Failed to toggle Bedrock account status:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to toggle account status', message: error.message })
@@ -309,6 +327,7 @@ router.put('/:accountId/toggle-schedulable', authenticateAdmin, async (req, res)
     const { accountId } = req.params
 
     const accountResult = await bedrockAccountService.getAccount(accountId)
+
     if (!accountResult.success) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -342,9 +361,11 @@ router.put('/:accountId/toggle-schedulable', authenticateAdmin, async (req, res)
         newSchedulable ? 'schedulable' : 'not schedulable'
       }`
     )
+
     return res.json({ success: true, schedulable: newSchedulable })
   } catch (error) {
     logger.error('❌ Failed to toggle Bedrock account schedulable status:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to toggle schedulable status', message: error.message })
@@ -368,10 +389,13 @@ router.post('/:accountId/reset-status', authenticateAdmin, async (req, res) => {
   try {
     const { accountId } = req.params
     const result = await bedrockAccountService.resetAccountStatus(accountId)
+
     logger.success(`Admin reset status for Bedrock account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Bedrock account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })

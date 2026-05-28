@@ -15,6 +15,7 @@ function getDefaultRedirectUri(oauthProvider) {
   if (oauthProvider === 'antigravity') {
     return process.env.ANTIGRAVITY_OAUTH_REDIRECT_URI || 'http://localhost:45462'
   }
+
   return process.env.GEMINI_OAUTH_REDIRECT_URI || 'https://codeassist.google.com/authcode'
 }
 
@@ -37,6 +38,7 @@ router.post('/generate-auth-url', authenticateAdmin, async (req, res) => {
 
     // 创建 OAuth 会话，包含 codeVerifier 和代理配置
     const sessionId = authState
+
     await redis.setOAuthSession(sessionId, {
       state: authState,
       type: 'gemini',
@@ -48,6 +50,7 @@ router.post('/generate-auth-url', authenticateAdmin, async (req, res) => {
     })
 
     logger.info(`Generated Gemini OAuth URL with session: ${sessionId}`)
+
     return res.json({
       success: true,
       data: {
@@ -58,6 +61,7 @@ router.post('/generate-auth-url', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to generate Gemini auth URL:', error)
+
     return res.status(500).json({ error: 'Failed to generate auth URL', message: error.message })
   }
 })
@@ -75,12 +79,14 @@ router.post('/poll-auth-status', authenticateAdmin, async (req, res) => {
 
     if (result.success) {
       logger.success(`Gemini OAuth authorization successful for session: ${sessionId}`)
+
       return res.json({ success: true, data: { tokens: result.tokens } })
     } else {
       return res.json({ success: false, error: result.error })
     }
   } catch (error) {
     logger.error('❌ Failed to poll Gemini auth status:', error)
+
     return res.status(500).json({ error: 'Failed to poll auth status', message: error.message })
   }
 })
@@ -102,6 +108,7 @@ router.post('/exchange-code', authenticateAdmin, async (req, res) => {
     // 如果提供了 sessionId，从 OAuth 会话中获取信息
     if (sessionId) {
       const sessionData = await redis.getOAuthSession(sessionId)
+
       if (sessionData) {
         const {
           redirectUri: sessionRedirectUri,
@@ -109,6 +116,7 @@ router.post('/exchange-code', authenticateAdmin, async (req, res) => {
           proxy,
           oauthProvider: sessionOauthProvider
         } = sessionData
+
         redirectUri = sessionRedirectUri || redirectUri
         codeVerifier = sessionCodeVerifier
         proxyConfig = proxy // 获取代理配置
@@ -144,9 +152,11 @@ router.post('/exchange-code', authenticateAdmin, async (req, res) => {
     }
 
     logger.success('Successfully exchanged Gemini authorization code')
+
     return res.json({ success: true, data: { tokens, oauthProvider: resolvedOauthProvider } })
   } catch (error) {
     logger.error('❌ Failed to exchange Gemini authorization code:', error)
+
     return res.status(500).json({ error: 'Failed to exchange code', message: error.message })
   }
 })
@@ -168,8 +178,10 @@ router.get('/', authenticateAdmin, async (req, res) => {
       if (groupId === 'ungrouped') {
         // 筛选未分组账户
         const filteredAccounts = []
+
         for (const account of accounts) {
           const groups = await accountGroupService.getAccountGroups(account.id)
+
           if (!groups || groups.length === 0) {
             filteredAccounts.push(account)
           }
@@ -178,6 +190,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
       } else {
         // 筛选特定分组的账户
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       }
     }
@@ -190,6 +203,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
           const groupInfos = await accountGroupService.getAccountGroups(account.id)
 
           const formattedAccount = formatAccountExpiry(account)
+
           return {
             ...formattedAccount,
             groupInfos,
@@ -208,6 +222,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
           try {
             const groupInfos = await accountGroupService.getAccountGroups(account.id)
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos,
@@ -222,6 +237,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
               `⚠️ Failed to get group info for account ${account.id}:`,
               groupError.message
             )
+
             return {
               ...account,
               groupInfos: [],
@@ -239,6 +255,7 @@ router.get('/', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: accountsWithStats })
   } catch (error) {
     logger.error('❌ Failed to get Gemini accounts:', error)
+
     return res.status(500).json({ error: 'Failed to get accounts', message: error.message })
   }
 })
@@ -290,9 +307,11 @@ router.post('/', authenticateAdmin, async (req, res) => {
 
     logger.success(`🏢 Admin created new Gemini account: ${accountData.name}`)
     const formattedAccount = formatAccountExpiry(newAccount)
+
     return res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('❌ Failed to create Gemini account:', error)
+
     return res.status(500).json({ error: 'Failed to create account', message: error.message })
   }
 })
@@ -321,6 +340,7 @@ router.put('/:accountId', authenticateAdmin, async (req, res) => {
 
     // 获取账户当前信息以处理分组变更
     const currentAccount = await geminiAccountService.getAccount(accountId)
+
     if (!currentAccount) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -333,6 +353,7 @@ router.put('/:accountId', authenticateAdmin, async (req, res) => {
       // 如果之前是分组类型，需要从所有分组中移除
       if (currentAccount.accountType === 'group') {
         const oldGroups = await accountGroupService.getAccountGroups(accountId)
+
         for (const oldGroup of oldGroups) {
           await accountGroupService.removeAccountFromGroup(accountId, oldGroup.id)
         }
@@ -358,9 +379,11 @@ router.put('/:accountId', authenticateAdmin, async (req, res) => {
     const updatedAccount = await geminiAccountService.updateAccount(accountId, mappedUpdates)
 
     logger.success(`📝 Admin updated Gemini account: ${accountId}`)
+
     return res.json({ success: true, data: updatedAccount })
   } catch (error) {
     logger.error('❌ Failed to update Gemini account:', error)
+
     return res.status(500).json({ error: 'Failed to update account', message: error.message })
   }
 })
@@ -375,8 +398,10 @@ router.delete('/:accountId', authenticateAdmin, async (req, res) => {
 
     // 获取账户信息以检查是否在分组中
     const account = await geminiAccountService.getAccount(accountId)
+
     if (account && account.accountType === 'group') {
       const groups = await accountGroupService.getAccountGroups(accountId)
+
       for (const group of groups) {
         await accountGroupService.removeAccountFromGroup(accountId, group.id)
       }
@@ -385,11 +410,13 @@ router.delete('/:accountId', authenticateAdmin, async (req, res) => {
     await geminiAccountService.deleteAccount(accountId)
 
     let message = 'Gemini账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
 
     logger.success(`🗑️ Admin deleted Gemini account: ${accountId}, unbound ${unboundCount} keys`)
+
     return res.json({
       success: true,
       message,
@@ -397,6 +424,7 @@ router.delete('/:accountId', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to delete Gemini account:', error)
+
     return res.status(500).json({ error: 'Failed to delete account', message: error.message })
   }
 })
@@ -409,9 +437,11 @@ router.post('/:accountId/refresh', authenticateAdmin, async (req, res) => {
     const result = await geminiAccountService.refreshAccountToken(accountId)
 
     logger.success(`🔄 Admin refreshed token for Gemini account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to refresh Gemini account token:', error)
+
     return res.status(500).json({ error: 'Failed to refresh token', message: error.message })
   }
 })
@@ -422,6 +452,7 @@ router.put('/:accountId/toggle-schedulable', authenticateAdmin, async (req, res)
     const { accountId } = req.params
 
     const account = await geminiAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -458,6 +489,7 @@ router.put('/:accountId/toggle-schedulable', authenticateAdmin, async (req, res)
     return res.json({ success: true, schedulable: actualSchedulable })
   } catch (error) {
     logger.error('❌ Failed to toggle Gemini account schedulable status:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to toggle schedulable status', message: error.message })
@@ -499,9 +531,11 @@ router.post('/:id/reset-status', authenticateAdmin, async (req, res) => {
     const result = await geminiAccountService.resetAccountStatus(id)
 
     logger.success(`Admin reset status for Gemini account: ${id}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Gemini account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })
@@ -516,12 +550,14 @@ router.post('/:accountId/test', authenticateAdmin, async (req, res) => {
   try {
     // 获取账户信息
     const account = await geminiAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
 
     // 确保 token 有效
     const tokenResult = await geminiAccountService.ensureValidToken(accountId)
+
     if (!tokenResult.success) {
       return res.status(401).json({
         error: 'Token refresh failed',
@@ -550,6 +586,7 @@ router.post('/:accountId/test', authenticateAdmin, async (req, res) => {
     // 配置代理
     if (account.proxy) {
       const agent = getProxyAgent(account.proxy)
+
       if (agent) {
         requestConfig.httpsAgent = agent
         requestConfig.httpAgent = agent
@@ -561,6 +598,7 @@ router.post('/:accountId/test', authenticateAdmin, async (req, res) => {
 
     // 提取响应文本
     let responseText = ''
+
     if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
       responseText = response.data.candidates[0].content.parts[0].text
     }
@@ -581,6 +619,7 @@ router.post('/:accountId/test', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     const latency = Date.now() - startTime
+
     logger.error(`❌ Gemini account test failed: ${accountId}`, error.message)
 
     return res.status(500).json({

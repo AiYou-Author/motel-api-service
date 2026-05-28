@@ -30,14 +30,17 @@ class ReferralService {
   async getOrCreateReferralCode(userId) {
     try {
       const existing = await redis.get(`${REFERRAL_USER_PREFIX}${userId}`)
+
       if (existing) {
         return existing
       }
       // 生成唯一推广码，避免碰撞
       let code
+
       for (let i = 0; i < 10; i++) {
         const candidate = this.generateCode()
         const taken = await redis.get(`${REFERRAL_CODE_PREFIX}${candidate}`)
+
         if (!taken) {
           code = candidate
           break
@@ -49,6 +52,7 @@ class ReferralService {
       await redis.set(`${REFERRAL_CODE_PREFIX}${code}`, userId)
       await redis.set(`${REFERRAL_USER_PREFIX}${userId}`, code)
       logger.info(`🔗 Referral code generated for user ${userId}: ${code}`)
+
       return code
     } catch (error) {
       logger.error('❌ Error generating referral code:', error)
@@ -58,11 +62,12 @@ class ReferralService {
 
   // 通过推广码查找推荐人 userId
   async getReferrerByCode(code) {
-    if (!code) return null
+    if (!code) {return null}
     try {
       return await redis.get(`${REFERRAL_CODE_PREFIX}${code.toUpperCase()}`)
     } catch (error) {
       logger.error('❌ Error looking up referral code:', error)
+
       return null
     }
   }
@@ -73,17 +78,19 @@ class ReferralService {
       return await redis.get(`${REFERRAL_USER_PREFIX}${userId}`)
     } catch (error) {
       logger.error('❌ Error getting referral code by userId:', error)
+
       return null
     }
   }
 
   // 绑定推荐关系（注册时调用）
   async bindReferral(newUserId, referrerId) {
-    if (!newUserId || !referrerId || newUserId === referrerId) return
+    if (!newUserId || !referrerId || newUserId === referrerId) {return}
     try {
       // 防止重复绑定
       const existing = await redis.get(`${REFERRAL_INVITED_BY_PREFIX}${newUserId}`)
-      if (existing) return
+
+      if (existing) {return}
 
       await redis.set(`${REFERRAL_INVITED_BY_PREFIX}${newUserId}`, referrerId)
       await redis.addToIndex(`${REFERRAL_INVITES_PREFIX}${referrerId}`, newUserId)
@@ -107,9 +114,11 @@ class ReferralService {
     try {
       const client = redis.getClientSafe()
       const ids = await client.smembers(`${REFERRAL_INVITES_PREFIX}${referrerId}`)
+
       return ids || []
     } catch (error) {
       logger.error('❌ Error getting invited users:', error)
+
       return []
     }
   }
@@ -119,7 +128,9 @@ class ReferralService {
   async getCommissionConfig() {
     try {
       const data = await redis.get(COMMISSION_CONFIG_KEY)
-      if (data) return JSON.parse(data)
+
+      if (data) {return JSON.parse(data)}
+
       // 默认配置
       return {
         enabled: false,
@@ -128,6 +139,7 @@ class ReferralService {
       }
     } catch (error) {
       logger.error('❌ Error getting commission config:', error)
+
       return { enabled: false, globalRate: 0.1, planRates: {} }
     }
   }
@@ -140,8 +152,10 @@ class ReferralService {
         ...config,
         planRates: { ...(current.planRates || {}), ...(config.planRates || {}) }
       }
+
       await redis.set(COMMISSION_CONFIG_KEY, JSON.stringify(merged))
       logger.info('⚙️ Commission config updated')
+
       return merged
     } catch (error) {
       logger.error('❌ Error saving commission config:', error)
@@ -152,10 +166,12 @@ class ReferralService {
   // 获取某套餐的返佣比例（plan 级别 > 全局）
   async getCommissionRate(planId) {
     const config = await this.getCommissionConfig()
-    if (!config.enabled) return 0
+
+    if (!config.enabled) {return 0}
     if (planId && config.planRates && config.planRates[planId] !== undefined) {
       return Number(config.planRates[planId])
     }
+
     return Number(config.globalRate) || 0
   }
 
@@ -164,9 +180,11 @@ class ReferralService {
   async getWalletBalance(userId) {
     try {
       const val = await redis.get(`${WALLET_PREFIX}${userId}`)
+
       return val ? parseFloat(val) : 0
     } catch (error) {
       logger.error('❌ Error getting wallet balance:', error)
+
       return 0
     }
   }
@@ -180,6 +198,7 @@ class ReferralService {
     try {
       const current = await this.getWalletBalance(userId)
       const newBalance = parseFloat((current + amount).toFixed(4))
+
       await this._setWalletBalance(userId, newBalance)
 
       const record = {
@@ -194,11 +213,13 @@ class ReferralService {
         note,
         createdAt: new Date().toISOString()
       }
+
       await redis.set(`${COMMISSION_RECORD_PREFIX}${record.id}`, JSON.stringify(record))
       await redis.addToIndex(COMMISSION_RECORDS_INDEX, record.id)
       await redis.addToIndex(`${COMMISSION_RECORDS_USER_PREFIX}${userId}`, record.id)
 
       logger.info(`💰 Wallet credited: user ${userId} +¥${amount} (balance: ¥${newBalance})`)
+
       return { balance: newBalance, record }
     } catch (error) {
       logger.error('❌ Error crediting wallet:', error)
@@ -210,10 +231,12 @@ class ReferralService {
   async debitWallet(userId, amount, { type = 'purchase', orderId = null, note = '' } = {}) {
     try {
       const current = await this.getWalletBalance(userId)
+
       if (current < amount) {
         throw new Error('INSUFFICIENT_BALANCE')
       }
       const newBalance = parseFloat((current - amount).toFixed(4))
+
       await this._setWalletBalance(userId, newBalance)
 
       const record = {
@@ -227,11 +250,13 @@ class ReferralService {
         note,
         createdAt: new Date().toISOString()
       }
+
       await redis.set(`${COMMISSION_RECORD_PREFIX}${record.id}`, JSON.stringify(record))
       await redis.addToIndex(COMMISSION_RECORDS_INDEX, record.id)
       await redis.addToIndex(`${COMMISSION_RECORDS_USER_PREFIX}${userId}`, record.id)
 
       logger.info(`💸 Wallet debited: user ${userId} -¥${amount} (balance: ¥${newBalance})`)
+
       return { balance: newBalance, record }
     } catch (error) {
       logger.error('❌ Error debiting wallet:', error)
@@ -242,19 +267,23 @@ class ReferralService {
   // ─── 返佣处理（订单审批后调用）────────────────────────────────
 
   async processOrderCommission(order) {
-    if (!order || !order.userId) return
+    if (!order || !order.userId) {return}
     try {
       const referrerId = await this.getReferredBy(order.userId)
-      if (!referrerId) return
+
+      if (!referrerId) {return}
 
       const rate = await this.getCommissionRate(order.planId)
-      if (!rate || rate <= 0) return
+
+      if (!rate || rate <= 0) {return}
 
       const orderAmount = parseFloat(order.amount) || 0
-      if (orderAmount <= 0) return
+
+      if (orderAmount <= 0) {return}
 
       const commission = parseFloat((orderAmount * rate).toFixed(4))
-      if (commission <= 0) return
+
+      if (commission <= 0) {return}
 
       await this.creditWallet(referrerId, commission, {
         type: 'commission',
@@ -278,16 +307,18 @@ class ReferralService {
     try {
       const client = redis.getClientSafe()
       let ids
+
       if (userId) {
         ids = await client.smembers(`${COMMISSION_RECORDS_USER_PREFIX}${userId}`)
       } else {
         ids = await client.smembers(COMMISSION_RECORDS_INDEX)
       }
-      if (!ids || ids.length === 0) return { total: 0, records: [] }
+      if (!ids || ids.length === 0) {return { total: 0, records: [] }}
 
       const records = await Promise.all(
         ids.map(async (id) => {
           const data = await redis.get(`${COMMISSION_RECORD_PREFIX}${id}`)
+
           return data ? JSON.parse(data) : null
         })
       )
@@ -301,6 +332,7 @@ class ReferralService {
       }
     } catch (error) {
       logger.error('❌ Error getting commission records:', error)
+
       return { total: 0, records: [] }
     }
   }
@@ -310,6 +342,7 @@ class ReferralService {
   async createWithdrawRequest(userId, { amount, method, accountInfo, note = '' }) {
     try {
       const balance = await this.getWalletBalance(userId)
+
       if (balance < amount) {
         throw new Error('INSUFFICIENT_BALANCE')
       }
@@ -342,6 +375,7 @@ class ReferralService {
       await redis.addToIndex(`${WITHDRAW_REQUESTS_USER_PREFIX}${userId}`, id)
 
       logger.info(`💳 Withdraw request created: ${id} by user ${userId}, amount: ¥${amount}`)
+
       return request
     } catch (error) {
       logger.error('❌ Error creating withdraw request:', error)
@@ -352,6 +386,7 @@ class ReferralService {
   async getWithdrawRequest(id) {
     try {
       const data = await redis.get(`${WITHDRAW_REQUEST_PREFIX}${id}`)
+
       return data ? JSON.parse(data) : null
     } catch (error) {
       return null
@@ -362,21 +397,24 @@ class ReferralService {
     try {
       const client = redis.getClientSafe()
       let ids
+
       if (userId) {
         ids = await client.smembers(`${WITHDRAW_REQUESTS_USER_PREFIX}${userId}`)
       } else {
         ids = await client.smembers(WITHDRAW_REQUESTS_INDEX)
       }
-      if (!ids || ids.length === 0) return { total: 0, requests: [] }
+      if (!ids || ids.length === 0) {return { total: 0, requests: [] }}
 
       const requests = await Promise.all(
         ids.map(async (id) => {
           const data = await redis.get(`${WITHDRAW_REQUEST_PREFIX}${id}`)
+
           return data ? JSON.parse(data) : null
         })
       )
 
       let filtered = requests.filter(Boolean)
+
       if (status) {
         filtered = filtered.filter((r) => r.status === status)
       }
@@ -388,6 +426,7 @@ class ReferralService {
       }
     } catch (error) {
       logger.error('❌ Error getting withdraw requests:', error)
+
       return { total: 0, requests: [] }
     }
   }
@@ -395,8 +434,9 @@ class ReferralService {
   async approveWithdrawRequest(id, { adminNote = '' } = {}) {
     try {
       const request = await this.getWithdrawRequest(id)
-      if (!request) throw new Error('REQUEST_NOT_FOUND')
-      if (request.status !== 'pending') throw new Error('REQUEST_NOT_PENDING')
+
+      if (!request) {throw new Error('REQUEST_NOT_FOUND')}
+      if (request.status !== 'pending') {throw new Error('REQUEST_NOT_PENDING')}
 
       request.status = 'approved'
       request.adminNote = adminNote
@@ -404,6 +444,7 @@ class ReferralService {
       await redis.set(`${WITHDRAW_REQUEST_PREFIX}${id}`, JSON.stringify(request))
 
       logger.info(`✅ Withdraw request approved: ${id}`)
+
       return request
     } catch (error) {
       logger.error('❌ Error approving withdraw request:', error)
@@ -414,8 +455,9 @@ class ReferralService {
   async rejectWithdrawRequest(id, { reason = '' } = {}) {
     try {
       const request = await this.getWithdrawRequest(id)
-      if (!request) throw new Error('REQUEST_NOT_FOUND')
-      if (request.status !== 'pending') throw new Error('REQUEST_NOT_PENDING')
+
+      if (!request) {throw new Error('REQUEST_NOT_FOUND')}
+      if (request.status !== 'pending') {throw new Error('REQUEST_NOT_PENDING')}
 
       // 退回已冻结金额
       await this.creditWallet(request.userId, request.amount, {
@@ -429,6 +471,7 @@ class ReferralService {
       await redis.set(`${WITHDRAW_REQUEST_PREFIX}${id}`, JSON.stringify(request))
 
       logger.info(`❌ Withdraw request rejected: ${id}, amount refunded to user ${request.userId}`)
+
       return request
     } catch (error) {
       logger.error('❌ Error rejecting withdraw request:', error)
@@ -460,6 +503,7 @@ class ReferralService {
       }
     } catch (error) {
       logger.error('❌ Error getting referral stats:', error)
+
       return { code: null, invitedCount: 0, balance: 0, totalCommission: 0, totalRecords: 0 }
     }
   }
@@ -472,6 +516,7 @@ class ReferralService {
       const records = await Promise.all(
         (recordIds || []).map(async (id) => {
           const data = await redis.get(`${COMMISSION_RECORD_PREFIX}${id}`)
+
           return data ? JSON.parse(data) : null
         })
       )
@@ -484,6 +529,7 @@ class ReferralService {
       const requests = await Promise.all(
         (requestIds || []).map(async (id) => {
           const data = await redis.get(`${WITHDRAW_REQUEST_PREFIX}${id}`)
+
           return data ? JSON.parse(data) : null
         })
       )
@@ -500,6 +546,7 @@ class ReferralService {
       }
     } catch (error) {
       logger.error('❌ Error getting admin stats:', error)
+
       return {}
     }
   }

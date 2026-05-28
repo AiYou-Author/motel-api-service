@@ -343,7 +343,9 @@ const { statsData, multiKeyMode, aggregatedStats, invalidKeys } = storeToRefs(ap
 
 const hasModelRestrictions = computed(() => {
   const restriction = statsData.value?.restrictions
+
   if (!restriction) return false
+
   return (
     restriction.enableModelRestriction === true &&
     Array.isArray(restriction.restrictedModels) &&
@@ -353,7 +355,9 @@ const hasModelRestrictions = computed(() => {
 
 const hasClientRestrictions = computed(() => {
   const restriction = statsData.value?.restrictions
+
   if (!restriction) return false
+
   return (
     restriction.enableClientRestriction === true &&
     Array.isArray(restriction.allowedClients) &&
@@ -367,14 +371,17 @@ const getDailyCostProgress = () => {
     return 0
   const percentage =
     (statsData.value.limits.currentDailyCost / statsData.value.limits.dailyCostLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 // 获取每日费用进度条颜色
 const getDailyCostProgressColor = () => {
   const progress = getDailyCostProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-green-500'
 }
 
@@ -384,14 +391,17 @@ const getTotalCostProgress = () => {
     return 0
   const percentage =
     (statsData.value.limits.currentTotalCost / statsData.value.limits.totalCostLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 // 获取总费用进度条颜色
 const getTotalCostProgressColor = () => {
   const progress = getTotalCostProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-blue-500'
 }
 
@@ -404,14 +414,17 @@ const getOpusWeeklyCostProgress = () => {
     return 0
   const percentage =
     (statsData.value.limits.weeklyOpusCost / statsData.value.limits.weeklyOpusCostLimit) * 100
+
   return Math.min(percentage, 100)
 }
 
 // 获取Claude周费用进度条颜色
 const getOpusWeeklyCostProgressColor = () => {
   const progress = getOpusWeeklyCostProgress()
+
   if (progress >= 100) return 'bg-red-500'
   if (progress >= 80) return 'bg-yellow-500'
+
   return 'bg-indigo-500' // 使用紫色表示Opus模型
 }
 

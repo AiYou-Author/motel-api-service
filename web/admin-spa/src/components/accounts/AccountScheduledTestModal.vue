@@ -245,8 +245,10 @@ const modelOptions = ref([])
 
 const loadModels = async () => {
   const result = await getModelsApi()
+
   if (result.success && result.data) {
     const platform = props.account?.platform
+
     modelOptions.value = result.data.platforms?.[platform] || result.data.claude || []
   }
 }
@@ -257,6 +259,7 @@ onMounted(loadModels)
 function formatTimestamp(timestamp) {
   if (!timestamp) return '未知'
   const date = new Date(timestamp)
+
   return date.toLocaleString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
@@ -276,11 +279,13 @@ async function loadConfig() {
 
     // 根据平台获取配置端点
     let endpoint = ''
+
     if (platform === 'claude') {
       endpoint = `${APP_CONFIG.apiPrefix}/admin/claude-accounts/${props.account.id}/test-config`
     } else {
       // 其他平台暂不支持
       loading.value = false
+
       return
     }
 
@@ -293,6 +298,7 @@ async function loadConfig() {
 
     if (configRes.ok) {
       const data = await configRes.json()
+
       if (data.success && data.data?.config) {
         config.value = {
           enabled: data.data.config.enabled || false,
@@ -312,6 +318,7 @@ async function loadConfig() {
 
     if (historyRes.ok) {
       const historyData = await historyRes.json()
+
       if (historyData.success && historyData.data?.history) {
         testHistory.value = historyData.data.history
       }
@@ -333,10 +340,12 @@ async function saveConfig() {
     const platform = props.account.platform
 
     let endpoint = ''
+
     if (platform === 'claude') {
       endpoint = `${APP_CONFIG.apiPrefix}/admin/claude-accounts/${props.account.id}/test-config`
     } else {
       saving.value = false
+
       return
     }
 
@@ -359,6 +368,7 @@ async function saveConfig() {
       handleClose()
     } else {
       const errorData = await res.json().catch(() => ({}))
+
       showToast(errorData.message || '保存失败', 'error')
     }
   } catch (err) {

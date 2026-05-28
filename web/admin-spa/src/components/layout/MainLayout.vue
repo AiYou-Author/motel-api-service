@@ -71,6 +71,7 @@ const initActiveTab = () => {
       StorePlansAdmin: 'storePlans',
       Settings: 'settings'
     }
+
     if (routeName && nameToTabMap[routeName]) {
       activeTab.value = nameToTabMap[routeName]
     } else {
@@ -88,6 +89,7 @@ watch(
   () => route.path,
   (newPath) => {
     const tabKey = Object.keys(tabRouteMap.value).find((key) => tabRouteMap.value[key] === newPath)
+
     if (tabKey) {
       activeTab.value = tabKey
     } else {
@@ -102,6 +104,7 @@ watch(
         Tutorial: 'tutorial',
         Settings: 'settings'
       }
+
       if (routeName && nameToTabMap[routeName]) {
         activeTab.value = nameToTabMap[routeName]
       }

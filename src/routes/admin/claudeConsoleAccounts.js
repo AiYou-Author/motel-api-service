@@ -33,8 +33,10 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
       if (groupId === 'ungrouped') {
         // 筛选未分组账户
         const filteredAccounts = []
+
         for (const account of accounts) {
           const groups = await accountGroupService.getAccountGroups(account.id)
+
           if (!groups || groups.length === 0) {
             filteredAccounts.push(account)
           }
@@ -43,6 +45,7 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
       } else {
         // 筛选特定分组的账户
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       }
     }
@@ -55,6 +58,7 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
           const groupInfos = await accountGroupService.getAccountGroups(account.id)
 
           const formattedAccount = formatAccountExpiry(account)
+
           return {
             ...formattedAccount,
             // 转换schedulable为布尔值
@@ -74,6 +78,7 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
           try {
             const groupInfos = await accountGroupService.getAccountGroups(account.id)
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               // 转换schedulable为布尔值
@@ -91,6 +96,7 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
               groupError.message
             )
             const formattedAccount = formatAccountExpiry(account)
+
             return {
               ...formattedAccount,
               groupInfos: [],
@@ -108,6 +114,7 @@ router.get('/claude-console-accounts', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: accountsWithStats })
   } catch (error) {
     logger.error('❌ Failed to get Claude Console accounts:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to get Claude Console accounts', message: error.message })
@@ -148,6 +155,7 @@ router.post('/claude-console-accounts', authenticateAdmin, async (req, res) => {
     // 验证maxConcurrentTasks的有效性（非负整数）
     if (maxConcurrentTasks !== undefined && maxConcurrentTasks !== null) {
       const concurrent = Number(maxConcurrentTasks)
+
       if (!Number.isInteger(concurrent) || concurrent < 0) {
         return res.status(400).json({ error: 'maxConcurrentTasks must be a non-negative integer' })
       }
@@ -198,9 +206,11 @@ router.post('/claude-console-accounts', authenticateAdmin, async (req, res) => {
 
     logger.success(`🎮 Admin created Claude Console account: ${name}`)
     const formattedAccount = formatAccountExpiry(newAccount)
+
     return res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('❌ Failed to create Claude Console account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to create Claude Console account', message: error.message })
@@ -230,6 +240,7 @@ router.put('/claude-console-accounts/:accountId', authenticateAdmin, async (req,
       mappedUpdates.maxConcurrentTasks !== null
     ) {
       const concurrent = Number(mappedUpdates.maxConcurrentTasks)
+
       if (!Number.isInteger(concurrent) || concurrent < 0) {
         return res.status(400).json({ error: 'maxConcurrentTasks must be a non-negative integer' })
       }
@@ -254,6 +265,7 @@ router.put('/claude-console-accounts/:accountId', authenticateAdmin, async (req,
 
     // 获取账户当前信息以处理分组变更
     const currentAccount = await claudeConsoleAccountService.getAccount(accountId)
+
     if (!currentAccount) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -270,6 +282,7 @@ router.put('/claude-console-accounts/:accountId', authenticateAdmin, async (req,
       // 如果之前是分组类型，需要从所有分组中移除
       if (currentAccount.accountType === 'group') {
         const oldGroups = await accountGroupService.getAccountGroups(accountId)
+
         for (const oldGroup of oldGroups) {
           await accountGroupService.removeAccountFromGroup(accountId, oldGroup.id)
         }
@@ -295,9 +308,11 @@ router.put('/claude-console-accounts/:accountId', authenticateAdmin, async (req,
     await claudeConsoleAccountService.updateAccount(accountId, mappedUpdates)
 
     logger.success(`📝 Admin updated Claude Console account: ${accountId}`)
+
     return res.json({ success: true, message: 'Claude Console account updated successfully' })
   } catch (error) {
     logger.error('❌ Failed to update Claude Console account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to update Claude Console account', message: error.message })
@@ -314,8 +329,10 @@ router.delete('/claude-console-accounts/:accountId', authenticateAdmin, async (r
 
     // 获取账户信息以检查是否在分组中
     const account = await claudeConsoleAccountService.getAccount(accountId)
+
     if (account && account.accountType === 'group') {
       const groups = await accountGroupService.getAccountGroups(accountId)
+
       for (const group of groups) {
         await accountGroupService.removeAccountFromGroup(accountId, group.id)
       }
@@ -324,6 +341,7 @@ router.delete('/claude-console-accounts/:accountId', authenticateAdmin, async (r
     await claudeConsoleAccountService.deleteAccount(accountId)
 
     let message = 'Claude Console账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
@@ -331,6 +349,7 @@ router.delete('/claude-console-accounts/:accountId', authenticateAdmin, async (r
     logger.success(
       `🗑️ Admin deleted Claude Console account: ${accountId}, unbound ${unboundCount} keys`
     )
+
     return res.json({
       success: true,
       message,
@@ -338,6 +357,7 @@ router.delete('/claude-console-accounts/:accountId', authenticateAdmin, async (r
     })
   } catch (error) {
     logger.error('❌ Failed to delete Claude Console account:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to delete Claude Console account', message: error.message })
@@ -350,11 +370,13 @@ router.put('/claude-console-accounts/:accountId/toggle', authenticateAdmin, asyn
     const { accountId } = req.params
 
     const account = await claudeConsoleAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
 
     const newStatus = !account.isActive
+
     await claudeConsoleAccountService.updateAccount(accountId, { isActive: newStatus })
 
     logger.success(
@@ -362,9 +384,11 @@ router.put('/claude-console-accounts/:accountId/toggle', authenticateAdmin, asyn
         newStatus ? 'active' : 'inactive'
       }`
     )
+
     return res.json({ success: true, isActive: newStatus })
   } catch (error) {
     logger.error('❌ Failed to toggle Claude Console account status:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to toggle account status', message: error.message })
@@ -380,11 +404,13 @@ router.put(
       const { accountId } = req.params
 
       const account = await claudeConsoleAccountService.getAccount(accountId)
+
       if (!account) {
         return res.status(404).json({ error: 'Account not found' })
       }
 
       const newSchedulable = !account.schedulable
+
       await claudeConsoleAccountService.updateAccount(accountId, { schedulable: newSchedulable })
 
       // 如果账号被禁用，发送webhook通知
@@ -405,9 +431,11 @@ router.put(
           newSchedulable ? 'schedulable' : 'not schedulable'
         }`
       )
+
       return res.json({ success: true, schedulable: newSchedulable })
     } catch (error) {
       logger.error('❌ Failed to toggle Claude Console account schedulable status:', error)
+
       return res
         .status(500)
         .json({ error: 'Failed to toggle schedulable status', message: error.message })
@@ -428,6 +456,7 @@ router.get('/claude-console-accounts/:accountId/usage', authenticateAdmin, async
     return res.json(usageStats)
   } catch (error) {
     logger.error('❌ Failed to get Claude Console account usage stats:', error)
+
     return res.status(500).json({ error: 'Failed to get usage stats', message: error.message })
   }
 })
@@ -439,12 +468,15 @@ router.post(
   async (req, res) => {
     try {
       const { accountId } = req.params
+
       await claudeConsoleAccountService.resetDailyUsage(accountId)
 
       logger.success(`Admin manually reset daily usage for Claude Console account: ${accountId}`)
+
       return res.json({ success: true, message: 'Daily usage reset successfully' })
     } catch (error) {
       logger.error('❌ Failed to reset Claude Console account daily usage:', error)
+
       return res.status(500).json({ error: 'Failed to reset daily usage', message: error.message })
     }
   }
@@ -458,10 +490,13 @@ router.post(
     try {
       const { accountId } = req.params
       const result = await claudeConsoleAccountService.resetAccountStatus(accountId)
+
       logger.success(`Admin reset status for Claude Console account: ${accountId}`)
+
       return res.json({ success: true, data: result })
     } catch (error) {
       logger.error('❌ Failed to reset Claude Console account status:', error)
+
       return res.status(500).json({ error: 'Failed to reset status', message: error.message })
     }
   }
@@ -473,9 +508,11 @@ router.post('/claude-console-accounts/reset-all-usage', authenticateAdmin, async
     await claudeConsoleAccountService.resetAllDailyUsage()
 
     logger.success('Admin manually reset daily usage for all Claude Console accounts')
+
     return res.json({ success: true, message: 'All daily usage reset successfully' })
   } catch (error) {
     logger.error('❌ Failed to reset all Claude Console accounts daily usage:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to reset all daily usage', message: error.message })

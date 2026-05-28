@@ -117,6 +117,7 @@ export default defineConfig(({ mode }) => {
               if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
                 return 'vue-vendor'
               }
+
               return 'vendor'
             }
           }

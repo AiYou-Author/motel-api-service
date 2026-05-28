@@ -1,6 +1,4 @@
 // Jest setup file
-const logger = require('./src/utils/logger');
-
 // Mock logger to avoid console output during tests
 jest.mock('./src/utils/logger', () => ({
   info: jest.fn(),

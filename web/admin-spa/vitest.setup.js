@@ -17,6 +17,7 @@ const localStorageMock = {
   removeItem: vi.fn(),
   clear: vi.fn(),
 };
+
 global.localStorage = localStorageMock;
 
 // Mock sessionStorage
@@ -26,6 +27,7 @@ const sessionStorageMock = {
   removeItem: vi.fn(),
   clear: vi.fn(),
 };
+
 global.sessionStorage = sessionStorageMock;
 
 // Mock matchMedia

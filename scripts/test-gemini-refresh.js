@@ -38,7 +38,9 @@ function debugDecrypt(text) {
     const encryptedText = Buffer.from(encryptedHex, 'hex')
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
     let decrypted = decipher.update(encryptedText)
+
     decrypted = Buffer.concat([decrypted, decipher.final()])
+
     return { success: true, value: decrypted.toString() }
   } catch (error) {
     return { success: false, error: error.message }
@@ -90,6 +92,7 @@ async function testGeminiTokenRefresh() {
 
           // 尝试手动解密
           const decryptResult = debugDecrypt(rawData.refreshToken)
+
           if (decryptResult.success) {
             console.log('      ✅ 手动解密成功')
             console.log(`      解密后前20字符: ${decryptResult.value.substring(0, 20)}...`)
@@ -118,12 +121,14 @@ async function testGeminiTokenRefresh() {
         const newTokens = await geminiAccountService.refreshAccountToken(account.id)
 
         const duration = Date.now() - startTime
+
         console.log(`   ✅ Token 刷新成功！耗时: ${duration}ms`)
         console.log(`   📅 新的过期时间: ${new Date(newTokens.expiry_date).toLocaleString()}`)
         console.log(`   🔑 Access Token: ${newTokens.access_token.substring(0, 20)}...`)
 
         // 验证账户状态已更新
         const updatedAccount = await geminiAccountService.getAccount(account.id)
+
         console.log(`   📊 账户状态: ${updatedAccount.status}`)
       } catch (error) {
         console.log(`   ❌ Token 刷新失败: ${error.message}`)

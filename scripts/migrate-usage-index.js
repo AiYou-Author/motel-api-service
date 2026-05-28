@@ -26,16 +26,21 @@ async function migrate() {
   // 1. 迁移 usage:daily:{keyId}:{date} 索引
   console.log('\n1. 迁移 usage:daily 索引...')
   let cursor = '0'
+
   do {
     const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'usage:daily:*', 'COUNT', 500)
+
     cursor = newCursor
 
     const pipeline = redis.pipeline()
+
     for (const key of keys) {
       // usage:daily:{keyId}:{date}
       const match = key.match(/^usage:daily:([^:]+):(\d{4}-\d{2}-\d{2})$/)
+
       if (match) {
         const [, keyId, date] = match
+
         pipeline.sadd(`usage:daily:index:${date}`, keyId)
         pipeline.expire(`usage:daily:index:${date}`, 86400 * 32)
         stats.dailyIndex++
@@ -52,14 +57,18 @@ async function migrate() {
   cursor = '0'
   do {
     const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'usage:hourly:*', 'COUNT', 500)
+
     cursor = newCursor
 
     const pipeline = redis.pipeline()
+
     for (const key of keys) {
       // usage:hourly:{keyId}:{date}:{hour}
       const match = key.match(/^usage:hourly:([^:]+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
       if (match) {
         const [, keyId, hourKey] = match
+
         pipeline.sadd(`usage:hourly:index:${hourKey}`, keyId)
         pipeline.expire(`usage:hourly:index:${hourKey}`, 86400 * 7)
         stats.hourlyIndex++
@@ -76,14 +85,18 @@ async function migrate() {
   cursor = '0'
   do {
     const [newCursor, keys] = await redis.scan(cursor, 'MATCH', 'usage:model:daily:*', 'COUNT', 500)
+
     cursor = newCursor
 
     const pipeline = redis.pipeline()
+
     for (const key of keys) {
       // usage:model:daily:{model}:{date}
       const match = key.match(/^usage:model:daily:([^:]+):(\d{4}-\d{2}-\d{2})$/)
+
       if (match) {
         const [, model, date] = match
+
         pipeline.sadd(`usage:model:daily:index:${date}`, model)
         pipeline.expire(`usage:model:daily:index:${date}`, 86400 * 32)
         stats.modelDailyIndex++
@@ -106,14 +119,18 @@ async function migrate() {
       'COUNT',
       500
     )
+
     cursor = newCursor
 
     const pipeline = redis.pipeline()
+
     for (const key of keys) {
       // usage:model:hourly:{model}:{date}:{hour}
       const match = key.match(/^usage:model:hourly:([^:]+):(\d{4}-\d{2}-\d{2}:\d{2})$/)
+
       if (match) {
         const [, model, hourKey] = match
+
         pipeline.sadd(`usage:model:hourly:index:${hourKey}`, model)
         pipeline.expire(`usage:model:hourly:index:${hourKey}`, 86400 * 7)
         stats.modelHourlyIndex++

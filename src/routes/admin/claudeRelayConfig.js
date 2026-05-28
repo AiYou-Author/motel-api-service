@@ -18,12 +18,14 @@ const router = express.Router()
 router.get('/claude-relay-config', authenticateAdmin, async (req, res) => {
   try {
     const config = await claudeRelayConfigService.getConfig()
+
     return res.json({
       success: true,
       config
     })
   } catch (error) {
     logger.error('❌ Failed to get Claude relay config:', error)
+
     return res.status(500).json({
       error: 'Failed to get configuration',
       message: error.message
@@ -202,6 +204,7 @@ router.put('/claude-relay-config', authenticateAdmin, async (req, res) => {
     }
 
     const updateData = {}
+
     if (claudeCodeOnlyEnabled !== undefined) {
       updateData.claudeCodeOnlyEnabled = claudeCodeOnlyEnabled
     }
@@ -252,6 +255,7 @@ router.put('/claude-relay-config', authenticateAdmin, async (req, res) => {
 
     let warning = null
     let requestDetailBodyPreviewPurge = null
+
     if (requestDetailBodyPreviewEnabled === false && purgeRequestDetailBodySnapshots === true) {
       try {
         requestDetailBodyPreviewPurge = await requestDetailService.purgeRequestBodySnapshots()
@@ -286,6 +290,7 @@ router.put('/claude-relay-config', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to update Claude relay config:', error)
+
     return res.status(500).json({
       error: 'Failed to update configuration',
       message: error.message
@@ -300,12 +305,14 @@ router.put('/claude-relay-config', authenticateAdmin, async (req, res) => {
 router.get('/claude-relay-config/session-bindings', authenticateAdmin, async (req, res) => {
   try {
     const stats = await claudeRelayConfigService.getSessionBindingStats()
+
     return res.json({
       success: true,
       data: stats
     })
   } catch (error) {
     logger.error('❌ Failed to get session binding stats:', error)
+
     return res.status(500).json({
       error: 'Failed to get session binding statistics',
       message: error.message

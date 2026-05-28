@@ -77,8 +77,8 @@
               />
               <button
                 type="button"
-                @click="copyReferralLink"
                 class="relative -ml-px inline-flex items-center space-x-2 rounded-r-md border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                @click="copyReferralLink"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -171,7 +171,7 @@
     <div v-if="activeTab === 'withdraw'" class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
       <div class="p-6 max-w-2xl">
         <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-6">申请提现</h3>
-        <form @submit.prevent="submitWithdraw" class="space-y-6">
+        <form class="space-y-6" @submit.prevent="submitWithdraw">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">提现金额</label>
             <div class="mt-1 relative rounded-md shadow-sm">
@@ -318,6 +318,7 @@ const referralLink = ref('')
 const loadReferralInfo = async () => {
   try {
     const data = await getReferralInfoApi()
+
     referralInfo.value = data
     referralLink.value = `${window.location.origin}/user/register?ref=${data.code}`
   } catch (error) {
@@ -328,6 +329,7 @@ const loadReferralInfo = async () => {
 const loadCommissionRecords = async () => {
   try {
     const { records } = await getReferralRecordsApi({ limit: 100 })
+
     commissionRecords.value = records
     totalCommission.value = records
       .filter(r => r.direction === 'credit' && r.type === 'commission')
@@ -340,6 +342,7 @@ const loadCommissionRecords = async () => {
 const loadWithdrawalRecords = async () => {
   try {
     const { requests } = await getReferralWithdrawalsApi({ limit: 100 })
+
     withdrawalRecords.value = requests
   } catch (error) {
     showToast('加载提现记录失败', 'error')
@@ -356,16 +359,19 @@ const copyReferralLink = async () => {
 }
 
 const submitWithdraw = async () => {
-  if (withdrawForm.amount <= 0) {
+  if (withdrawForm.value.amount <= 0) {
     showToast('请输入正确的提现金额', 'error')
+
     return
   }
-  if (withdrawForm.amount > referralInfo.value.balance) {
+  if (withdrawForm.value.amount > referralInfo.value.balance) {
     showToast('提现金额超过可用余额', 'error')
+
     return
   }
-  if (!withdrawForm.accountInfo) {
+  if (!withdrawForm.value.accountInfo) {
     showToast('请填写收款账号', 'error')
+
     return
   }
 

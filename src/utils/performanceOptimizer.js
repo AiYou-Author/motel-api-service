@@ -83,7 +83,9 @@ function getPricingData(pricingFilePath) {
       return null
     }
     const data = JSON.parse(fs.readFileSync(pricingFilePath, 'utf8'))
+
     pricingDataCache.set(pricingFilePath, { data, loadTime: now })
+
     return data
   } catch (error) {
     return null

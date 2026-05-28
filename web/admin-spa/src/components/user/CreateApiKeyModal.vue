@@ -205,6 +205,7 @@ const resetForm = () => {
 const handleSubmit = async () => {
   if (!form.name.trim()) {
     error.value = 'API key name is required'
+
     return
   }
 

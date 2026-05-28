@@ -100,32 +100,39 @@ function normalizeAntigravityModelInput(model, defaultModel = DEFAULT_ANTIGRAVIT
   if (!model) {
     return defaultModel
   }
+
   return model.startsWith('models/') ? model.slice('models/'.length) : model
 }
 
 function getAntigravityModelAlias(modelName) {
   const normalized = normalizeAntigravityModelInput(modelName)
+
   if (Object.prototype.hasOwnProperty.call(UPSTREAM_TO_ALIAS, normalized)) {
     return UPSTREAM_TO_ALIAS[normalized]
   }
+
   return normalized
 }
 
 function getAntigravityModelMetadata(modelName) {
   const normalized = normalizeAntigravityModelInput(modelName)
+
   if (Object.prototype.hasOwnProperty.call(ANTIGRAVITY_MODEL_METADATA, normalized)) {
     return ANTIGRAVITY_MODEL_METADATA[normalized]
   }
   if (normalized.startsWith('claude-')) {
     const prefixed = `gemini-${normalized}`
+
     if (Object.prototype.hasOwnProperty.call(ANTIGRAVITY_MODEL_METADATA, prefixed)) {
       return ANTIGRAVITY_MODEL_METADATA[prefixed]
     }
     const thinkingAlias = `${prefixed}-thinking`
+
     if (Object.prototype.hasOwnProperty.call(ANTIGRAVITY_MODEL_METADATA, thinkingAlias)) {
       return ANTIGRAVITY_MODEL_METADATA[thinkingAlias]
     }
   }
+
   return null
 }
 

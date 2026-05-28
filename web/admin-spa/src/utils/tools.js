@@ -5,7 +5,8 @@ export const APP_CONFIG = {
 }
 
 export const getAppUrl = (path = '') => {
-  if (path && !path.startsWith('/')) path = '/' + path
+  if (path && !path.startsWith('/')) {path = '/' + path}
+
   return APP_CONFIG.basePath + (path.startsWith('#') ? path : '#' + path)
 }
 
@@ -26,6 +27,7 @@ export const showToast = (message, type = 'info', title = '', duration = 3000) =
 
   const id = ++toastId
   const toast = document.createElement('div')
+
   toast.className = `toast rounded-2xl p-4 shadow-2xl backdrop-blur-sm toast-${type}`
   toast.style.cssText = `
     position: relative;
@@ -79,6 +81,7 @@ export const copyText = async (text, successMsg = '已复制') => {
       await navigator.clipboard.writeText(text)
     } else {
       const textarea = document.createElement('textarea')
+
       textarea.value = text
       document.body.appendChild(textarea)
       textarea.select()
@@ -86,29 +89,34 @@ export const copyText = async (text, successMsg = '已复制') => {
       document.body.removeChild(textarea)
     }
     showToast(successMsg, 'success')
+
     return true
   } catch (error) {
     console.error('Failed to copy:', error)
     showToast('复制失败', 'error')
+
     return false
   }
 }
 
 // 数字格式化
 export const formatNumber = (num) => {
-  if (num === null || num === undefined) return '0'
+  if (num === null || num === undefined) {return '0'}
   const absNum = Math.abs(num)
-  if (absNum >= 1e9) return (num / 1e9).toFixed(2) + 'B'
-  if (absNum >= 1e6) return (num / 1e6).toFixed(2) + 'M'
-  if (absNum >= 1e3) return (num / 1e3).toFixed(1) + 'K'
+
+  if (absNum >= 1e9) {return (num / 1e9).toFixed(2) + 'B'}
+  if (absNum >= 1e6) {return (num / 1e6).toFixed(2) + 'M'}
+  if (absNum >= 1e3) {return (num / 1e3).toFixed(1) + 'K'}
+
   return num.toLocaleString()
 }
 
 // 日期格式化
 export const formatDate = (date, format = 'YYYY-MM-DD HH:mm:ss') => {
-  if (!date) return ''
+  if (!date) {return ''}
   const d = new Date(date)
   const pad = (n) => String(n).padStart(2, '0')
+
   return format
     .replace('YYYY', d.getFullYear())
     .replace('MM', pad(d.getMonth() + 1))
@@ -120,31 +128,35 @@ export const formatDate = (date, format = 'YYYY-MM-DD HH:mm:ss') => {
 
 // 相对时间格式化
 export const formatRelativeTime = (date) => {
-  if (!date) return ''
+  if (!date) {return ''}
   const d = new Date(date)
   const diffMs = new Date() - d
   const diffMins = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays >= 7) return d.toLocaleDateString('zh-CN')
-  if (diffDays > 0) return `${diffDays}天前`
-  if (diffHours > 0) return `${diffHours}小时前`
-  if (diffMins > 0) return `${diffMins}分钟前`
+
+  if (diffDays >= 7) {return d.toLocaleDateString('zh-CN')}
+  if (diffDays > 0) {return `${diffDays}天前`}
+  if (diffHours > 0) {return `${diffHours}小时前`}
+  if (diffMins > 0) {return `${diffMins}分钟前`}
+
   return '刚刚'
 }
 
 // 字节格式化
 export const formatBytes = (bytes, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes'
+  if (bytes === 0) {return '0 Bytes'}
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals < 0 ? 0 : decimals)) + ' ' + sizes[i]
 }
 
 // 日期时间格式化 (简化版)
 export const formatDateTime = (date) => {
-  if (!date) return ''
+  if (!date) {return ''}
+
   return new Date(date).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -158,7 +170,9 @@ export const formatDateTime = (date) => {
 // 金额格式化
 export const formatCost = (value) => {
   const num = Number(value || 0)
-  if (num === 0) return '$0.00'
-  if (num < 0.01) return `$${num.toFixed(6)}`
+
+  if (num === 0) {return '$0.00'}
+  if (num < 0.01) {return `$${num.toFixed(6)}`}
+
   return `$${num.toFixed(2)}`
 }

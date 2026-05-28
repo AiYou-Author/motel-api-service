@@ -26,6 +26,7 @@ const getConfig = () => {
       _configCache = {}
     }
   }
+
   return _configCache
 }
 
@@ -33,6 +34,7 @@ const getTtlConfig = () => {
   const config = getConfig()
   const parseEnvPositiveInt = (name) => {
     const value = parseInt(process.env[name], 10)
+
     return Number.isFinite(value) && value > 0 ? value : null
   }
 
@@ -55,6 +57,7 @@ const getRedis = () => {
   if (!_redis) {
     _redis = require('../models/redis')
   }
+
   return _redis
 }
 
@@ -73,6 +76,7 @@ const EMPTY_TEMP_UNAVAILABLE_POLICY = {
 const getAccountTempUnavailablePolicy = async (accountId, accountType) => {
   try {
     const accountPrefix = ACCOUNT_KEY_PREFIX_BY_TYPE[accountType]
+
     if (!accountPrefix) {
       return EMPTY_TEMP_UNAVAILABLE_POLICY
     }
@@ -80,6 +84,7 @@ const getAccountTempUnavailablePolicy = async (accountId, accountType) => {
     const redis = getRedis()
     const client = redis.getClientSafe()
     const accountData = await client.hgetall(`${accountPrefix}${accountId}`)
+
     if (!accountData || Object.keys(accountData).length === 0) {
       return EMPTY_TEMP_UNAVAILABLE_POLICY
     }
@@ -89,6 +94,7 @@ const getAccountTempUnavailablePolicy = async (accountId, accountType) => {
     logger.warn(
       `⚠️ [UpstreamError] Failed to load account temp-unavailable policy for ${accountType}:${accountId}: ${error.message}`
     )
+
     return EMPTY_TEMP_UNAVAILABLE_POLICY
   }
 }
@@ -114,6 +120,7 @@ const resolveAccountTtlOverride = ({ policy, statusCode, errorType }) => {
         reason: 'account_503_ttl_disabled'
       }
     }
+
     return {
       skip: false,
       ttlOverrideSeconds: policy.ttl503Seconds,
@@ -129,6 +136,7 @@ const resolveAccountTtlOverride = ({ policy, statusCode, errorType }) => {
         reason: 'account_5xx_ttl_disabled'
       }
     }
+
     return {
       skip: false,
       ttlOverrideSeconds: policy.ttl5xxSeconds,
@@ -159,6 +167,7 @@ const classifyError = (statusCode) => {
   if (statusCode >= 500) {
     return 'server_error'
   }
+
   return null
 }
 
@@ -170,14 +179,18 @@ const parseRetryAfter = (headers) => {
 
   // 标准 Retry-After 头（秒数或 HTTP 日期）
   const retryAfter = headers['retry-after']
+
   if (retryAfter) {
     const seconds = parseInt(retryAfter, 10)
+
     if (!isNaN(seconds) && seconds > 0) {
       return seconds
     }
     const date = new Date(retryAfter)
+
     if (!isNaN(date.getTime())) {
       const diff = Math.ceil((date.getTime() - Date.now()) / 1000)
+
       if (diff > 0) {
         return diff
       }
@@ -186,10 +199,13 @@ const parseRetryAfter = (headers) => {
 
   // Anthropic 限流重置头（ISO 时间）
   const anthropicReset = headers['anthropic-ratelimit-unified-reset']
+
   if (anthropicReset) {
     const date = new Date(anthropicReset)
+
     if (!isNaN(date.getTime())) {
       const diff = Math.ceil((date.getTime() - Date.now()) / 1000)
+
       if (diff > 0) {
         return diff
       }
@@ -198,8 +214,10 @@ const parseRetryAfter = (headers) => {
 
   // OpenAI/Codex 限流重置头
   const xReset = headers['x-ratelimit-reset-requests'] || headers['x-codex-ratelimit-reset']
+
   if (xReset) {
     const seconds = parseInt(xReset, 10)
+
     if (!isNaN(seconds) && seconds > 0) {
       return seconds
     }
@@ -239,6 +257,7 @@ const recordErrorHistory = async (
     })
 
     const pipeline = client.pipeline()
+
     pipeline.lpush(redisKey, entry)
     pipeline.ltrim(redisKey, 0, ERROR_HISTORY_MAX - 1)
     pipeline.expire(redisKey, ERROR_HISTORY_TTL)
@@ -257,6 +276,7 @@ const getErrorHistory = async (accountType, accountId, offset = 0, limit = 50) =
     const l = Math.min(500, Math.max(1, Math.floor(limit)))
     const redisKey = `${ERROR_HISTORY_PREFIX}:${accountType}:${accountId}`
     const list = await client.lrange(redisKey, o, o + l - 1)
+
     return list
       .map((item) => {
         try {
@@ -268,6 +288,7 @@ const getErrorHistory = async (accountType, accountId, offset = 0, limit = 50) =
       .filter((item) => item?.time)
   } catch (error) {
     logger.error(`❌ [ErrorHistory] Failed to get error history for ${accountId}:`, error)
+
     return []
   }
 }
@@ -278,6 +299,7 @@ const clearErrorHistory = async (accountType, accountId) => {
     const redis = getRedis()
     const client = redis.getClientSafe()
     const redisKey = `${ERROR_HISTORY_PREFIX}:${accountType}:${accountId}`
+
     await client.del(redisKey)
   } catch (error) {
     logger.error(`❌ [ErrorHistory] Failed to clear error history for ${accountId}:`, error)
@@ -294,6 +316,7 @@ const markTempUnavailable = async (
 ) => {
   try {
     const errorType = classifyError(statusCode)
+
     if (!errorType) {
       return { success: false, reason: 'not_a_pausable_error' }
     }
@@ -306,13 +329,16 @@ const markTempUnavailable = async (
     })
 
     const key = `${TEMP_UNAVAILABLE_PREFIX}:${accountType}:${accountId}`
+
     if (policyDecision.skip) {
       const redis = getRedis()
       const client = redis.getClientSafe()
+
       await client.del(key).catch(() => {})
       logger.info(
         `⏭️ [UpstreamError] Skip temp-unavailable for account ${accountId} (${accountType}), reason: ${policyDecision.reason}`
       )
+
       return { success: true, skipped: true, reason: policyDecision.reason }
     }
 
@@ -322,6 +348,7 @@ const markTempUnavailable = async (
       Number.isFinite(parsedCustomTtl) && parsedCustomTtl > 0
         ? Math.ceil(parsedCustomTtl)
         : ttlConfig[errorType]
+
     if (
       Number.isFinite(policyDecision.ttlOverrideSeconds) &&
       policyDecision.ttlOverrideSeconds > 0
@@ -333,6 +360,7 @@ const markTempUnavailable = async (
 
     const redis = getRedis()
     const client = redis.getClientSafe()
+
     await client.setex(
       key,
       ttlSeconds,
@@ -359,6 +387,7 @@ const markTempUnavailable = async (
       `❌ [UpstreamError] Failed to mark account ${accountId} temporarily unavailable:`,
       error
     )
+
     return { success: false }
   }
 }
@@ -381,6 +410,7 @@ const isTempUnavailable = async (accountId, accountType) => {
         `⚠️ [UpstreamError] Found temp_unavailable key without TTL for account ${accountId} (${accountType}), auto-clearing`
       )
       await client.del(key)
+
       return false
     }
 
@@ -390,6 +420,7 @@ const isTempUnavailable = async (accountId, accountType) => {
       `❌ [UpstreamError] Failed to check temp unavailable status for ${accountId}:`,
       error
     )
+
     return false
   }
 }
@@ -400,6 +431,7 @@ const clearTempUnavailable = async (accountId, accountType) => {
     const redis = getRedis()
     const client = redis.getClientSafe()
     const key = `${TEMP_UNAVAILABLE_PREFIX}:${accountType}:${accountId}`
+
     await client.del(key)
   } catch (error) {
     logger.error(`❌ [UpstreamError] Failed to clear temp unavailable for ${accountId}:`, error)
@@ -413,11 +445,13 @@ const getAllTempUnavailable = async () => {
     const client = redis.getClientSafe()
     const pattern = `${TEMP_UNAVAILABLE_PREFIX}:*`
     const keys = await client.keys(pattern)
+
     if (!keys.length) {
       return {}
     }
 
     const pipeline = client.pipeline()
+
     for (const key of keys) {
       pipeline.get(key)
       pipeline.ttl(key)
@@ -426,6 +460,7 @@ const getAllTempUnavailable = async () => {
     const cleanupPipeline = client.pipeline()
 
     const statuses = {}
+
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
       // key format: temp_unavailable:{accountType}:{accountId}
@@ -434,6 +469,7 @@ const getAllTempUnavailable = async () => {
       const accountId = parts.slice(2).join(':')
       const [getErr, value] = results[i * 2]
       const [ttlErr, ttl] = results[i * 2 + 1]
+
       if (getErr || ttlErr || !value) {
         continue
       }
@@ -472,9 +508,11 @@ const getAllTempUnavailable = async () => {
     }
 
     await cleanupPipeline.exec().catch(() => {})
+
     return statuses
   } catch (error) {
     logger.error('❌ [UpstreamError] Failed to get all temp unavailable statuses:', error)
+
     return {}
   }
 }
@@ -487,6 +525,7 @@ const sanitizeErrorForClient = (errorData) => {
   try {
     const str = JSON.stringify(errorData)
     const cleaned = str.replace(/ \[[^\]/]+\/[^\]]+\]/g, '')
+
     return JSON.parse(cleaned)
   } catch {
     return errorData

@@ -160,6 +160,7 @@ const themeStore = useThemeStore()
 
 const registerLink = computed(() => {
   const r = route.query.redirect
+
   return r ? `/user/register?redirect=${encodeURIComponent(r)}` : '/user/register'
 })
 
@@ -174,6 +175,7 @@ const form = reactive({
 const handleLogin = async () => {
   if (!form.username || !form.password) {
     error.value = '请输入用户名和密码'
+
     return
   }
 

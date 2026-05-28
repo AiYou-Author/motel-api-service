@@ -20,6 +20,7 @@ const browserFallbackMiddleware = (req, res, next) => {
     }
 
     let trimmed = candidate.trim()
+
     if (!trimmed) {
       return ''
     }

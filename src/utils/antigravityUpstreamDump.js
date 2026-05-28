@@ -9,22 +9,27 @@ const UPSTREAM_REQUEST_DUMP_FILENAME = 'antigravity-upstream-requests-dump.jsonl
 
 function isEnabled() {
   const raw = process.env[UPSTREAM_REQUEST_DUMP_ENV]
+
   if (!raw) {
     return false
   }
   const normalized = String(raw).trim().toLowerCase()
+
   return normalized === '1' || normalized === 'true'
 }
 
 function getMaxBytes() {
   const raw = process.env[UPSTREAM_REQUEST_DUMP_MAX_BYTES_ENV]
+
   if (!raw) {
     return 2 * 1024 * 1024
   }
   const parsed = Number.parseInt(raw, 10)
+
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 2 * 1024 * 1024
   }
+
   return parsed
 }
 
@@ -33,14 +38,17 @@ function redact(value) {
     return value
   }
   const s = String(value)
+
   if (s.length <= 10) {
     return '***'
   }
+
   return `${s.slice(0, 3)}...${s.slice(-4)}`
 }
 
 function safeJsonStringify(payload, maxBytes) {
   let json = ''
+
   try {
     json = JSON.stringify(payload)
   } catch (e) {
@@ -56,6 +64,7 @@ function safeJsonStringify(payload, maxBytes) {
   }
 
   const truncated = Buffer.from(json, 'utf8').subarray(0, maxBytes).toString('utf8')
+
   return JSON.stringify({
     type: 'antigravity_upstream_dump_truncated',
     maxBytes,
@@ -88,12 +97,14 @@ async function dumpAntigravityUpstreamRequest(requestInfo) {
             requestInfo.headers['User-Agent'] || requestInfo.headers['user-agent'] || null,
           Authorization: (() => {
             const raw = requestInfo.headers.Authorization || requestInfo.headers.authorization
+
             if (!raw) {
               return null
             }
             const value = String(raw)
             const m = value.match(/^Bearer\\s+(.+)$/i)
             const token = m ? m[1] : value
+
             return `Bearer ${redact(token)}`
           })()
         }
@@ -102,6 +113,7 @@ async function dumpAntigravityUpstreamRequest(requestInfo) {
   }
 
   const line = `${safeJsonStringify(record, maxBytes)}\n`
+
   try {
     await safeRotatingAppend(filename, line)
   } catch (e) {

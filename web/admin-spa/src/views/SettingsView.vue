@@ -2111,6 +2111,7 @@ const storeSaving = ref(false)
 const loadStoreConfig = async () => {
   try {
     const { data } = await httpApis.getAdminStoreConfigApi()
+
     storeConfig.qrCodeImage = data.qrCodeImage || ''
     storeConfig.paymentInstructions = data.paymentInstructions || ''
   } catch (e) {
@@ -2120,22 +2121,26 @@ const loadStoreConfig = async () => {
 
 const handleQrCodeUpload = async (e) => {
   const file = e.target.files?.[0]
+
   if (!file) return
 
   // 检查文件类型
   if (!file.type.startsWith('image/')) {
     showToast('请选择图片文件', 'error')
+
     return
   }
 
   // 检查文件大小 (最大 2MB)
   if (file.size > 2 * 1024 * 1024) {
     showToast('图片大小不能超过 2MB', 'error')
+
     return
   }
 
   // 转换为 base64
   const reader = new FileReader()
+
   reader.onload = async (event) => {
     storeConfig.qrCodeImage = event.target.result
     await saveStoreConfig()
@@ -2183,6 +2188,7 @@ const showConfirm = (
 const handleConfirmModal = () => {
   showConfirmModal.value = false
   const resolve = confirmResolve.value
+
   confirmResolve.value = null
   resolve?.(true)
 }
@@ -2190,6 +2196,7 @@ const handleConfirmModal = () => {
 const handleCancelModal = () => {
   showConfirmModal.value = false
   const resolve = confirmResolve.value
+
   confirmResolve.value = null
   resolve?.(false)
 }
@@ -2263,6 +2270,7 @@ const requestDetailBodyPreviewSaving = ref(false)
 
 const normalizeRetentionPart = (value) => {
   const parsed = Number.parseInt(value, 10)
+
   return Number.isFinite(parsed) ? parsed : 0
 }
 
@@ -2271,6 +2279,7 @@ const splitRequestDetailRetentionHours = (totalHours = REQUEST_DETAIL_RETENTION_
     1,
     Math.min(REQUEST_DETAIL_RETENTION_MAX_HOURS, normalizeRetentionPart(totalHours))
   )
+
   return {
     days: Math.floor(normalized / 24),
     hours: normalized % 24
@@ -2279,6 +2288,7 @@ const splitRequestDetailRetentionHours = (totalHours = REQUEST_DETAIL_RETENTION_
 
 const syncRequestDetailRetentionInput = (totalHours = REQUEST_DETAIL_RETENTION_DEFAULT_HOURS) => {
   const { days, hours } = splitRequestDetailRetentionHours(totalHours)
+
   requestDetailRetentionInput.days = days
   requestDetailRetentionInput.hours = hours
 }
@@ -2286,6 +2296,7 @@ const syncRequestDetailRetentionInput = (totalHours = REQUEST_DETAIL_RETENTION_D
 const requestDetailRetentionTotalHours = computed(() => {
   const days = normalizeRetentionPart(requestDetailRetentionInput.days)
   const hours = normalizeRetentionPart(requestDetailRetentionInput.hours)
+
   return days * 24 + hours
 })
 
@@ -2319,12 +2330,14 @@ const requestDetailRetentionWarning = computed(() => {
   ) {
     return '保留时间超过 72 小时会增加 Redis 存储压力'
   }
+
   return ''
 })
 
 const handleRequestDetailRetentionChange = () => {
   if (requestDetailRetentionError.value) {
     showToast(requestDetailRetentionError.value, 'error')
+
     return
   }
 
@@ -2582,8 +2595,10 @@ const loadWebhookConfig = async () => {
     const response = await httpApis.getWebhookConfigApi({
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       const config = response.config || {}
+
       webhookConfig.value = {
         ...config,
         notificationTypes: {
@@ -2615,6 +2630,7 @@ const saveWebhookConfig = async () => {
     const response = await httpApis.updateWebhookConfigApi(payload, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       webhookConfig.value = payload
       showToast('配置已保存', 'success')
@@ -2635,6 +2651,7 @@ const loadClaudeConfig = async () => {
     const response = await httpApis.getClaudeRelayConfigApi({
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       claudeConfig.value = {
         claudeCodeOnlyEnabled: response.config?.claudeCodeOnlyEnabled ?? false,
@@ -2707,6 +2724,7 @@ const saveClaudeConfig = async (options = {}) => {
     const response = await httpApis.updateClaudeRelayConfigApi(payload, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       claudeConfig.value = {
         ...claudeConfig.value,
@@ -2724,18 +2742,21 @@ const saveClaudeConfig = async (options = {}) => {
         response.warning || response.message || 'Claude 转发配置已保存',
         response.warning ? 'warning' : 'success'
       )
+
       return response
     }
 
     if (isMounted.value) {
       showToast(response.message || '保存 Claude 转发配置失败', 'error')
     }
+
     return response
   } catch (error) {
     if (error.name === 'AbortError') return
     if (!isMounted.value) return
     showToast('保存 Claude 转发配置失败', 'error')
     console.error(error)
+
     return { success: false, message: error.message || '保存 Claude 转发配置失败' }
   }
 }
@@ -2748,6 +2769,7 @@ const loadServiceRates = async () => {
     const response = await httpApis.getAdminServiceRatesApi({
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       serviceRates.value = {
         baseService: response.data?.baseService || 'claude',
@@ -2779,6 +2801,7 @@ const saveServiceRates = async () => {
       },
       { signal: abortController.value.signal }
     )
+
     if (response.success && isMounted.value) {
       serviceRates.value.updatedAt = response.data?.updatedAt || new Date().toISOString()
       serviceRates.value.updatedBy = response.data?.updatedBy
@@ -2807,6 +2830,7 @@ const getServiceIcon = (service) => {
     azure: 'fab fa-microsoft',
     ccr: 'fas fa-server'
   }
+
   return icons[service] || 'fas fa-cog'
 }
 
@@ -2820,6 +2844,7 @@ const getServiceIconClass = (service) => {
     azure: 'bg-gradient-to-br from-blue-600 to-cyan-600',
     ccr: 'bg-gradient-to-br from-purple-500 to-pink-600'
   }
+
   return classes[service] || 'bg-gradient-to-br from-gray-500 to-gray-600'
 }
 
@@ -2833,6 +2858,7 @@ const getServiceName = (service) => {
     azure: 'Azure OpenAI',
     ccr: 'CCR'
   }
+
   return names[service] || service
 }
 
@@ -2842,13 +2868,16 @@ const validateUrl = () => {
   if (['bark', 'smtp', 'telegram'].includes(platformForm.value.type)) {
     urlError.value = false
     urlValid.value = false
+
     return
   }
 
   const url = platformForm.value.url
+
   if (!url) {
     urlError.value = false
     urlValid.value = false
+
     return
   }
 
@@ -2872,26 +2901,32 @@ const validatePlatformForm = () => {
   if (platformForm.value.type === 'bark') {
     if (!platformForm.value.deviceKey) {
       showToast('请输入Bark设备密钥', 'error')
+
       return false
     }
   } else if (platformForm.value.type === 'telegram') {
     if (!platformForm.value.botToken) {
       showToast('请输入 Telegram 机器人 Token', 'error')
+
       return false
     }
     if (!platformForm.value.chatId) {
       showToast('请输入 Telegram Chat ID', 'error')
+
       return false
     }
     if (platformForm.value.apiBaseUrl) {
       try {
         const parsed = new URL(platformForm.value.apiBaseUrl)
+
         if (!['http:', 'https:'].includes(parsed.protocol)) {
           showToast('Telegram API 基础地址仅支持 http 或 https', 'error')
+
           return false
         }
       } catch (error) {
         showToast('请输入有效的 Telegram API 基础地址', 'error')
+
         return false
       }
     }
@@ -2899,12 +2934,15 @@ const validatePlatformForm = () => {
       try {
         const parsed = new URL(platformForm.value.proxyUrl)
         const supportedProtocols = ['http:', 'https:', 'socks4:', 'socks4a:', 'socks5:']
+
         if (!supportedProtocols.includes(parsed.protocol)) {
           showToast('Telegram 代理仅支持 http/https/socks 协议', 'error')
+
           return false
         }
       } catch (error) {
         showToast('请输入有效的 Telegram 代理地址', 'error')
+
         return false
       }
     }
@@ -2919,19 +2957,23 @@ const validatePlatformForm = () => {
     for (const { field, message } of requiredFields) {
       if (!platformForm.value[field]) {
         showToast(`请输入${message}`, 'error')
+
         return false
       }
     }
   } else {
     if (!platformForm.value.url) {
       showToast('请输入Webhook URL', 'error')
+
       return false
     }
     if (urlError.value) {
       showToast('请输入有效的Webhook URL', 'error')
+
       return false
     }
   }
+
   return true
 }
 
@@ -2945,6 +2987,7 @@ const savePlatform = async () => {
   savingPlatform.value = true
   try {
     let response
+
     if (editingPlatform.value) {
       // 更新平台
       response = await httpApis.updateWebhookPlatformApi(
@@ -3024,6 +3067,7 @@ const deletePlatform = async (id) => {
     const response = await httpApis.deleteWebhookPlatformApi(id, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       showToast('平台已删除', 'success')
       await loadWebhookConfig()
@@ -3044,6 +3088,7 @@ const togglePlatform = async (id) => {
     const response = await httpApis.toggleWebhookPlatformApi(id, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       showToast(response.message, 'success')
       await loadWebhookConfig()
@@ -3095,6 +3140,7 @@ const testPlatform = async (platform) => {
     const response = await httpApis.testWebhookApi(testData, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       showToast('测试成功', 'success')
     }
@@ -3118,6 +3164,7 @@ const testPlatformForm = async () => {
     const response = await httpApis.testWebhookApi(platformForm.value, {
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       showToast('测试成功', 'success')
     }
@@ -3141,6 +3188,7 @@ const sendTestNotification = async () => {
     const response = await httpApis.testWebhookNotificationApi({
       signal: abortController.value.signal
     })
+
     if (response.success && isMounted.value) {
       showToast('测试通知已发送', 'success')
     }
@@ -3149,6 +3197,7 @@ const sendTestNotification = async () => {
     if (!isMounted.value) return
     const errorMessage =
       error?.response?.data?.message || error?.response?.data?.error || error?.message || '发送失败'
+
     showToast(errorMessage, 'error')
     console.error(error)
   }
@@ -3212,6 +3261,7 @@ const getPlatformName = (type) => {
     smtp: '邮件通知',
     custom: '自定义'
   }
+
   return names[type] || type
 }
 
@@ -3227,6 +3277,7 @@ const getPlatformIcon = (type) => {
     smtp: 'fas fa-envelope text-blue-600',
     custom: 'fas fa-webhook text-gray-600'
   }
+
   return icons[type] || 'fas fa-bell'
 }
 
@@ -3242,12 +3293,14 @@ const getWebhookHint = (type) => {
     smtp: '请配置SMTP服务器信息，支持Gmail、QQ邮箱等',
     custom: '请输入完整的Webhook接收地址'
   }
+
   return hints[type] || ''
 }
 
 const formatTelegramToken = (token) => {
   if (!token) return ''
   if (token.length <= 12) return token
+
   return `${token.slice(0, 6)}...${token.slice(-4)}`
 }
 
@@ -3260,6 +3313,7 @@ const getNotificationTypeName = (type) => {
     rateLimitRecovery: '限流恢复',
     test: '测试通知'
   }
+
   return names[type] || type
 }
 
@@ -3272,6 +3326,7 @@ const getNotificationTypeDescription = (type) => {
     rateLimitRecovery: '限流状态恢复时发送提醒',
     test: '用于测试Webhook连接是否正常'
   }
+
   return descriptions[type] || ''
 }
 
@@ -3286,6 +3341,7 @@ const saveOemSettings = async () => {
       apiStatsNotice: oemSettings.value.apiStatsNotice
     }
     const result = await settingsStore.saveOemSettings(settings)
+
     if (result && result.success) {
       showToast('OEM设置保存成功', 'success')
     } else {
@@ -3311,6 +3367,7 @@ const resetOemSettings = async () => {
 
   try {
     const result = await settingsStore.resetOemSettings()
+
     if (result && result.success) {
       showToast('已重置为默认设置', 'success')
     } else {
@@ -3324,18 +3381,22 @@ const resetOemSettings = async () => {
 // 处理图标上传
 const handleIconUpload = async (event) => {
   const file = event.target.files[0]
+
   if (!file) return
 
   // 验证文件
   const validation = settingsStore.validateIconFile(file)
+
   if (!validation.isValid) {
     validation.errors.forEach((error) => showToast(error, 'error'))
+
     return
   }
 
   try {
     // 转换为Base64
     const base64Data = await settingsStore.fileToBase64(file)
+
     oemSettings.value.siteIconData = base64Data
   } catch (error) {
     showToast('文件读取失败', 'error')

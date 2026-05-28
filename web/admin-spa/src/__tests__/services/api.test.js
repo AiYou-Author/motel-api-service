@@ -9,9 +9,11 @@ const apiService = {
   
   async get(endpoint) {
     const response = await fetch(`${this.baseUrl}${endpoint}`);
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     return response.json();
   },
   
@@ -23,9 +25,11 @@ const apiService = {
       },
       body: JSON.stringify(data),
     });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     return response.json();
   },
   
@@ -37,9 +41,11 @@ const apiService = {
       },
       body: JSON.stringify(data),
     });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     return response.json();
   },
   
@@ -47,9 +53,11 @@ const apiService = {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
     });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     return response.json();
   },
 };
@@ -62,6 +70,7 @@ describe('API Service', () => {
   describe('GET requests', () => {
     it('makes GET request with correct URL', async () => {
       const mockResponse = { data: 'test' };
+
       fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,

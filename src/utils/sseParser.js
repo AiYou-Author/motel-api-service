@@ -41,6 +41,7 @@ function parseSSELine(line) {
 
   try {
     const data = JSON.parse(jsonStr)
+
     return { type: 'data', line, data, jsonStr }
   } catch (e) {
     return { type: 'invalid', line, data: null, jsonStr, error: e }
@@ -67,16 +68,20 @@ class IncrementalSSEParser {
 
     // 查找完整的事件（以 \n\n 分隔）
     let idx
+
     while ((idx = this.buffer.indexOf('\n\n')) !== -1) {
       const event = this.buffer.slice(0, idx)
+
       this.buffer = this.buffer.slice(idx + 2)
 
       if (event.trim()) {
         // 解析事件中的每一行
         const lines = event.split('\n')
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const jsonStr = line.slice(6)
+
             if (jsonStr && jsonStr !== '[DONE]') {
               try {
                 events.push({ type: 'data', data: JSON.parse(jsonStr) })

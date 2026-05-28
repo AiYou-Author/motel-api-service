@@ -28,6 +28,7 @@ function ensureAntigravityProjectId(account) {
   if (account.tempProjectId) {
     return account.tempProjectId
   }
+
   return `ag-${crypto.randomBytes(8).toString('hex')}`
 }
 
@@ -77,6 +78,7 @@ function convertMessagesToGemini(messages) {
               return extractTextContent(item.content)
             }
           }
+
           return ''
         })
         .join('')
@@ -99,6 +101,7 @@ function convertMessagesToGemini(messages) {
             if (part && part.text) {
               return part.text
             }
+
             return ''
           })
           .join('')
@@ -221,6 +224,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
     let urlModel = null
     const urlPath = req.body?.config?.url || req.originalUrl || req.url
     const modelMatch = urlPath.match(/\/([^/]+):(?:stream)?[Gg]enerateContent/)
+
     if (modelMatch) {
       urlModel = modelMatch[1]
       logger.debug(`Extracted model from URL: ${urlModel}`)
@@ -245,6 +249,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
 
     // 支持两种格式: OpenAI 的 messages 或 Gemini 的 contents
     let messages = requestMessages
+
     if (requestContents && Array.isArray(requestContents)) {
       messages = requestContents
     }
@@ -323,6 +328,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
 
     // 解析账户的代理配置
     let proxyConfig = null
+
     if (account.proxy) {
       try {
         proxyConfig = typeof account.proxy === 'string' ? JSON.parse(account.proxy) : account.proxy
@@ -349,6 +355,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
       proxyConfig,
       account.oauthProvider
     )
+
     if (actualStream) {
       // 流式响应
       const oauthProvider = account.oauthProvider || 'gemini-cli'
@@ -412,6 +419,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
           }
         ]
       }
+
       res.write(`data: ${JSON.stringify(initialChunk)}\n\n`)
 
       // 用于收集usage数据
@@ -432,6 +440,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
 
           buffer += chunkStr
           const lines = buffer.split('\n')
+
           buffer = lines.pop() || '' // 保留最后一个不完整的行
 
           for (const line of lines) {
@@ -441,6 +450,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
 
             // 处理 SSE 格式
             let jsonData = line
+
             if (line.startsWith('data: ')) {
               jsonData = line.substring(6).trim()
             }
@@ -504,6 +514,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
                           total_tokens: data.response.usageMetadata.totalTokenCount || 0
                         }
                       }
+
                       res.write(`data: ${JSON.stringify(usageChunk)}\n\n`)
                     }
                     res.write('data: [DONE]\n\n')
@@ -669,9 +680,11 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
     }
 
     const duration = Date.now() - startTime
+
     logger.info(`OpenAI-Gemini request completed in ${duration}ms`)
   } catch (error) {
     const statusForLog = error?.status || error?.response?.status
+
     logger.error('OpenAI-Gemini request error', {
       message: error?.message,
       status: statusForLog,
@@ -703,6 +716,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
             code: 'internal_error'
           }
         }
+
         res.status(status).json(errorResponse)
       }
     }
@@ -712,6 +726,7 @@ router.post('/v1/chat/completions', authenticateApiKey, async (req, res) => {
       abortController = null
     }
   }
+
   return undefined
 })
 
@@ -733,12 +748,14 @@ async function handleGetModels(req, res) {
 
     // 选择账户获取模型列表
     let account = null
+
     try {
       const accountSelection = await unifiedGeminiScheduler.selectAccountForApiKey(
         apiKeyData,
         null,
         null
       )
+
       account = await geminiAccountService.getAccount(accountSelection.accountId)
     } catch (error) {
       logger.warn('Failed to select Gemini account for models endpoint:', error)
@@ -750,6 +767,7 @@ async function handleGetModels(req, res) {
       // 获取实际的模型列表（失败时回退到默认列表，避免影响 /v1/models 可用性）
       try {
         const oauthProvider = account.oauthProvider || 'gemini-cli'
+
         models =
           oauthProvider === 'antigravity'
             ? await geminiAccountService.fetchAvailableModelsAntigravity(
@@ -862,6 +880,7 @@ router.get('/v1/models/:model', authenticateApiKey, async (req, res) => {
       }
     })
   }
+
   return undefined
 })
 

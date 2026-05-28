@@ -47,6 +47,7 @@ async function fixUsageStats() {
     logger.info('\n📊 修复 API Key 总统计数据...')
     const apiKeyPattern = 'apikey:*'
     const apiKeys = await client.keys(apiKeyPattern)
+
     stats.totalKeys = apiKeys.length
 
     for (const apiKeyKey of apiKeys) {
@@ -55,6 +56,7 @@ async function fixUsageStats() {
 
       try {
         const usageData = await client.hgetall(usageKey)
+
         if (usageData && Object.keys(usageData).length > 0) {
           const inputTokens = parseInt(usageData.totalInputTokens) || 0
           const outputTokens = parseInt(usageData.totalOutputTokens) || 0
@@ -88,6 +90,7 @@ async function fixUsageStats() {
     for (const dailyKey of dailyKeys) {
       try {
         const data = await client.hgetall(dailyKey)
+
         if (data && Object.keys(data).length > 0) {
           const inputTokens = parseInt(data.inputTokens) || 0
           const outputTokens = parseInt(data.outputTokens) || 0
@@ -118,6 +121,7 @@ async function fixUsageStats() {
     for (const monthlyKey of monthlyKeys) {
       try {
         const data = await client.hgetall(monthlyKey)
+
         if (data && Object.keys(data).length > 0) {
           const inputTokens = parseInt(data.inputTokens) || 0
           const outputTokens = parseInt(data.outputTokens) || 0
@@ -155,6 +159,7 @@ async function fixUsageStats() {
       for (const modelKey of modelKeys) {
         try {
           const data = await client.hgetall(modelKey)
+
           if (data && Object.keys(data).length > 0) {
             const inputTokens = parseInt(data.inputTokens) || 0
             const outputTokens = parseInt(data.outputTokens) || 0
@@ -185,6 +190,7 @@ async function fixUsageStats() {
 
       // 随机抽样验证
       const sampleSize = Math.min(5, apiKeys.length)
+
       for (let i = 0; i < sampleSize; i++) {
         const randomIndex = Math.floor(Math.random() * apiKeys.length)
         const keyId = apiKeys[randomIndex].replace('apikey:', '')

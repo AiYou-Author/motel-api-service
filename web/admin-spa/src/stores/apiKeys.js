@@ -14,35 +14,42 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
   const fetchApiKeys = async () => {
     loading.value = true
     const res = await httpApis.getApiKeysApi()
-    if (res.success) apiKeys.value = res.data || []
-    else error.value = res.message
+
+    if (res.success) {apiKeys.value = res.data || []}
+    else {error.value = res.message}
     loading.value = false
   }
 
   const createApiKey = async (data) => {
     loading.value = true
     const res = await httpApis.createApiKeyApi(data)
-    if (res.success) await fetchApiKeys()
-    else error.value = res.message
+
+    if (res.success) {await fetchApiKeys()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
   const updateApiKey = async (id, data) => {
     loading.value = true
     const res = await httpApis.updateApiKeyApi(id, data)
-    if (res.success) await fetchApiKeys()
-    else error.value = res.message
+
+    if (res.success) {await fetchApiKeys()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
   const toggleApiKey = async (id) => {
     loading.value = true
     const res = await httpApis.toggleApiKeyApi(id)
-    if (res.success) await fetchApiKeys()
-    else error.value = res.message
+
+    if (res.success) {await fetchApiKeys()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
@@ -51,19 +58,23 @@ export const useApiKeysStore = defineStore('apiKeys', () => {
   const deleteApiKey = async (id) => {
     loading.value = true
     const res = await httpApis.deleteApiKeyApi(id)
-    if (res.success) await fetchApiKeys()
-    else error.value = res.message
+
+    if (res.success) {await fetchApiKeys()}
+    else {error.value = res.message}
     loading.value = false
+
     return res
   }
 
   const fetchApiKeyStats = async (id, timeRange = 'all') => {
     const res = await httpApis.getApiKeyStatsApi(id, { timeRange })
+
     return res.success ? res.stats : null
   }
 
   const fetchTags = async () => {
     const res = await httpApis.getApiKeyTagsApi()
+
     return res.success ? res.data || [] : []
   }
 

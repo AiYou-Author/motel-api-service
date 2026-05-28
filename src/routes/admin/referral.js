@@ -8,6 +8,7 @@ const logger = require('../../utils/logger')
 router.get('/config', authenticateAdmin, async (req, res) => {
   try {
     const config = await referralService.getCommissionConfig()
+
     res.json(config)
   } catch (error) {
     logger.error('❌ Error getting referral config:', error)
@@ -19,6 +20,7 @@ router.get('/config', authenticateAdmin, async (req, res) => {
 router.put('/config', authenticateAdmin, async (req, res) => {
   try {
     const { enabled, globalRate, planRates } = req.body
+
     await referralService.saveCommissionConfig({ enabled, globalRate, planRates })
     res.json({ success: true })
   } catch (error) {
@@ -31,6 +33,7 @@ router.put('/config', authenticateAdmin, async (req, res) => {
 router.get('/stats', authenticateAdmin, async (req, res) => {
   try {
     const stats = await referralService.getAdminStats()
+
     res.json(stats)
   } catch (error) {
     logger.error('❌ Error getting referral admin stats:', error)
@@ -48,6 +51,7 @@ router.get('/withdrawals', authenticateAdmin, async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset)
     })
+
     res.json(result)
   } catch (error) {
     logger.error('❌ Error getting withdraw requests:', error)
@@ -61,6 +65,7 @@ router.post('/withdrawals/:id/approve', authenticateAdmin, async (req, res) => {
     const { id } = req.params
     const { adminNote = '' } = req.body
     const request = await referralService.approveWithdrawRequest(id, { adminNote })
+
     res.json({ success: true, request })
   } catch (error) {
     logger.error('❌ Error approving withdraw request:', error)
@@ -77,6 +82,7 @@ router.post('/withdrawals/:id/reject', authenticateAdmin, async (req, res) => {
     const { id } = req.params
     const { reason = '' } = req.body
     const request = await referralService.rejectWithdrawRequest(id, { reason })
+
     res.json({ success: true, request })
   } catch (error) {
     logger.error('❌ Error rejecting withdraw request:', error)

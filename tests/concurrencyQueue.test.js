@@ -42,18 +42,21 @@ describe('ConcurrencyQueue', () => {
       // For [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] (len=10)
       // P50: ceil(50/100 * 10) - 1 = ceil(5) - 1 = 4 → value at index 4 = 50
       const arr = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
       expect(getPercentile(arr, 50)).toBe(50)
     })
 
     it('should calculate P90 correctly for len=10', () => {
       // For len=10, P90: ceil(90/100 * 10) - 1 = ceil(9) - 1 = 8 → value at index 8 = 90
       const arr = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
       expect(getPercentile(arr, 90)).toBe(90)
     })
 
     it('should calculate P99 correctly for len=100', () => {
       // For len=100, P99: ceil(99/100 * 100) - 1 = ceil(99) - 1 = 98
       const arr = Array.from({ length: 100 }, (_, i) => i + 1)
+
       expect(getPercentile(arr, 99)).toBe(99)
     })
 
@@ -128,6 +131,7 @@ describe('ConcurrencyQueue', () => {
 
     it('should not modify original array', () => {
       const waitTimes = [500, 100, 300]
+
       calculateWaitTimeStats(waitTimes)
 
       expect(waitTimes).toEqual([500, 100, 300])
@@ -153,19 +157,23 @@ describe('ConcurrencyQueue', () => {
       let nextInterval = currentInterval * backoffFactor
       // 抖动范围：[-jitterRatio, +jitterRatio]
       const jitter = nextInterval * jitterRatio * (randomValue * 2 - 1)
+
       nextInterval = nextInterval + jitter
+
       return Math.max(1, Math.min(nextInterval, maxInterval))
     }
 
     it('should apply exponential backoff without jitter (randomValue=0.5)', () => {
       // randomValue = 0.5 gives jitter = 0
       const next = calculateNextInterval(100, 1.5, 0.2, 1000, 0.5)
+
       expect(next).toBe(150) // 100 * 1.5 = 150
     })
 
     it('should apply maximum positive jitter (randomValue=1.0)', () => {
       // randomValue = 1.0 gives maximum positive jitter (+20%)
       const next = calculateNextInterval(100, 1.5, 0.2, 1000, 1.0)
+
       // 100 * 1.5 = 150, jitter = 150 * 0.2 * 1 = 30
       expect(next).toBe(180) // 150 + 30
     })
@@ -173,18 +181,21 @@ describe('ConcurrencyQueue', () => {
     it('should apply maximum negative jitter (randomValue=0.0)', () => {
       // randomValue = 0.0 gives maximum negative jitter (-20%)
       const next = calculateNextInterval(100, 1.5, 0.2, 1000, 0.0)
+
       // 100 * 1.5 = 150, jitter = 150 * 0.2 * -1 = -30
       expect(next).toBe(120) // 150 - 30
     })
 
     it('should respect maximum interval', () => {
       const next = calculateNextInterval(800, 1.5, 0.2, 1000, 1.0)
+
       // 800 * 1.5 = 1200, with +20% jitter = 1440, capped at 1000
       expect(next).toBe(1000)
     })
 
     it('should never go below 1ms even with extreme negative jitter', () => {
       const next = calculateNextInterval(1, 1.0, 0.9, 1000, 0.0)
+
       // 1 * 1.0 = 1, jitter = 1 * 0.9 * -1 = -0.9
       // 1 - 0.9 = 0.1, but Math.max(1, ...) ensures minimum is 1
       expect(next).toBe(1)
@@ -192,17 +203,20 @@ describe('ConcurrencyQueue', () => {
 
     it('should handle zero jitter ratio', () => {
       const next = calculateNextInterval(100, 2.0, 0, 1000, 0.0)
+
       expect(next).toBe(200) // Pure exponential, no jitter
     })
 
     it('should handle large backoff factor', () => {
       const next = calculateNextInterval(100, 3.0, 0.1, 1000, 0.5)
+
       expect(next).toBe(300) // 100 * 3.0 = 300
     })
 
     describe('jitter distribution', () => {
       it('should produce values in expected range', () => {
         const results = []
+
         // Test with various random values
         for (let r = 0; r <= 1; r += 0.1) {
           results.push(calculateNextInterval(100, 1.5, 0.2, 1000, r))

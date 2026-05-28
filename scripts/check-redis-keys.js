@@ -13,6 +13,7 @@ async function checkRedisKeys() {
 
     // 获取所有键
     const allKeys = await redis.client.keys('*')
+
     console.log(`找到 ${allKeys.length} 个键\n`)
 
     // 按类型分组
@@ -20,6 +21,7 @@ async function checkRedisKeys() {
 
     allKeys.forEach((key) => {
       const prefix = key.split(':')[0]
+
       if (!keysByType[prefix]) {
         keysByType[prefix] = []
       }
@@ -34,6 +36,7 @@ async function checkRedisKeys() {
 
         // 显示前 5 个键作为示例
         const keysToShow = keysByType[type].slice(0, 5)
+
         keysToShow.forEach((key) => {
           console.log(`  - ${key}`)
         })

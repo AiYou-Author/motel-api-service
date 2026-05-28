@@ -29,6 +29,7 @@ const styles = {
 // 🔧 初始化
 async function initialize() {
   const spinner = ora('正在连接 Redis...').start()
+
   try {
     await redis.connect()
     spinner.succeed('Redis 连接成功')
@@ -190,8 +191,10 @@ async function createInitialAdmin() {
 
   // 检查是否已存在 init.json
   const initFilePath = path.join(__dirname, '..', 'data', 'init.json')
+
   if (fs.existsSync(initFilePath)) {
     const existingData = JSON.parse(fs.readFileSync(initFilePath, 'utf8'))
+
     console.log(styles.warning('⚠️  检测到已存在管理员账户！'))
     console.log(`   用户名: ${existingData.adminUsername}`)
     console.log(`   创建时间: ${new Date(existingData.initializedAt).toLocaleString()}`)
@@ -207,6 +210,7 @@ async function createInitialAdmin() {
 
     if (!overwrite) {
       console.log(styles.info('ℹ️  已取消创建'))
+
       return
     }
   }
@@ -247,6 +251,7 @@ async function createInitialAdmin() {
 
     // 确保 data 目录存在
     const dataDir = path.join(__dirname, '..', 'data')
+
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true })
     }
@@ -285,10 +290,12 @@ async function listApiKeys() {
 
   try {
     const apiKeys = await apiKeyService.getAllApiKeysFast()
+
     spinner.succeed(`找到 ${apiKeys.length} 个 API Keys`)
 
     if (apiKeys.length === 0) {
       console.log(styles.warning('没有找到任何 API Keys'))
+
       return
     }
 
@@ -304,6 +311,7 @@ async function listApiKeys() {
           expiryStatus = styles.error(`已过期 (${expiresAt.toLocaleDateString()})`)
         } else {
           const daysLeft = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))
+
           if (daysLeft <= 7) {
             expiryStatus = styles.warning(`${daysLeft}天后过期 (${expiresAt.toLocaleDateString()})`)
           } else {
@@ -337,6 +345,7 @@ async function updateApiKeyExpiry() {
 
     if (apiKeys.length === 0) {
       console.log(styles.warning('没有找到任何 API Keys'))
+
       return
     }
 
@@ -391,6 +400,7 @@ async function updateApiKeyExpiry() {
           default: new Date().toISOString().split('T')[0],
           validate: (input) => {
             const date = new Date(input)
+
             return !isNaN(date.getTime()) || '请输入有效的日期格式'
           }
         },
@@ -436,6 +446,7 @@ async function updateApiKeyExpiry() {
 
     if (!confirmed) {
       console.log(styles.info('已取消修改'))
+
       return
     }
 
@@ -473,6 +484,7 @@ async function renewApiKeys() {
         return false
       }
       const expiresAt = new Date(key.expiresAt)
+
       return expiresAt > now && expiresAt <= sevenDaysLater
     })
 
@@ -480,6 +492,7 @@ async function renewApiKeys() {
 
     if (expiringKeys.length === 0) {
       console.log(styles.info('没有即将过期的 API Keys（7天内）'))
+
       return
     }
 
@@ -487,6 +500,7 @@ async function renewApiKeys() {
 
     expiringKeys.forEach((key, index) => {
       const daysLeft = Math.ceil((new Date(key.expiresAt) - now) / (1000 * 60 * 60 * 24))
+
       console.log(
         `${index + 1}. ${key.name} - ${daysLeft}天后过期 (${new Date(key.expiresAt).toLocaleDateString()})`
       )
@@ -514,6 +528,7 @@ async function renewApiKeys() {
           const newExpiresAt = new Date(
             new Date(key.expiresAt).getTime() + days * 24 * 60 * 60 * 1000
           ).toISOString()
+
           await apiKeyService.updateApiKey(key.id, { expiresAt: newExpiresAt })
         } catch (error) {
           renewSpinner.fail(`续期 ${key.name} 失败: ${error.message}`)
@@ -566,6 +581,7 @@ async function deleteApiKey() {
 
     if (apiKeys.length === 0) {
       console.log(styles.warning('没有找到任何 API Keys'))
+
       return
     }
 
@@ -583,6 +599,7 @@ async function deleteApiKey() {
 
     if (selectedKeys.length === 0) {
       console.log(styles.info('未选择任何 API Key'))
+
       return
     }
 
@@ -597,6 +614,7 @@ async function deleteApiKey() {
 
     if (!confirmed) {
       console.log(styles.info('已取消删除'))
+
       return
     }
 
@@ -661,15 +679,18 @@ async function listBedrockAccounts() {
 
   try {
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success) {
       throw new Error(result.error)
     }
 
     const accounts = result.data
+
     spinner.succeed(`找到 ${accounts.length} 个 Bedrock 账户`)
 
     if (accounts.length === 0) {
       console.log(styles.warning('没有找到任何 Bedrock 账户'))
+
       return
     }
 
@@ -791,8 +812,10 @@ async function testBedrockAccount() {
 
   try {
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success || result.data.length === 0) {
       spinner.fail('没有可测试的 Bedrock 账户')
+
       return
     }
 
@@ -836,8 +859,10 @@ async function toggleBedrockAccount() {
 
   try {
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success || result.data.length === 0) {
       spinner.fail('没有可操作的 Bedrock 账户')
+
       return
     }
 
@@ -861,6 +886,7 @@ async function toggleBedrockAccount() {
 
     // 获取当前状态
     const accountResult = await bedrockAccountService.getAccount(accountId)
+
     if (!accountResult.success) {
       throw new Error('无法获取账户信息')
     }
@@ -887,8 +913,10 @@ async function editBedrockAccount() {
 
   try {
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success || result.data.length === 0) {
       spinner.fail('没有可编辑的 Bedrock 账户')
+
       return
     }
 
@@ -909,6 +937,7 @@ async function editBedrockAccount() {
     ])
 
     const accountResult = await bedrockAccountService.getAccount(accountId)
+
     if (!accountResult.success) {
       throw new Error('无法获取账户信息')
     }
@@ -957,8 +986,10 @@ async function deleteBedrockAccount() {
 
   try {
     const result = await bedrockAccountService.getAllAccounts()
+
     if (!result.success || result.data.length === 0) {
       spinner.fail('没有可删除的 Bedrock 账户')
+
       return
     }
 
@@ -989,6 +1020,7 @@ async function deleteBedrockAccount() {
 
     if (!confirm) {
       console.log(styles.info('已取消删除'))
+
       return
     }
 

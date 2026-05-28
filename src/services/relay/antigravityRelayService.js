@@ -43,6 +43,7 @@ async function* handleStreamResponse(response, model, apiKeyId, accountId, reque
       buffer += chunk.toString()
 
       const lines = buffer.split('\n')
+
       buffer = lines.pop() || ''
 
       for (const line of lines) {
@@ -51,6 +52,7 @@ async function* handleStreamResponse(response, model, apiKeyId, accountId, reque
         }
 
         let jsonData = line
+
         if (line.startsWith('data: ')) {
           jsonData = line.substring(6).trim()
         }
@@ -68,9 +70,11 @@ async function* handleStreamResponse(response, model, apiKeyId, accountId, reque
           }
 
           const openaiChunk = convertGeminiResponse(payload, model, true)
+
           if (openaiChunk) {
             yield `data: ${JSON.stringify(openaiChunk)}\n\n`
             const finishReason = openaiChunk.choices?.[0]?.finish_reason
+
             if (finishReason === 'stop') {
               yield 'data: [DONE]\n\n'
 
@@ -89,6 +93,7 @@ async function* handleStreamResponse(response, model, apiKeyId, accountId, reque
                 )
                 usageRecorded = true
               }
+
               return
             }
           }

@@ -74,6 +74,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
       if (typeof status === 'object') {
         return status.isRateLimited === true
       }
+
       return false
     }
 
@@ -110,6 +111,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
           normal++
         }
       }
+
       return { normal, abnormal, paused, rateLimited }
     }
 
@@ -118,6 +120,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
       abnormalDroidAccounts = 0,
       pausedDroidAccounts = 0,
       rateLimitedDroidAccounts = 0
+
     for (const acc of droidAccounts) {
       const isActive = normalizeBoolean(acc.isActive)
       const isBlocked = acc.status === 'blocked' || acc.status === 'unauthorized'
@@ -162,6 +165,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
       totalApiKeys = apiKeys.length
       for (const key of apiKeys) {
         const usage = key.usage?.total
+
         if (usage) {
           totalTokensUsed += usage.allTokens || 0
           totalRequestsUsed += usage.requests || 0
@@ -349,6 +353,7 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: dashboard })
   } catch (error) {
     logger.error('❌ Failed to get dashboard data:', error)
+
     return res.status(500).json({ error: 'Failed to get dashboard data', message: error.message })
   }
 })
@@ -357,9 +362,11 @@ router.get('/dashboard', authenticateAdmin, async (req, res) => {
 router.get('/temp-unavailable', authenticateAdmin, async (req, res) => {
   try {
     const statuses = await upstreamErrorHelper.getAllTempUnavailable()
+
     return res.json({ success: true, data: statuses })
   } catch (error) {
     logger.error('❌ Failed to get temp unavailable statuses:', error)
+
     return res.status(500).json({ error: 'Failed to get temp unavailable statuses' })
   }
 })
@@ -381,6 +388,7 @@ router.get('/usage-stats', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: { period, stats } })
   } catch (error) {
     logger.error('❌ Failed to get usage stats:', error)
+
     return res.status(500).json({ error: 'Failed to get usage stats', message: error.message })
   }
 })
@@ -413,13 +421,16 @@ router.get('/model-stats', authenticateAdmin, async (req, res) => {
       }
 
       const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+
       if (daysDiff > 365) {
         return res.status(400).json({ error: 'Date range cannot exceed 365 days' })
       }
 
       const currentDate = new Date(start)
+
       while (currentDate <= end) {
         const dateStr = redis.getDateStringInTimezone(currentDate)
+
         datePatterns.push({ dateStr, pattern: `usage:model:daily:*:${dateStr}` })
         currentDate.setDate(currentDate.getDate() + 1)
       }
@@ -431,13 +442,16 @@ router.get('/model-stats', authenticateAdmin, async (req, res) => {
         period === 'daily'
           ? `usage:model:daily:*:${today}`
           : `usage:model:monthly:*:${currentMonth}`
+
       datePatterns.push({ dateStr: period === 'daily' ? today : currentMonth, pattern })
     }
 
     // 按日期集合扫描，串行避免并行触发多次全库 SCAN
     const allResults = []
+
     for (const { pattern } of datePatterns) {
       const results = await redis.scanAndGetAllChunked(pattern)
+
       allResults.push(...results)
     }
 
@@ -452,8 +466,10 @@ router.get('/model-stats', authenticateAdmin, async (req, res) => {
       // 对于Bedrock模型，去掉区域前缀进行统一
       if (model.includes('.anthropic.') || model.includes('.claude')) {
         let normalized = model.replace(/^[a-z0-9-]+\./, '')
+
         normalized = normalized.replace('anthropic.', '')
         normalized = normalized.replace(/-v\d+:\d+$/, '')
+
         return normalized
       }
 
@@ -562,6 +578,7 @@ router.get('/model-stats', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: modelStats })
   } catch (error) {
     logger.error('❌ Failed to get model stats:', error)
+
     return res.status(500).json({ error: 'Failed to get model stats', message: error.message })
   }
 })
@@ -592,6 +609,7 @@ router.post('/cleanup', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Cleanup failed:', error)
+
     return res.status(500).json({ error: 'Cleanup failed', message: error.message })
   }
 })

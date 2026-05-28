@@ -4,6 +4,7 @@ const { mapToErrorCode } = require('./errorSanitizer')
 // 将原始错误信息映射为安全的标准错误码消息
 const sanitizeErrorMsg = (msg) => {
   const mapped = mapToErrorCode({ message: msg }, { logOriginal: false })
+
   return `[${mapped.code}] ${mapped.message}`
 }
 
@@ -23,6 +24,7 @@ function randomHex(bytes = 32) {
 function generateSessionString() {
   const hex64 = randomHex(32) // 32 bytes => 64 hex characters
   const uuid = crypto.randomUUID()
+
   return `user_${hex64}_account__session_${uuid}`
 }
 
@@ -162,18 +164,22 @@ async function sendStreamTestRequest(options) {
 
   try {
     const response = await axios(requestConfig)
+
     logger.debug(`🌊 Test response status: ${response.status}`)
 
     // 处理非200响应
     if (response.status !== 200) {
       return new Promise((resolve) => {
         const chunks = []
+
         response.data.on('data', (chunk) => chunks.push(chunk))
         response.data.on('end', () => {
           const errorData = Buffer.concat(chunks).toString()
           let errorMsg = `API Error: ${response.status}`
+
           try {
             const json = JSON.parse(errorData)
+
             errorMsg = extractErrorMessage(json, errorMsg)
           } catch {
             if (errorData.length < 200) {
@@ -197,6 +203,7 @@ async function sendStreamTestRequest(options) {
       response.data.on('data', (chunk) => {
         buffer += chunk.toString()
         const lines = buffer.split('\n')
+
         buffer = lines.pop() || ''
 
         for (const line of lines) {
@@ -204,6 +211,7 @@ async function sendStreamTestRequest(options) {
             continue
           }
           const jsonStr = line.substring(5).trim()
+
           if (!jsonStr || jsonStr === '[DONE]') {
             continue
           }
@@ -219,6 +227,7 @@ async function sendStreamTestRequest(options) {
             }
             if (data.type === 'error' || data.error) {
               const errMsg = data.error?.message || data.message || data.error || 'Unknown error'
+
               sendSSE('error', { error: errMsg })
             }
           } catch {
@@ -255,6 +264,7 @@ async function sendStreamTestRequest(options) {
  */
 function createGeminiTestPayload(_model = 'gemini-2.5-pro', options = {}) {
   const { prompt = 'hi', maxTokens = 100 } = options
+
   return {
     contents: [
       {
@@ -278,6 +288,7 @@ function createGeminiTestPayload(_model = 'gemini-2.5-pro', options = {}) {
  */
 function createOpenAITestPayload(model = 'gpt-5.3-codex', options = {}) {
   const { prompt = 'hi', stream = true } = options
+
   return {
     model,
     instructions:
@@ -314,6 +325,7 @@ function createOpenAITestPayload(model = 'gpt-5.3-codex', options = {}) {
  */
 function createChatCompletionsTestPayload(model = 'gpt-4o-mini', options = {}) {
   const { prompt = 'hi', maxTokens = 100 } = options
+
   return {
     model,
     messages: [
@@ -360,6 +372,7 @@ function extractErrorMessage(json, fallback) {
   if (typeof json.msg === 'string') {
     return json.msg
   }
+
   return fallback
 }
 

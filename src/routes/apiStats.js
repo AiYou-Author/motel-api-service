@@ -23,6 +23,7 @@ router.get('/models', (req, res) => {
   if (service) {
     // 返回指定服务的模型
     const models = modelsConfig.getModelsByService(service)
+
     return res.json({
       success: true,
       data: models
@@ -73,7 +74,9 @@ router.post('/api/get-key-id', async (req, res) => {
 
     if (!validation.valid) {
       const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
       logger.security(`Invalid API key in get-key-id: ${validation.error} from ${clientIP}`)
+
       return res.status(401).json({
         error: 'Invalid API key',
         message: validation.error
@@ -90,6 +93,7 @@ router.post('/api/get-key-id', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to get API key ID:', error)
+
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to retrieve API key ID'
@@ -122,6 +126,7 @@ router.post('/api/user-stats', async (req, res) => {
 
       if (!keyData || Object.keys(keyData).length === 0) {
         logger.security(`API key not found for ID: ${apiId} from ${req.ip || 'unknown'}`)
+
         return res.status(404).json({
           error: 'API key not found',
           message: 'The specified API key does not exist'
@@ -131,6 +136,7 @@ router.post('/api/user-stats', async (req, res) => {
       // 检查是否激活
       if (keyData.isActive !== 'true') {
         const keyName = keyData.name || 'Unknown'
+
         return res.status(403).json({
           error: 'API key is disabled',
           message: `API Key "${keyName}" 已被禁用`,
@@ -141,6 +147,7 @@ router.post('/api/user-stats', async (req, res) => {
       // 检查是否过期
       if (keyData.expiresAt && new Date() > new Date(keyData.expiresAt)) {
         const keyName = keyData.name || 'Unknown'
+
         return res.status(403).json({
           error: 'API key has expired',
           message: `API Key "${keyName}" 已过期`,
@@ -160,6 +167,7 @@ router.post('/api/user-stats', async (req, res) => {
       // 处理数据格式，与 validateApiKey 返回的格式保持一致
       // 解析限制模型数据
       let restrictedModels = []
+
       try {
         restrictedModels = keyData.restrictedModels ? JSON.parse(keyData.restrictedModels) : []
       } catch (e) {
@@ -168,6 +176,7 @@ router.post('/api/user-stats', async (req, res) => {
 
       // 解析允许的客户端数据
       let allowedClients = []
+
       try {
         allowedClients = keyData.allowedClients ? JSON.parse(keyData.allowedClients) : []
       } catch (e) {
@@ -201,6 +210,7 @@ router.post('/api/user-stats', async (req, res) => {
       // 通过 apiKey 查询（保持向后兼容）
       if (typeof apiKey !== 'string' || apiKey.length < 10 || apiKey.length > 512) {
         logger.security(`Invalid API key format in user stats query from ${req.ip || 'unknown'}`)
+
         return res.status(400).json({
           error: 'Invalid API key format',
           message: 'API key format is invalid'
@@ -212,9 +222,11 @@ router.post('/api/user-stats', async (req, res) => {
 
       if (!validation.valid) {
         const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
         logger.security(
           `🔒 Invalid API key in user stats query: ${validation.error} from ${clientIP}`
         )
+
         return res.status(401).json({
           error: 'Invalid API key',
           message: validation.error
@@ -222,10 +234,12 @@ router.post('/api/user-stats', async (req, res) => {
       }
 
       const { keyData: validatedKeyData } = validation
+
       keyData = validatedKeyData
       keyId = keyData.id
     } else {
       logger.security(`Missing API key or ID in user stats query from ${req.ip || 'unknown'}`)
+
       return res.status(400).json({
         error: 'API Key or ID is required',
         message: 'Please provide your API Key or API ID'
@@ -263,6 +277,7 @@ router.post('/api/user-stats', async (req, res) => {
 
         for (const { key, data } of allModelResults) {
           const modelMatch = key.match(/usage:.+:model:monthly:(.+):(\d{4}-\d{2})$/)
+
           if (!modelMatch) {
             continue
           }
@@ -285,6 +300,7 @@ router.post('/api/user-stats', async (req, res) => {
             }
 
             const modelUsage = modelUsageMap.get(model)
+
             modelUsage.inputTokens += parseInt(data.inputTokens) || 0
             modelUsage.outputTokens += parseInt(data.outputTokens) || 0
             modelUsage.cacheCreateTokens += parseInt(data.cacheCreateTokens) || 0
@@ -322,6 +338,7 @@ router.post('/api/user-stats', async (req, res) => {
             }
 
             const costResult = CostCalculator.calculateCost(usageData, model)
+
             totalCost += costResult.costs.total
           }
         }
@@ -345,6 +362,7 @@ router.post('/api/user-stats', async (req, res) => {
           }
 
           const costResult = CostCalculator.calculateCost(costUsage, 'claude-3-5-sonnet-20241022')
+
           totalCost = costResult.costs.total
         }
 
@@ -371,6 +389,7 @@ router.post('/api/user-stats', async (req, res) => {
         }
 
         const costResult = CostCalculator.calculateCost(costUsage, 'claude-3-5-sonnet-20241022')
+
         totalCost = costResult.costs.total
         formattedCost = costResult.formatted.total
       }
@@ -400,10 +419,13 @@ router.post('/api/user-stats', async (req, res) => {
 
         // 获取窗口开始时间和计算剩余时间
         const windowStart = await client.get(windowStartKey)
+
         if (windowStart) {
           const now = Date.now()
+
           windowStartTime = parseInt(windowStart)
           const windowDuration = fullKeyData.rateLimitWindow * 60 * 1000 // 转换为毫秒
+
           windowEndTime = windowStartTime + windowDuration
 
           // 如果窗口还有效
@@ -579,6 +601,7 @@ router.post('/api/user-stats', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to process user stats query:', error)
+
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to retrieve API key statistics'
@@ -610,6 +633,7 @@ router.post('/api/batch-stats', async (req, res) => {
     // 验证所有 ID 格式
     const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
     const invalidIds = apiIds.filter((id) => !uuidRegex.test(id))
+
     if (invalidIds.length > 0) {
       return res.status(400).json({
         error: 'Invalid API ID format',
@@ -713,6 +737,7 @@ router.post('/api/batch-stats', async (req, res) => {
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value && !result.value.error) {
         const stats = result.value
+
         aggregated.activeKeys++
 
         // 聚合总使用量
@@ -780,6 +805,7 @@ router.post('/api/batch-stats', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to process batch stats query:', error)
+
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to retrieve batch statistics'
@@ -856,6 +882,7 @@ router.post('/api/batch-model-stats', async (req, res) => {
             }
 
             const modelUsage = modelUsageMap.get(model)
+
             modelUsage.requests += parseInt(data.requests) || 0
             modelUsage.inputTokens += parseInt(data.inputTokens) || 0
             modelUsage.outputTokens += parseInt(data.outputTokens) || 0
@@ -877,6 +904,7 @@ router.post('/api/batch-model-stats', async (req, res) => {
 
     // 转换为数组并处理费用
     const modelStats = []
+
     for (const [model, usage] of modelUsageMap) {
       const usageData = {
         input_tokens: usage.inputTokens,
@@ -932,6 +960,7 @@ router.post('/api/batch-model-stats', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to process batch model stats query:', error)
+
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to retrieve batch model statistics'
@@ -968,6 +997,7 @@ router.post('/api-key/test', async (req, res) => {
     }
 
     const validation = await apiKeyService.validateApiKeyForStats(apiKey)
+
     if (!validation.valid) {
       return res.status(401).json({
         error: 'Invalid API key',
@@ -997,6 +1027,7 @@ router.post('/api-key/test', async (req, res) => {
     logger.error('❌ API Key test failed:', error)
 
     const errorMsg = error.message || 'An unexpected error occurred'
+
     if (!res.headersSent) {
       return res.status(500).json({
         error: 'Test failed',
@@ -1033,6 +1064,7 @@ router.post('/api-key/test-gemini', async (req, res) => {
     }
 
     const validation = await apiKeyService.validateApiKeyForStats(apiKey)
+
     if (!validation.valid) {
       return res.status(401).json({
         error: 'Invalid API key',
@@ -1081,12 +1113,15 @@ router.post('/api-key/test-gemini', async (req, res) => {
 
       if (response.status !== 200) {
         const chunks = []
+
         response.data.on('data', (chunk) => chunks.push(chunk))
         response.data.on('end', () => {
           const errorData = Buffer.concat(chunks).toString()
           let errorMsg = `API Error: ${response.status}`
+
           try {
             const json = JSON.parse(errorData)
+
             errorMsg = extractErrorMessage(json, errorMsg)
           } catch {
             if (errorData.length < 200) {
@@ -1098,13 +1133,16 @@ router.post('/api-key/test-gemini', async (req, res) => {
           )
           res.end()
         })
+
         return
       }
 
       let buffer = ''
+
       response.data.on('data', (chunk) => {
         buffer += chunk.toString()
         const lines = buffer.split('\n')
+
         buffer = lines.pop() || ''
 
         for (const line of lines) {
@@ -1112,6 +1150,7 @@ router.post('/api-key/test-gemini', async (req, res) => {
             continue
           }
           const jsonStr = line.substring(5).trim()
+
           if (!jsonStr || jsonStr === '[DONE]') {
             continue
           }
@@ -1120,6 +1159,7 @@ router.post('/api-key/test-gemini', async (req, res) => {
             const data = JSON.parse(jsonStr)
             // Gemini 格式: candidates[0].content.parts[0].text
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
             if (text) {
               res.write(`data: ${JSON.stringify({ type: 'content', text })}\n\n`)
             }
@@ -1185,6 +1225,7 @@ router.post('/api-key/test-openai', async (req, res) => {
     }
 
     const validation = await apiKeyService.validateApiKeyForStats(apiKey)
+
     if (!validation.valid) {
       return res.status(401).json({
         error: 'Invalid API key',
@@ -1234,12 +1275,15 @@ router.post('/api-key/test-openai', async (req, res) => {
 
       if (response.status !== 200) {
         const chunks = []
+
         response.data.on('data', (chunk) => chunks.push(chunk))
         response.data.on('end', () => {
           const errorData = Buffer.concat(chunks).toString()
           let errorMsg = `API Error: ${response.status}`
+
           try {
             const json = JSON.parse(errorData)
+
             errorMsg = extractErrorMessage(json, errorMsg)
           } catch {
             if (errorData.length < 200) {
@@ -1251,13 +1295,16 @@ router.post('/api-key/test-openai', async (req, res) => {
           )
           res.end()
         })
+
         return
       }
 
       let buffer = ''
+
       response.data.on('data', (chunk) => {
         buffer += chunk.toString()
         const lines = buffer.split('\n')
+
         buffer = lines.pop() || ''
 
         for (const line of lines) {
@@ -1265,12 +1312,14 @@ router.post('/api-key/test-openai', async (req, res) => {
             continue
           }
           const jsonStr = line.substring(5).trim()
+
           if (!jsonStr || jsonStr === '[DONE]') {
             continue
           }
 
           try {
             const data = JSON.parse(jsonStr)
+
             // OpenAI Responses 格式: output[].content[].text 或 delta
             if (data.type === 'response.output_text.delta' && data.delta) {
               res.write(`data: ${JSON.stringify({ type: 'content', text: data.delta })}\n\n`)
@@ -1340,6 +1389,7 @@ router.post('/api/user-model-stats', async (req, res) => {
 
       if (!keyData || Object.keys(keyData).length === 0) {
         logger.security(`API key not found for ID: ${apiId} from ${req.ip || 'unknown'}`)
+
         return res.status(404).json({
           error: 'API key not found',
           message: 'The specified API key does not exist'
@@ -1349,6 +1399,7 @@ router.post('/api/user-model-stats', async (req, res) => {
       // 检查是否激活
       if (keyData.isActive !== 'true') {
         const keyName = keyData.name || 'Unknown'
+
         return res.status(403).json({
           error: 'API key is disabled',
           message: `API Key "${keyName}" 已被禁用`,
@@ -1360,6 +1411,7 @@ router.post('/api/user-model-stats', async (req, res) => {
 
       // 获取使用统计
       const usage = await redis.getUsageStats(keyId)
+
       keyData.usage = { total: usage.total }
     } else if (apiKey) {
       // 通过 apiKey 查询（保持向后兼容）
@@ -1368,9 +1420,11 @@ router.post('/api/user-model-stats', async (req, res) => {
 
       if (!validation.valid) {
         const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
         logger.security(
           `🔒 Invalid API key in user model stats query: ${validation.error} from ${clientIP}`
         )
+
         return res.status(401).json({
           error: 'Invalid API key',
           message: validation.error
@@ -1378,12 +1432,14 @@ router.post('/api/user-model-stats', async (req, res) => {
       }
 
       const { keyData: validatedKeyData } = validation
+
       keyData = validatedKeyData
       keyId = keyData.id
     } else {
       logger.security(
         `🔒 Missing API key or ID in user model stats query from ${req.ip || 'unknown'}`
       )
+
       return res.status(400).json({
         error: 'API Key or ID is required',
         message: 'Please provide your API Key or API ID'
@@ -1403,6 +1459,7 @@ router.post('/api/user-model-stats', async (req, res) => {
 
     let pattern
     let matchRegex
+
     if (period === 'daily') {
       pattern = `usage:${keyId}:model:daily:*:${today}`
       matchRegex = /usage:.+:model:daily:(.+):\d{4}-\d{2}-\d{2}$/
@@ -1501,6 +1558,7 @@ router.post('/api/user-model-stats', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to process user model stats query:', error)
+
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to retrieve model statistics'
@@ -1512,6 +1570,7 @@ router.post('/api/user-model-stats', async (req, res) => {
 router.get('/service-rates', async (req, res) => {
   try {
     const rates = await serviceRatesService.getRates()
+
     res.json({
       success: true,
       data: rates
@@ -1537,8 +1596,10 @@ router.post('/api/redeem-card', async (req, res) => {
     // 防暴力破解：检查失败锁定
     const failKey = `redeem_card:fail:${clientIP}`
     const failCount = parseInt((await redis.client.get(failKey)) || '0')
+
     if (failCount >= 5) {
       logger.security(`🔒 Card redemption locked for IP: ${clientIP}`)
+
       return res.status(403).json({
         success: false,
         error: '失败次数过多，请1小时后再试'
@@ -1548,9 +1609,11 @@ router.post('/api/redeem-card', async (req, res) => {
     // 防暴力破解：检查 IP 速率限制
     const ipKey = `redeem_card:ip:${clientIP}:${hour}`
     const ipCount = await redis.client.incr(ipKey)
+
     await redis.client.expire(ipKey, 3600)
     if (ipCount > 10) {
       logger.security(`🚨 Card redemption rate limit for IP: ${clientIP}`)
+
       return res.status(429).json({
         success: false,
         error: '请求过于频繁，请稍后再试'
@@ -1577,6 +1640,7 @@ router.post('/api/redeem-card', async (req, res) => {
 
     // 验证 API Key 存在且有效
     const keyData = await redis.getApiKey(apiId)
+
     if (!keyData || Object.keys(keyData).length === 0) {
       return res.status(404).json({
         success: false,
@@ -1607,6 +1671,7 @@ router.post('/api/redeem-card', async (req, res) => {
     // 失败时增加失败计数（静默处理，不影响错误响应）
     const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
     const failKey = `redeem_card:fail:${clientIP}`
+
     redis.client
       .incr(failKey)
       .then(() => redis.client.expire(failKey, 3600))
@@ -1647,6 +1712,7 @@ router.get('/api/redemption-history', async (req, res) => {
 
     // 验证 API Key 存在
     const keyData = await redis.getApiKey(apiId)
+
     if (!keyData || Object.keys(keyData).length === 0) {
       return res.status(404).json({
         success: false,

@@ -62,6 +62,7 @@ class OpenAIResponsesAccountService {
 
     // 验证 providerEndpoint 枚举值
     const validEndpoints = ['responses', 'auto']
+
     if (!validEndpoints.includes(providerEndpoint)) {
       throw new Error(
         `Invalid providerEndpoint: ${providerEndpoint}. Must be one of: ${validEndpoints.join(', ')}`
@@ -148,6 +149,7 @@ class OpenAIResponsesAccountService {
   // 更新账户
   async updateAccount(accountId, updates) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
@@ -178,6 +180,7 @@ class OpenAIResponsesAccountService {
     // 验证 providerEndpoint 枚举值
     if (updates.providerEndpoint !== undefined) {
       const validEndpoints = ['responses', 'auto']
+
       if (!validEndpoints.includes(updates.providerEndpoint)) {
         throw new Error(
           `Invalid providerEndpoint: ${updates.providerEndpoint}. Must be one of: ${validEndpoints.join(', ')}`
@@ -193,6 +196,7 @@ class OpenAIResponsesAccountService {
     // 更新 Redis
     const client = redis.getClientSafe()
     const key = `${this.ACCOUNT_KEY_PREFIX}${accountId}`
+
     await client.hset(key, updates)
 
     logger.info(`📝 Updated OpenAI-Responses account: ${account.name}`)
@@ -229,6 +233,7 @@ class OpenAIResponsesAccountService {
       `${this.ACCOUNT_KEY_PREFIX}*`,
       /^openai_responses_account:(.+)$/
     )
+
     if (accountIds.length === 0) {
       return []
     }
@@ -236,10 +241,12 @@ class OpenAIResponsesAccountService {
     const keys = accountIds.map((id) => `${this.ACCOUNT_KEY_PREFIX}${id}`)
     // Pipeline 批量查询所有账户数据
     const pipeline = client.pipeline()
+
     keys.forEach((key) => pipeline.hgetall(key))
     const results = await pipeline.exec()
 
     const accounts = []
+
     results.forEach(([err, accountData]) => {
       if (err || !accountData || !accountData.id) {
         return
@@ -264,6 +271,7 @@ class OpenAIResponsesAccountService {
 
       // 获取限流状态信息
       const rateLimitInfo = this._getRateLimitInfo(accountData)
+
       accountData.rateLimitStatus = rateLimitInfo.isRateLimited
         ? {
             isRateLimited: true,
@@ -291,6 +299,7 @@ class OpenAIResponsesAccountService {
   // 标记账户限流
   async markAccountRateLimited(accountId, duration = null) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
@@ -303,6 +312,7 @@ class OpenAIResponsesAccountService {
       upstreamErrorHelper
         .recordErrorHistory(accountId, 'openai-responses', 429, 'rate_limit')
         .catch(() => {})
+
       return
     }
 
@@ -328,6 +338,7 @@ class OpenAIResponsesAccountService {
   // 🚫 标记账户为未授权状态（401错误）
   async markAccountUnauthorized(accountId, reason = 'OpenAI Responses账号认证失败（401错误）') {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
@@ -340,6 +351,7 @@ class OpenAIResponsesAccountService {
       upstreamErrorHelper
         .recordErrorHistory(accountId, 'openai-responses', 401, 'auth_error')
         .catch(() => {})
+
       return
     }
 
@@ -361,6 +373,7 @@ class OpenAIResponsesAccountService {
 
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account.name || accountId,
@@ -381,6 +394,7 @@ class OpenAIResponsesAccountService {
   // 检查并清除过期的限流状态
   async checkAndClearRateLimit(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account || account.rateLimitStatus !== 'limited') {
       return false
     }
@@ -391,11 +405,13 @@ class OpenAIResponsesAccountService {
     // 优先使用 rateLimitResetAt 字段
     if (account.rateLimitResetAt) {
       const resetAt = new Date(account.rateLimitResetAt)
+
       shouldClear = now >= resetAt
     } else {
       // 如果没有 rateLimitResetAt，使用旧的逻辑
       const rateLimitedAt = new Date(account.rateLimitedAt)
       const rateLimitDuration = parseInt(account.rateLimitDuration) || 60
+
       shouldClear = now - rateLimitedAt > rateLimitDuration * 60000
     }
 
@@ -411,6 +427,7 @@ class OpenAIResponsesAccountService {
       })
 
       logger.info(`✅ Rate limit cleared for account ${account.name}`)
+
       return true
     }
 
@@ -420,11 +437,13 @@ class OpenAIResponsesAccountService {
   // 切换调度状态
   async toggleSchedulable(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
 
     const newSchedulableStatus = account.schedulable === 'true' ? 'false' : 'true'
+
     await this.updateAccount(accountId, {
       schedulable: newSchedulableStatus
     })
@@ -442,12 +461,14 @@ class OpenAIResponsesAccountService {
   // 更新使用额度
   async updateUsageQuota(accountId, amount) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
 
     // 检查是否需要重置额度
     const today = redis.getDateStringInTimezone()
+
     if (account.lastResetDate !== today) {
       // 重置额度
       await this.updateAccount(accountId, {
@@ -480,6 +501,7 @@ class OpenAIResponsesAccountService {
   // 更新账户使用统计（记录 token 使用量）
   async updateAccountUsage(accountId, tokens = 0) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
@@ -491,6 +513,7 @@ class OpenAIResponsesAccountService {
     // 如果有 tokens 参数且大于0，同时更新使用统计
     if (tokens > 0) {
       const currentTokens = parseInt(account.totalUsedTokens) || 0
+
       updates.totalUsedTokens = (currentTokens + tokens).toString()
     }
 
@@ -505,6 +528,7 @@ class OpenAIResponsesAccountService {
   // 重置账户状态（清除所有异常状态）
   async resetAccountStatus(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
@@ -531,6 +555,7 @@ class OpenAIResponsesAccountService {
     // 发送 Webhook 通知
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account.name || accountId,
@@ -563,6 +588,7 @@ class OpenAIResponsesAccountService {
       logger.debug(
         `⏰ OpenAI-Responses Account ${account.name} (${account.id}) subscription expired at ${account.subscriptionExpiresAt}`
       )
+
       return true
     }
 
@@ -588,6 +614,7 @@ class OpenAIResponsesAccountService {
       const rateLimitedAt = new Date(accountData.rateLimitedAt)
       const rateLimitDuration = parseInt(accountData.rateLimitDuration) || 60
       const elapsedMinutes = Math.floor((now - rateLimitedAt) / 60000)
+
       remainingMinutes = Math.max(0, rateLimitDuration - elapsedMinutes)
       willBeAvailableAt = new Date(rateLimitedAt.getTime() + rateLimitDuration * 60000)
     }
@@ -610,6 +637,7 @@ class OpenAIResponsesAccountService {
     const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
 
     let encrypted = cipher.update(text)
+
     encrypted = Buffer.concat([encrypted, cipher.final()])
 
     return `${iv.toString('hex')}:${encrypted.toString('hex')}`
@@ -624,6 +652,7 @@ class OpenAIResponsesAccountService {
     // 检查缓存
     const cacheKey = crypto.createHash('sha256').update(text).digest('hex')
     const cached = this._decryptCache.get(cacheKey)
+
     if (cached !== undefined) {
       return cached
     }
@@ -637,6 +666,7 @@ class OpenAIResponsesAccountService {
 
       const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
       let decrypted = decipher.update(encryptedText)
+
       decrypted = Buffer.concat([decrypted, decipher.final()])
 
       const result = decrypted.toString()
@@ -647,6 +677,7 @@ class OpenAIResponsesAccountService {
       return result
     } catch (error) {
       logger.error('Decryption error:', error)
+
       return ''
     }
   }
@@ -660,6 +691,7 @@ class OpenAIResponsesAccountService {
         32
       )
     }
+
     return this._encryptionKeyCache
   }
 

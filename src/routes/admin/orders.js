@@ -14,6 +14,7 @@ router.get('/store/orders', authenticateAdmin, async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset)
     })
+
     res.json(result)
   } catch (error) {
     logger.error('❌ Error getting admin orders:', error)
@@ -57,6 +58,7 @@ router.post('/store/orders/:id/approve', authenticateAdmin, async (req, res) => 
     // 渠道对应的账号分组绑定（scheduler 原生支持 group:<id>）
     if (order.targetGroupId && order.accountType) {
       const groupBinding = `group:${order.targetGroupId}`
+
       switch (order.accountType) {
         case 'claude-console':
           keyOptions.claudeConsoleAccountId = groupBinding
@@ -102,6 +104,7 @@ router.post('/store/orders/:id/reject', authenticateAdmin, async (req, res) => {
     const { id: orderId } = req.params
     const { reason = '' } = req.body
     const order = await storeService.rejectOrder(orderId, reason)
+
     res.json({ success: true, order })
   } catch (error) {
     if (error.message === 'ORDER_NOT_FOUND') {
@@ -122,6 +125,7 @@ router.get('/store/config', authenticateAdmin, async (req, res) => {
       storeService.getPlans(false),
       storeService.getConfig()
     ])
+
     res.json({ plans, config })
   } catch (error) {
     logger.error('❌ Error getting store config:', error)
@@ -134,6 +138,7 @@ router.put('/store/config', authenticateAdmin, async (req, res) => {
   try {
     const { plans, config } = req.body
     const results = {}
+
     if (plans !== undefined) {
       results.plans = await storeService.savePlans(plans)
     }
@@ -144,6 +149,7 @@ router.put('/store/config', authenticateAdmin, async (req, res) => {
         : req.body.qrCodeImage !== undefined || req.body.paymentInstructions !== undefined
           ? req.body
           : null
+
     if (configData) {
       results.config = await storeService.saveConfig(configData)
     }

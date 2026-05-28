@@ -140,9 +140,11 @@ const configTomlContent = computed(() => configTomlLines.value.join('\n'))
 const configTomlWriteCmd = computed(() => {
   if (props.platform === 'windows') {
     const escaped = configTomlContent.value.replace(/"/g, '`"').replace(/\n/g, '`n')
+
     return `New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.codex" | Out-Null; "${escaped}" | Set-Content -Path "$env:USERPROFILE\\.codex\\config.toml" -Force`
   }
   const escaped = configTomlContent.value.replace(/\n/g, '\\n')
+
   return `mkdir -p ~/.codex && printf '${escaped}\\n' > ~/.codex/config.toml`
 })
 
@@ -150,6 +152,7 @@ const authJsonWriteCmd = computed(() => {
   if (props.platform === 'windows') {
     return `New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.codex" | Out-Null; '{"OPENAI_API_KEY": null}' | Set-Content -Path "$env:USERPROFILE\\.codex\\auth.json" -Force`
   }
+
   return `mkdir -p ~/.codex && echo '{"OPENAI_API_KEY": null}' > ~/.codex/auth.json`
 })
 </script>

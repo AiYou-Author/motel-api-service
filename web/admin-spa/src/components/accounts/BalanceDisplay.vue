@@ -156,6 +156,7 @@ const requestError = ref(null)
 
 const sourceClass = computed(() => {
   const source = balanceData.value?.source
+
   return {
     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300': source === 'api',
     'bg-gray-100 text-gray-600 dark:bg-gray-700/60 dark:text-gray-300': source === 'cache',
@@ -165,13 +166,16 @@ const sourceClass = computed(() => {
 
 const sourceLabel = computed(() => {
   const source = balanceData.value?.source
+
   return { api: 'API', cache: '缓存', local: '本地' }[source] || '未知'
 })
 
 const quotaInfo = computed(() => {
   const quota = balanceData.value?.quota
+
   if (!quota || quota.unlimited) return null
   if (typeof quota.percentage !== 'number' || !Number.isFinite(quota.percentage)) return null
+
   return {
     used: quota.used ?? 0,
     remaining: quota.remaining ?? 0,
@@ -219,8 +223,10 @@ const antigravityRows = computed(() => {
 
 const quotaBarClass = computed(() => {
   const percentage = quotaInfo.value?.percentage || 0
+
   if (percentage >= 90) return 'bg-red-500 dark:bg-red-600'
   if (percentage >= 70) return 'bg-yellow-500 dark:bg-yellow-600'
+
   return 'bg-green-500 dark:bg-green-600'
 })
 
@@ -232,8 +238,10 @@ const canRefresh = computed(() => {
 
   // 其他平台：仅在“已启用脚本且该账户配置了脚本”时允许刷新，避免误导（非脚本 Provider 多为降级策略）
   const data = balanceData.value
+
   if (!data) return false
   if (data.scriptEnabled === false) return false
+
   return !!data.scriptConfigured
 })
 
@@ -243,11 +251,13 @@ const refreshTitle = computed(() => {
     if (balanceData.value?.scriptEnabled === false) {
       return '余额脚本功能已禁用'
     }
+
     return '请先配置余额脚本'
   }
   if (isAntigravityQuota.value) {
     return '刷新配额（调用 Antigravity API）'
   }
+
   return '刷新余额（调用脚本配置的余额 API）'
 })
 
@@ -256,6 +266,7 @@ const primaryText = computed(() => {
     return balanceData.value.balance.formattedAmount
   }
   const dailyCost = Number(balanceData.value?.statistics?.dailyCost || 0)
+
   return `今日成本 ${formatCurrency(dailyCost)}`
 })
 
@@ -271,6 +282,7 @@ const load = async () => {
     queryApi: props.queryMode === 'api' ? true : props.queryMode === 'auto' ? 'auto' : false
   }
   const response = await getAccountBalanceApi(props.accountId, params)
+
   if (response?.success) {
     balanceData.value = response.data
   } else {
@@ -288,6 +300,7 @@ const refresh = async () => {
   requestError.value = null
 
   const response = await refreshAccountBalanceApi(props.accountId, { platform: props.platform })
+
   if (response?.success) {
     balanceData.value = response.data
     emit('refreshed', response.data)
@@ -304,18 +317,22 @@ const reload = async () => {
 const formatQuotaNumber = (num) => {
   if (num === Infinity) return '∞'
   const value = Number(num)
+
   if (!Number.isFinite(value)) return 'N/A'
   if (isAntigravityQuota.value) {
     return `${Math.round(value)}%`
   }
+
   return formatNumber(value)
 }
 
 const formatCurrency = (amount) => {
   const value = Number(amount)
+
   if (!Number.isFinite(value)) return '$0.00'
   if (value >= 1) return `$${value.toFixed(2)}`
   if (value >= 0.01) return `$${value.toFixed(3)}`
+
   return `$${value.toFixed(6)}`
 }
 
@@ -323,22 +340,28 @@ const formatResetTime = (isoString) => {
   const date = new Date(isoString)
   const now = new Date()
   const diff = date.getTime() - now.getTime()
+
   if (!Number.isFinite(diff)) return '未知'
   if (diff < 0) return '已过期'
 
   const minutes = Math.floor(diff / (1000 * 60))
   const hours = Math.floor(minutes / 60)
   const remainMinutes = minutes % 60
+
   if (hours >= 24) {
     const days = Math.floor(hours / 24)
+
     return `${days}天后`
   }
+
   return `${hours}小时${remainMinutes}分钟`
 }
 
 const formatCacheExpiry = (isoString) => {
   const date = new Date(isoString)
+
   if (Number.isNaN(date.getTime())) return '未知'
+
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 

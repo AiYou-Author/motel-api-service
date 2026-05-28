@@ -860,6 +860,7 @@ const getBalancePlatformLabel = (platform) => {
     droid: 'Droid',
     ccr: 'CCR'
   }
+
   return map[platform] || platform
 }
 
@@ -869,8 +870,10 @@ const lowBalanceAccounts = computed(() => {
 
   Object.entries(platforms).forEach(([platform, data]) => {
     const list = Array.isArray(data?.accounts) ? data.accounts : []
+
     list.forEach((entry) => {
       const accountData = entry?.data
+
       if (!accountData) return
 
       const amount = accountData.balance?.amount
@@ -894,22 +897,27 @@ const lowBalanceAccounts = computed(() => {
 
 const formatCurrencyUsd = (amount) => {
   const value = Number(amount)
+
   if (!Number.isFinite(value)) return '$0.00'
   if (value >= 1) return `$${value.toFixed(2)}`
   if (value >= 0.01) return `$${value.toFixed(3)}`
+
   return `$${value.toFixed(6)}`
 }
 
 const formatLastUpdate = (isoString) => {
   if (!isoString) return '未知'
   const date = new Date(isoString)
+
   if (Number.isNaN(date.getTime())) return '未知'
+
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
 const loadBalanceSummary = async () => {
   loadingBalanceSummary.value = true
   const response = await getBalanceSummaryApi()
+
   if (response?.success) {
     balanceSummary.value = response.data || {
       totalBalance: 0,
@@ -956,6 +964,7 @@ function formatCostValue(cost) {
   if (cost >= 0.01) {
     return `$${cost.toFixed(3)}`
   }
+
   return `$${cost.toFixed(6)}`
 }
 
@@ -963,7 +972,9 @@ function formatCostValue(cost) {
 function calculatePercentage(value, stats) {
   if (!stats || stats.length === 0) return 0
   const total = stats.reduce((sum, stat) => sum + stat.allTokens, 0)
+
   if (total === 0) return 0
+
   return ((value / total) * 100).toFixed(1)
 }
 
@@ -1022,6 +1033,7 @@ function createModelUsageChart() {
               const label = context.label || ''
               const value = formatNumber(context.parsed)
               const percentage = calculatePercentage(context.parsed, data)
+
               return `${label}: ${value} (${percentage}%)`
             }
           }
@@ -1063,16 +1075,20 @@ function createUsageTrendChart() {
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       const hour = String(date.getHours()).padStart(2, '0')
+
       return `${month}/${day} ${hour}:00`
     }
     // 按天显示时，只显示月/日，不显示年份
     const dateStr = d.date
+
     if (dateStr && dateStr.includes('-')) {
       const parts = dateStr.split('-')
+
       if (parts.length >= 3) {
         return `${parts[1]}/${parts[2]}`
       }
     }
+
     return d.date
   })
 
@@ -1296,6 +1312,7 @@ function createApiKeysUsageTrendChart() {
     apiKeysTrendData.value.topApiKeys?.map((apiKeyId, index) => {
       const data = apiKeysTrendData.value.data.map((item) => {
         if (!item.apiKeys || !item.apiKeys[apiKeyId]) return 0
+
         return metric === 'tokens'
           ? item.apiKeys[apiKeyId].tokens
           : item.apiKeys[apiKeyId].requests || 0
@@ -1333,16 +1350,20 @@ function createApiKeysUsageTrendChart() {
         const month = String(date.getMonth() + 1).padStart(2, '0')
         const day = String(date.getDate()).padStart(2, '0')
         const hour = String(date.getHours()).padStart(2, '0')
+
         return `${month}/${day} ${hour}:00`
       }
       // 按天显示时，只显示月/日，不显示年份
       const dateStr = d.date
+
       if (dateStr && dateStr.includes('-')) {
         const parts = dateStr.split('-')
+
         if (parts.length >= 3) {
           return `${parts[1]}/${parts[2]}`
         }
       }
+
       return d.date
     }),
     datasets: datasets
@@ -1393,6 +1414,7 @@ function createApiKeysUsageTrendChart() {
 
               // 准备排名标识
               let rankIcon = ''
+
               if (rank === 1) rankIcon = '🥇 '
               else if (rank === 2) rankIcon = '🥈 '
               else if (rank === 3) rankIcon = '🥉 '
@@ -1400,6 +1422,7 @@ function createApiKeysUsageTrendChart() {
               if (apiKeysTrendMetric.value === 'tokens') {
                 // 格式化token显示
                 let formattedValue = ''
+
                 if (value >= 1000000) {
                   formattedValue = (value / 1000000).toFixed(2) + 'M'
                 } else if (value >= 1000) {
@@ -1493,6 +1516,7 @@ function createAccountUsageTrendChart() {
   const datasets = topAccounts.map((accountId, index) => {
     const dataPoints = trend.map((item) => {
       if (!item.accounts || !item.accounts[accountId]) return 0
+
       return item.accounts[accountId].cost || 0
     })
 
@@ -1523,11 +1547,13 @@ function createAccountUsageTrendChart() {
         const month = String(date.getMonth() + 1).padStart(2, '0')
         const day = String(date.getDate()).padStart(2, '0')
         const hour = String(date.getHours()).padStart(2, '0')
+
         return `${month}/${day} ${hour}:00`
       }
 
       if (item.date && item.date.includes('-')) {
         const parts = item.date.split('-')
+
         if (parts.length >= 3) {
           return `${parts[1]}/${parts[2]}`
         }
@@ -1585,6 +1611,7 @@ function createAccountUsageTrendChart() {
 
               const rank = allValues.findIndex((item) => item.index === datasetIndex) + 1
               let rankIcon = ''
+
               if (rank === 1) rankIcon = '🥇 '
               else if (rank === 2) rankIcon = '🥈 '
               else if (rank === 3) rankIcon = '🥉 '

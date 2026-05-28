@@ -23,12 +23,15 @@ const MAX_FILE_SIZE_ENV = 'DUMP_MAX_FILE_SIZE_BYTES'
  */
 function getMaxFileSize() {
   const raw = process.env[MAX_FILE_SIZE_ENV]
+
   if (raw) {
     const parsed = Number.parseInt(raw, 10)
+
     if (Number.isFinite(parsed) && parsed > 0) {
       return parsed
     }
   }
+
   return DEFAULT_MAX_FILE_SIZE_BYTES
 }
 
@@ -38,6 +41,7 @@ function getMaxFileSize() {
 async function getFileSize(filepath) {
   try {
     const stat = await fs.stat(filepath)
+
     return stat.size
   } catch (e) {
     // 文件不存在或无法读取
@@ -61,6 +65,7 @@ async function safeRotatingAppend(filepath, line, options = {}) {
   // 如果当前文件已达到或超过阈值，轮转
   if (currentSize >= maxFileSize) {
     const backupPath = `${filepath}.bak`
+
     try {
       // 先删除旧备份（如果存在）
       await fs.unlink(backupPath).catch(() => {})

@@ -30,6 +30,7 @@ class ProxyHelper {
       // 验证必要字段
       if (!proxy.type || !proxy.host || !proxy.port) {
         logger.warn('⚠️ Invalid proxy configuration: missing required fields (type, host, port)')
+
         return null
       }
 
@@ -113,6 +114,7 @@ class ProxyHelper {
         agent = new HttpsProxyAgent(proxyUrl, httpOptions)
       } else {
         logger.warn(`⚠️ Unsupported proxy type: ${proxy.type}`)
+
         return null
       }
 
@@ -123,6 +125,7 @@ class ProxyHelper {
       return agent
     } catch (error) {
       logger.warn('⚠️ Failed to create proxy agent:', error.message)
+
       return null
     }
   }
@@ -138,9 +141,11 @@ class ProxyHelper {
     if (preference === undefined) {
       // 从配置文件读取默认设置，默认使用 IPv4
       const defaultUseIPv4 = config.proxy?.useIPv4
+
       if (defaultUseIPv4 !== undefined) {
         return defaultUseIPv4
       }
+
       // 默认值：IPv4（兼容性更好）
       return true
     }
@@ -154,6 +159,7 @@ class ProxyHelper {
     }
     if (typeof preference === 'string') {
       const lower = preference.toLowerCase()
+
       if (lower === 'ipv4' || lower === '4') {
         return true
       }
@@ -194,6 +200,7 @@ class ProxyHelper {
 
       // 检查端口范围
       const port = parseInt(proxy.port)
+
       if (isNaN(port) || port < 1 || port > 65535) {
         return false
       }
@@ -217,6 +224,7 @@ class ProxyHelper {
     try {
       const proxy = typeof proxyConfig === 'string' ? JSON.parse(proxyConfig) : proxyConfig
       const hasAuth = proxy.username && proxy.password
+
       return `${proxy.type}://${proxy.host}:${proxy.port}${hasAuth ? ' (with auth)' : ''}`
     } catch (error) {
       return 'Invalid proxy config'
@@ -247,6 +255,7 @@ class ProxyHelper {
               '*'.repeat(Math.max(1, proxy.username.length - 2)) +
               proxy.username.slice(-1)
         const maskedPassword = '*'.repeat(Math.min(8, proxy.password.length))
+
         proxyDesc += ` (auth: ${maskedUsername}:${maskedPassword})`
       }
 
@@ -265,6 +274,7 @@ class ProxyHelper {
    */
   static createProxy(proxyConfig, useIPv4 = true) {
     logger.warn('⚠️ ProxyHelper.createProxy is deprecated, use createProxyAgent instead')
+
     return ProxyHelper.createProxyAgent(proxyConfig, { useIPv4 })
   }
 }

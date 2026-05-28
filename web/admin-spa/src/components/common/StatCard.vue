@@ -56,6 +56,7 @@ const iconBgClass = computed(() => {
     danger: 'bg-gradient-to-br from-red-500 to-pink-500',
     info: 'bg-gradient-to-br from-cyan-500 to-blue-500'
   }
+
   return colorMap[props.iconColor] || colorMap.primary
 })
 </script>

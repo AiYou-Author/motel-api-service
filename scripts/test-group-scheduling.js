@@ -85,6 +85,7 @@ async function cleanup() {
       // 可能因为还有成员而删除失败，先移除所有成员
       if (error.message.includes('分组内还有账户')) {
         const members = await accountGroupService.getGroupMembers(group.id)
+
         for (const memberId of members) {
           await accountGroupService.removeAccountFromGroup(memberId, group.id)
         }
@@ -109,6 +110,7 @@ async function test1_createGroups() {
       platform: 'claude',
       description: '测试用Claude账户分组'
     })
+
     testData.groups.push(claudeGroup)
     log(`✅ 创建Claude分组成功: ${claudeGroup.name} (ID: ${claudeGroup.id})`, 'success')
 
@@ -118,6 +120,7 @@ async function test1_createGroups() {
       platform: 'gemini',
       description: '测试用Gemini账户分组'
     })
+
     testData.groups.push(geminiGroup)
     log(`✅ 创建Gemini分组成功: ${geminiGroup.name} (ID: ${geminiGroup.id})`, 'success')
 
@@ -150,6 +153,7 @@ async function test2_createAccountsAndAddToGroup() {
       refreshToken: 'test_refresh_token_1',
       accountType: 'group'
     })
+
     testData.accounts.push({ ...claudeAccount1, type: 'claude' })
     log(`✅ 创建Claude OAuth账户1成功: ${claudeAccount1.name}`, 'success')
 
@@ -159,6 +163,7 @@ async function test2_createAccountsAndAddToGroup() {
       refreshToken: 'test_refresh_token_2',
       accountType: 'group'
     })
+
     testData.accounts.push({ ...claudeAccount2, type: 'claude' })
     log(`✅ 创建Claude OAuth账户2成功: ${claudeAccount2.name}`, 'success')
 
@@ -169,6 +174,7 @@ async function test2_createAccountsAndAddToGroup() {
       apiKey: 'test_api_key',
       accountType: 'group'
     })
+
     testData.accounts.push({ ...consoleAccount, type: 'claude-console' })
     log(`✅ 创建Claude Console账户成功: ${consoleAccount.name}`, 'success')
 
@@ -184,6 +190,7 @@ async function test2_createAccountsAndAddToGroup() {
 
     // 验证分组成员
     const members = await accountGroupService.getGroupMembers(claudeGroup.id)
+
     if (members.length === 3) {
       log(`✅ 分组成员验证通过，共有 ${members.length} 个成员`, 'success')
     } else {
@@ -235,11 +242,13 @@ async function test4_apiKeyBindGroup() {
       claudeAccountId: `group:${claudeGroup.id}`,
       permissions: 'claude'
     })
+
     testData.apiKeys.push(apiKey)
     log(`✅ 创建API Key成功: ${apiKey.name} (绑定到分组: ${claudeGroup.name})`, 'success')
 
     // 验证API Key信息
     const keyInfo = await redis.getApiKey(apiKey.id)
+
     if (keyInfo && keyInfo.claudeAccountId === `group:${claudeGroup.id}`) {
       log('✅ API Key分组绑定验证通过', 'success')
     } else {
@@ -292,6 +301,7 @@ async function test5_groupSchedulingLoadBalance() {
       const count = selectionCount[accountId]
       const percentage = ((count / totalSelections) * 100).toFixed(1)
       const accountInfo = testData.accounts.find((a) => a.id === accountId)
+
       log(`   ${accountInfo.name}: ${count}次 (${percentage}%)`, 'info')
     }
 
@@ -383,6 +393,7 @@ async function test7_accountAvailability() {
 
     // 禁用第一个账户
     const firstAccount = accounts[0]
+
     if (firstAccount.type === 'claude') {
       await claudeAccountService.updateAccount(firstAccount.id, { isActive: false })
     } else {
@@ -392,6 +403,7 @@ async function test7_accountAvailability() {
 
     // 多次选择，验证不会选择到禁用的账户
     const selectionResults = []
+
     for (let i = 0; i < 20; i++) {
       const sessionHash = uuidv4() // 每次使用新会话
       const result = await unifiedClaudeScheduler.selectAccountForApiKey(
@@ -438,6 +450,7 @@ async function test8_groupMemberManagement() {
     // 获取账户所属分组
     const accountGroups = await accountGroupService.getAccountGroup(account.id)
     const hasTargetGroup = accountGroups.some((group) => group.id === claudeGroup.id)
+
     if (hasTargetGroup) {
       log('✅ 账户分组查询验证通过', 'success')
     } else {
@@ -450,6 +463,7 @@ async function test8_groupMemberManagement() {
 
     // 验证账户已不在分组中
     const membersAfterRemove = await accountGroupService.getGroupMembers(claudeGroup.id)
+
     if (!membersAfterRemove.includes(account.id)) {
       log('✅ 账户移除验证通过', 'success')
     } else {
@@ -476,6 +490,7 @@ async function test9_emptyGroupHandling() {
       platform: 'claude',
       description: '测试空分组'
     })
+
     testData.groups.push(emptyGroup)
 
     // 创建绑定到空分组的API Key
@@ -484,6 +499,7 @@ async function test9_emptyGroupHandling() {
       claudeAccountId: `group:${emptyGroup.id}`,
       permissions: 'claude'
     })
+
     testData.apiKeys.push(apiKey)
 
     // 尝试从空分组选择账户（应该失败）

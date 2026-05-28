@@ -106,6 +106,7 @@ class PricingService {
   needsUpdate() {
     if (!fs.existsSync(this.pricingFile)) {
       logger.info('📋 Pricing file not found, will download')
+
       return true
     }
 
@@ -116,6 +117,7 @@ class PricingService {
       logger.info(
         `📋 Pricing file is ${Math.round(fileAge / (60 * 60 * 1000))} hours old, will update`
       )
+
       return true
     }
 
@@ -165,6 +167,7 @@ class PricingService {
       if (!localHash) {
         logger.info('📄 本地价格文件缺失，尝试下载最新版本')
         await this.downloadPricingData()
+
         return
       }
 
@@ -185,10 +188,12 @@ class PricingService {
       const request = https.get(this.hashUrl, (response) => {
         if (response.statusCode !== 200) {
           reject(new Error(`哈希文件获取失败：HTTP ${response.statusCode}`))
+
           return
         }
 
         let data = ''
+
         response.on('data', (chunk) => {
           data += chunk
         })
@@ -198,6 +203,7 @@ class PricingService {
 
           if (!hash) {
             reject(new Error('哈希文件内容为空'))
+
             return
           }
 
@@ -224,12 +230,14 @@ class PricingService {
 
     if (fs.existsSync(this.localHashFile)) {
       const cached = fs.readFileSync(this.localHashFile, 'utf8').trim()
+
       if (cached) {
         return cached
       }
     }
 
     const fileBuffer = fs.readFileSync(this.pricingFile)
+
     return this.persistLocalHash(fileBuffer)
   }
 
@@ -237,7 +245,9 @@ class PricingService {
   persistLocalHash(content) {
     const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8')
     const hash = crypto.createHash('sha256').update(buffer).digest('hex')
+
     fs.writeFileSync(this.localHashFile, `${hash}\n`)
+
     return hash
   }
 
@@ -247,12 +257,15 @@ class PricingService {
       const request = https.get(this.pricingUrl, (response) => {
         if (response.statusCode !== 200) {
           reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`))
+
           return
         }
 
         const chunks = []
+
         response.on('data', (chunk) => {
           const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+
           chunks.push(bufferChunk)
         })
 
@@ -298,9 +311,11 @@ class PricingService {
     try {
       if (fs.existsSync(this.pricingFile)) {
         const data = fs.readFileSync(this.pricingFile, 'utf8')
+
         this.pricingData = JSON.parse(data)
 
         const stats = fs.statSync(this.pricingFile)
+
         this.lastUpdated = stats.mtime
 
         logger.info(
@@ -365,6 +380,7 @@ class PricingService {
     // 1. 自定义价格最高优先级
     if (this.customPricing && this.customPricing[modelName]) {
       logger.debug(`💰 Found custom pricing override for ${modelName}`)
+
       return this.customPricing[modelName]
     }
 
@@ -375,14 +391,17 @@ class PricingService {
     // 尝试直接匹配
     if (this.pricingData[modelName]) {
       logger.debug(`💰 Found exact pricing match for ${modelName}`)
+
       return this.pricingData[modelName]
     }
 
     // 特殊处理：gpt-5-codex 回退到 gpt-5
     if (modelName === 'gpt-5-codex' && !this.pricingData['gpt-5-codex']) {
       const fallbackPricing = this.pricingData['gpt-5']
+
       if (fallbackPricing) {
         logger.info(`💰 Using gpt-5 pricing as fallback for ${modelName}`)
+
         return fallbackPricing
       }
     }
@@ -392,10 +411,12 @@ class PricingService {
     if (modelName.includes('.anthropic.') || modelName.includes('.claude')) {
       // 提取不带区域前缀的模型名
       const withoutRegion = modelName.replace(/^(us|eu|apac)\./, '')
+
       if (this.pricingData[withoutRegion]) {
         logger.debug(
           `💰 Found pricing for ${modelName} by removing region prefix: ${withoutRegion}`
         )
+
         return this.pricingData[withoutRegion]
       }
     }
@@ -405,8 +426,10 @@ class PricingService {
 
     for (const [key, value] of Object.entries(this.pricingData)) {
       const normalizedKey = key.toLowerCase().replace(/[_-]/g, '')
+
       if (normalizedKey.includes(normalizedModel) || normalizedModel.includes(normalizedKey)) {
         logger.debug(`💰 Found pricing for ${modelName} using fuzzy match: ${key}`)
+
         return value
       }
     }
@@ -419,12 +442,14 @@ class PricingService {
       for (const [key, value] of Object.entries(this.pricingData)) {
         if (key.includes(coreModel) || key.replace('anthropic.', '').includes(coreModel)) {
           logger.debug(`💰 Found pricing for ${modelName} using Bedrock core model match: ${key}`)
+
           return value
         }
       }
     }
 
     logger.debug(`💰 No pricing found for model: ${modelName}`)
+
     return null
   }
 
@@ -441,12 +466,14 @@ class PricingService {
     if (!pricing.cache_read_input_token_cost && pricing.input_cost_per_token) {
       pricing.cache_read_input_token_cost = pricing.input_cost_per_token * 0.1
     }
+
     return pricing
   }
 
   // 从 usage 对象中提取 beta 特性列表（小写）
   extractBetaFeatures(usage) {
     const features = new Set()
+
     if (!usage || typeof usage !== 'object') {
       return features
     }
@@ -512,6 +539,7 @@ class PricingService {
     if (typeof modelName !== 'string') {
       return modelName
     }
+
     return modelName.replace(/\[1m\]/gi, '').trim()
   }
 
@@ -643,6 +671,7 @@ class PricingService {
       const has1h200k =
         pricing.cache_creation_input_token_cost_above_1hr_above_200k_tokens !== null &&
         pricing.cache_creation_input_token_cost_above_1hr_above_200k_tokens !== undefined
+
       actualEphemeral1hPrice = has1h200k
         ? pricing.cache_creation_input_token_cost_above_1hr_above_200k_tokens
         : isClaudeModel
@@ -743,6 +772,7 @@ class PricingService {
     if (cost < 1) {
       return `$${cost.toFixed(4)}`
     }
+
     return `$${cost.toFixed(2)}`
   }
 
@@ -762,11 +792,13 @@ class PricingService {
   async forceUpdate() {
     try {
       await this._downloadFromRemote()
+
       return { success: true, message: 'Pricing data updated successfully' }
     } catch (error) {
       logger.error('❌ Force update failed:', error)
       logger.info('📋 Force update failed, using fallback pricing data...')
       await this.useFallbackPricing()
+
       return {
         success: false,
         message: `Download failed: ${error.message}. Using fallback pricing data instead.`
@@ -786,6 +818,7 @@ class PricingService {
       // 只有文件存在时才设置监听器
       if (!fs.existsSync(this.pricingFile)) {
         logger.debug('💰 Pricing file does not exist yet, skipping file watcher setup')
+
         return
       }
 
@@ -844,6 +877,7 @@ class PricingService {
         await this.useFallbackPricing()
         // 重新设置文件监听器（fallback会创建新文件）
         this.setupFileWatcher()
+
         return
       }
 
@@ -863,6 +897,7 @@ class PricingService {
       this.lastUpdated = new Date()
 
       const modelCount = Object.keys(jsonData).length
+
       logger.success(`Reloaded pricing data for ${modelCount} models from file`)
 
       // 显示一些统计信息
@@ -910,6 +945,7 @@ class PricingService {
       const client = redis.getClientSafe()
       const all = await client.hgetall(this.customPricingKey)
       const parsed = {}
+
       for (const [model, json] of Object.entries(all || {})) {
         try {
           parsed[model] = JSON.parse(json)
@@ -919,6 +955,7 @@ class PricingService {
       }
       this.customPricing = parsed
       const count = Object.keys(parsed).length
+
       if (count > 0) {
         logger.info(`💰 Loaded ${count} custom model pricing override(s)`)
       }
@@ -937,11 +974,13 @@ class PricingService {
       throw new Error('INVALID_MODEL_NAME')
     }
     const trimmed = modelName.trim()
+
     if (!trimmed || trimmed.length > 64 || !/^[A-Za-z0-9._\-/]+$/.test(trimmed)) {
       throw new Error('INVALID_MODEL_NAME')
     }
     const inputCost = Number(pricing?.input_cost_per_token)
     const outputCost = Number(pricing?.output_cost_per_token)
+
     if (!Number.isFinite(inputCost) || inputCost < 0) {
       throw new Error('INVALID_INPUT_COST')
     }
@@ -968,17 +1007,20 @@ class PricingService {
       _createdBy: existing?._createdBy || adminUserId || null,
       _updatedBy: adminUserId || null
     }
+
     if (data.max_tokens === undefined) {
       delete data.max_tokens
     }
 
     const redis = require('../models/redis')
     const client = redis.getClientSafe()
+
     await client.hset(this.customPricingKey, trimmed, JSON.stringify(data))
     this.customPricing[trimmed] = data
     logger.info(
       `💰 Custom pricing ${existing ? 'updated' : 'created'} for ${trimmed} by admin=${adminUserId}`
     )
+
     return data
   }
 
@@ -988,9 +1030,11 @@ class PricingService {
     }
     const redis = require('../models/redis')
     const client = redis.getClientSafe()
+
     await client.hdel(this.customPricingKey, modelName)
     delete this.customPricing[modelName]
     logger.info(`🗑️  Custom pricing removed for ${modelName} by admin=${adminUserId}`)
+
     return true
   }
 }

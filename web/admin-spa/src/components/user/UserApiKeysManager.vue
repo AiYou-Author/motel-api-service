@@ -259,6 +259,7 @@ const deleteApiKey = (apiKey) => {
 const handleDeleteConfirm = async () => {
   try {
     const result = await userStore.deleteApiKey(selectedApiKey.value.id)
+
     if (result.success) {
       showToast('API Key 已删除', 'success')
       await loadApiKeys()

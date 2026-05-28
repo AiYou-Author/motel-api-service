@@ -17,6 +17,7 @@ export function useChartConfig() {
   // 创建渐变色
   const getGradient = (ctx, color, opacity = 0.2) => {
     const gradient = ctx.createLinearGradient(0, 0, 0, 300)
+
     gradient.addColorStop(
       0,
       `${color}${Math.round(opacity * 255)
@@ -24,12 +25,14 @@ export function useChartConfig() {
         .padStart(2, '0')}`
     )
     gradient.addColorStop(1, `${color}00`)
+
     return gradient
   }
 
   // 获取当前主题的颜色方案
   const getThemeColors = () => {
     const scheme = themeStore.currentColorScheme
+
     return [scheme.primary, scheme.secondary, scheme.accent, '#4facfe', '#00f2fe']
   }
 
@@ -56,12 +59,14 @@ export function useChartConfig() {
         callbacks: {
           label: function (context) {
             let label = context.dataset.label || ''
+
             if (label) {
               label += ': '
             }
             if (context.parsed.y !== null) {
               label += new Intl.NumberFormat('zh-CN').format(context.parsed.y)
             }
+
             return label
           }
         }
@@ -93,6 +98,7 @@ export function useChartConfig() {
             } else if (value >= 1000) {
               return (value / 1000).toFixed(1) + 'K'
             }
+
             return value
           }
         }
@@ -104,6 +110,7 @@ export function useChartConfig() {
   const colorSchemes = {
     get primary() {
       const scheme = themeStore.currentColorScheme
+
       return [scheme.primary, scheme.secondary, scheme.accent, '#4facfe', '#00f2fe']
     },
     success: ['#10b981', '#059669', '#34d399', '#6ee7b7', '#a7f3d0'],

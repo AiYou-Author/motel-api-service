@@ -135,6 +135,7 @@ class GeminiApiAccountService {
   // 更新账户
   async updateAccount(accountId, updates) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
@@ -171,6 +172,7 @@ class GeminiApiAccountService {
     // 更新 Redis
     const client = redis.getClientSafe()
     const key = `${this.ACCOUNT_KEY_PREFIX}${accountId}`
+
     await client.hset(key, updates)
 
     logger.info(`📝 Updated Gemini-API account: ${account.name}`)
@@ -205,6 +207,7 @@ class GeminiApiAccountService {
 
     for (const accountId of accountIds) {
       const account = await this.getAccount(accountId)
+
       if (account) {
         // 过滤非活跃账户
         if (includeInactive || account.isActive === 'true') {
@@ -247,10 +250,13 @@ class GeminiApiAccountService {
     )
     const keys = allAccountIds.map((id) => `${this.ACCOUNT_KEY_PREFIX}${id}`)
     const dataList = await redis.batchHgetallChunked(keys)
+
     for (let i = 0; i < allAccountIds.length; i++) {
       const accountId = allAccountIds[i]
+
       if (!accountIds.includes(accountId)) {
         const accountData = dataList[i]
+
         if (accountData && accountData.id) {
           // 过滤非活跃账户
           if (includeInactive || accountData.isActive === 'true') {
@@ -316,6 +322,7 @@ class GeminiApiAccountService {
   // 标记账户限流
   async setAccountRateLimited(accountId, isLimited, duration = null) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
@@ -329,6 +336,7 @@ class GeminiApiAccountService {
         upstreamErrorHelper
           .recordErrorHistory(accountId, 'gemini-api', 429, 'rate_limit')
           .catch(() => {})
+
         return
       }
 
@@ -367,6 +375,7 @@ class GeminiApiAccountService {
   // 🚫 标记账户为未授权状态（401错误）
   async markAccountUnauthorized(accountId, reason = 'Gemini API账号认证失败（401错误）') {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       return
     }
@@ -379,6 +388,7 @@ class GeminiApiAccountService {
       upstreamErrorHelper
         .recordErrorHistory(accountId, 'gemini-api', 401, 'auth_error')
         .catch(() => {})
+
       return
     }
 
@@ -400,6 +410,7 @@ class GeminiApiAccountService {
 
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account.name || accountId,
@@ -420,6 +431,7 @@ class GeminiApiAccountService {
   // 检查并清除过期的限流状态
   async checkAndClearRateLimit(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account || account.rateLimitStatus !== 'limited') {
       return false
     }
@@ -430,17 +442,20 @@ class GeminiApiAccountService {
     // 优先使用 rateLimitResetAt 字段
     if (account.rateLimitResetAt) {
       const resetAt = new Date(account.rateLimitResetAt)
+
       shouldClear = now >= resetAt
     } else {
       // 如果没有 rateLimitResetAt，使用旧的逻辑
       const rateLimitedAt = new Date(account.rateLimitedAt)
       const rateLimitDuration = parseInt(account.rateLimitDuration) || 60
+
       shouldClear = now - rateLimitedAt > rateLimitDuration * 60000
     }
 
     if (shouldClear) {
       // 限流已过期，清除状态
       await this.setAccountRateLimited(accountId, false)
+
       return true
     }
 
@@ -450,11 +465,13 @@ class GeminiApiAccountService {
   // 切换调度状态
   async toggleSchedulable(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
 
     const newSchedulableStatus = account.schedulable === 'true' ? 'false' : 'true'
+
     await this.updateAccount(accountId, {
       schedulable: newSchedulableStatus
     })
@@ -472,6 +489,7 @@ class GeminiApiAccountService {
   // 重置账户状态（清除所有异常状态）
   async resetAccountStatus(accountId) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error('Account not found')
     }
@@ -498,6 +516,7 @@ class GeminiApiAccountService {
     // 发送 Webhook 通知
     try {
       const webhookNotifier = require('../../utils/webhookNotifier')
+
       await webhookNotifier.sendAccountAnomalyNotification({
         accountId,
         accountName: account.name || accountId,
@@ -541,6 +560,7 @@ class GeminiApiAccountService {
       const rateLimitedAt = new Date(accountData.rateLimitedAt)
       const rateLimitDuration = parseInt(accountData.rateLimitDuration) || 60
       const elapsedMinutes = Math.floor((now - rateLimitedAt) / 60000)
+
       remainingMinutes = Math.max(0, rateLimitDuration - elapsedMinutes)
       willBeAvailableAt = new Date(rateLimitedAt.getTime() + rateLimitDuration * 60000)
     }
@@ -563,6 +583,7 @@ class GeminiApiAccountService {
     const cipher = crypto.createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
 
     let encrypted = cipher.update(text)
+
     encrypted = Buffer.concat([encrypted, cipher.final()])
 
     return `${iv.toString('hex')}:${encrypted.toString('hex')}`
@@ -577,6 +598,7 @@ class GeminiApiAccountService {
     // 检查缓存
     const cacheKey = crypto.createHash('sha256').update(text).digest('hex')
     const cached = this._decryptCache.get(cacheKey)
+
     if (cached !== undefined) {
       return cached
     }
@@ -590,6 +612,7 @@ class GeminiApiAccountService {
 
       const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
       let decrypted = decipher.update(encryptedText)
+
       decrypted = Buffer.concat([decrypted, decipher.final()])
 
       const result = decrypted.toString()
@@ -600,6 +623,7 @@ class GeminiApiAccountService {
       return result
     } catch (error) {
       logger.error('Decryption error:', error)
+
       return ''
     }
   }
@@ -613,6 +637,7 @@ class GeminiApiAccountService {
         32
       )
     }
+
     return this._encryptionKeyCache
   }
 

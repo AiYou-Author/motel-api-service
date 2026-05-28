@@ -40,6 +40,7 @@ router.post('/droid-accounts/generate-auth-url', authenticateAdmin, async (req, 
     })
 
     logger.success('🤖 生成 Droid 设备码授权信息成功', { sessionId })
+
     return res.json({
       success: true,
       data: {
@@ -59,7 +60,9 @@ router.post('/droid-accounts/generate-auth-url', authenticateAdmin, async (req, 
   } catch (error) {
     const message =
       error instanceof WorkOSDeviceAuthError ? error.message : error.message || '未知错误'
+
     logger.error('❌ 生成 Droid 设备码授权失败:', message)
+
     return res.status(500).json({ error: 'Failed to start Droid device authorization', message })
   }
 })
@@ -67,18 +70,21 @@ router.post('/droid-accounts/generate-auth-url', authenticateAdmin, async (req, 
 // 交换 Droid 授权码
 router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res) => {
   const { sessionId, proxy } = req.body || {}
+
   try {
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' })
     }
 
     const oauthSession = await redis.getOAuthSession(sessionId)
+
     if (!oauthSession) {
       return res.status(400).json({ error: 'Invalid or expired OAuth session' })
     }
 
     if (oauthSession.expiresAt && new Date() > new Date(oauthSession.expiresAt)) {
       await redis.deleteOAuthSession(sessionId)
+
       return res
         .status(400)
         .json({ error: 'OAuth session has expired, please generate a new authorization URL' })
@@ -86,6 +92,7 @@ router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res)
 
     if (!oauthSession.deviceCode) {
       await redis.deleteOAuthSession(sessionId)
+
       return res.status(400).json({ error: 'OAuth session missing device code, please retry' })
     }
 
@@ -95,6 +102,7 @@ router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res)
     await redis.deleteOAuthSession(sessionId)
 
     logger.success('🤖 成功获取 Droid 访问令牌', { sessionId })
+
     return res.json({ success: true, data: { tokens } })
   } catch (error) {
     if (error instanceof WorkOSDeviceAuthError) {
@@ -118,6 +126,7 @@ router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res)
 
       if (error.code === 'expired_token') {
         await redis.deleteOAuthSession(sessionId)
+
         return res.status(400).json({
           error: 'Device code expired',
           message: '授权已过期，请重新生成设备码并再次授权'
@@ -125,6 +134,7 @@ router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res)
       }
 
       logger.error('❌ Droid 授权失败:', error.message)
+
       return res.status(500).json({
         error: 'Failed to exchange Droid authorization code',
         message: error.message,
@@ -133,6 +143,7 @@ router.post('/droid-accounts/exchange-code', authenticateAdmin, async (req, res)
     }
 
     logger.error('❌ 交换 Droid 授权码失败:', error)
+
     return res.status(500).json({
       error: 'Failed to exchange Droid authorization code',
       message: error.message
@@ -156,6 +167,7 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
     // 构建绑定数映射（droid 需要展开 group 绑定）
     // 1. 先构建 groupId -> accountIds 映射
     const groupToAccountIds = new Map()
+
     for (const [accountId, groups] of allGroupInfosMap) {
       for (const group of groups) {
         if (!groupToAccountIds.has(group.id)) {
@@ -168,13 +180,16 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
     // 2. 单次遍历构建绑定数
     const directBindingCount = new Map()
     const groupBindingCount = new Map()
+
     for (const key of allApiKeys) {
       const binding = key.droidAccountId
+
       if (!binding) {
         continue
       }
       if (binding.startsWith('group:')) {
         const groupId = binding.substring('group:'.length)
+
         groupBindingCount.set(groupId, (groupBindingCount.get(groupId) || 0) + 1)
       } else {
         directBindingCount.set(binding, (directBindingCount.get(binding) || 0) + 1)
@@ -188,6 +203,7 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
     const currentMonth = `${tzDate.getUTCFullYear()}-${String(tzDate.getUTCMonth() + 1).padStart(2, '0')}`
 
     const statsPipeline = client.pipeline()
+
     for (const accountId of accountIds) {
       statsPipeline.hgetall(`account_usage:${accountId}`)
       statsPipeline.hgetall(`account_usage:daily:${accountId}:${today}`)
@@ -214,6 +230,7 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
 
     // 构建 accountId -> createdAt 映射用于计算 averages
     const accountCreatedAtMap = new Map()
+
     for (const account of accounts) {
       accountCreatedAtMap.set(
         account.id,
@@ -263,11 +280,13 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
 
       // 计算绑定数：直接绑定 + 通过 group 绑定
       let boundApiKeysCount = directBindingCount.get(account.id) || 0
+
       for (const group of groupInfos) {
         boundApiKeysCount += groupBindingCount.get(group.id) || 0
       }
 
       const formattedAccount = formatAccountExpiry(account)
+
       return {
         ...formattedAccount,
         schedulable: account.schedulable === 'true',
@@ -285,6 +304,7 @@ router.get('/droid-accounts', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: accountsWithStats })
   } catch (error) {
     logger.error('Failed to get Droid accounts:', error)
+
     return res.status(500).json({ error: 'Failed to get Droid accounts', message: error.message })
   }
 })
@@ -331,6 +351,7 @@ router.post('/droid-accounts', authenticateAdmin, async (req, res) => {
         }
       } catch (groupError) {
         logger.error(`Failed to attach Droid account ${account.id} to groups:`, groupError)
+
         return res.status(500).json({
           error: 'Failed to bind Droid account to groups',
           message: groupError.message
@@ -340,9 +361,11 @@ router.post('/droid-accounts', authenticateAdmin, async (req, res) => {
 
     logger.success(`Created Droid account: ${account.name} (${account.id})`)
     const formattedAccount = formatAccountExpiry(account)
+
     return res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('Failed to create Droid account:', error)
+
     return res.status(500).json({ error: 'Failed to create Droid account', message: error.message })
   }
 })
@@ -371,6 +394,7 @@ router.put('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
     }
 
     const currentAccount = await droidAccountService.getAccount(id)
+
     if (!currentAccount) {
       return res.status(404).json({ error: 'Droid account not found' })
     }
@@ -407,6 +431,7 @@ router.put('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
       }
     } catch (groupError) {
       logger.error(`Failed to update Droid account ${id} groups:`, groupError)
+
       return res.status(500).json({
         error: 'Failed to update Droid account groups',
         message: groupError.message
@@ -424,6 +449,7 @@ router.put('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: account })
   } catch (error) {
     logger.error(`Failed to update Droid account ${req.params.id}:`, error)
+
     return res.status(500).json({ error: 'Failed to update Droid account', message: error.message })
   }
 })
@@ -434,6 +460,7 @@ router.put('/droid-accounts/:id/toggle-schedulable', authenticateAdmin, async (r
     const { id } = req.params
 
     const account = await droidAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({ error: 'Droid account not found' })
     }
@@ -469,6 +496,7 @@ router.put('/droid-accounts/:id/toggle-schedulable', authenticateAdmin, async (r
     return res.json({ success: true, schedulable: actualSchedulable })
   } catch (error) {
     logger.error('❌ Failed to toggle Droid account schedulable status:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to toggle schedulable status', message: error.message })
@@ -482,6 +510,7 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
 
     // 获取账户基本信息
     const account = await droidAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         error: 'Not Found',
@@ -491,6 +520,7 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
 
     // 获取使用统计信息
     let usageStats
+
     try {
       usageStats = await redis.getAccountUsageStats(account.id, 'droid')
     } catch (error) {
@@ -504,6 +534,7 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
 
     // 获取分组信息
     let groupInfos = []
+
     try {
       groupInfos = await accountGroupService.getAccountGroups(account.id)
     } catch (error) {
@@ -516,6 +547,7 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
     const groupIds = groupInfos.map((group) => group.id)
     const boundApiKeysCount = allApiKeys.reduce((count, key) => {
       const binding = key.droidAccountId
+
       if (!binding) {
         return count
       }
@@ -524,15 +556,18 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
       }
       if (binding.startsWith('group:')) {
         const groupId = binding.substring('group:'.length)
+
         if (groupIds.includes(groupId)) {
           return count + 1
         }
       }
+
       return count
     }, 0)
 
     // 获取解密的 API Keys（用于管理界面）
     let decryptedApiKeys = []
+
     try {
       decryptedApiKeys = await droidAccountService.getDecryptedApiKeyEntries(id)
     } catch (error) {
@@ -571,6 +606,7 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error(`Failed to get Droid account ${req.params.id}:`, error)
+
     return res.status(500).json({
       error: 'Failed to get Droid account',
       message: error.message
@@ -582,10 +618,13 @@ router.get('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
 router.delete('/droid-accounts/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params
+
     await droidAccountService.deleteAccount(id)
+
     return res.json({ success: true, message: 'Droid account deleted successfully' })
   } catch (error) {
     logger.error(`Failed to delete Droid account ${req.params.id}:`, error)
+
     return res.status(500).json({ error: 'Failed to delete Droid account', message: error.message })
   }
 })
@@ -595,9 +634,11 @@ router.post('/droid-accounts/:id/refresh-token', authenticateAdmin, async (req, 
   try {
     const { id } = req.params
     const result = await droidAccountService.refreshAccessToken(id)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error(`Failed to refresh Droid account token ${req.params.id}:`, error)
+
     return res.status(500).json({ error: 'Failed to refresh token', message: error.message })
   }
 })
@@ -611,12 +652,14 @@ router.post('/droid-accounts/:accountId/test', authenticateAdmin, async (req, re
   try {
     // 获取账户信息
     const account = await droidAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
 
     // 确保 token 有效
     const tokenResult = await droidAccountService.ensureValidToken(accountId)
+
     if (!tokenResult.success) {
       return res.status(401).json({
         error: 'Token refresh failed',
@@ -648,6 +691,7 @@ router.post('/droid-accounts/:accountId/test', authenticateAdmin, async (req, re
     // 配置代理
     if (account.proxy) {
       const agent = getProxyAgent(account.proxy)
+
       if (agent) {
         requestConfig.httpsAgent = agent
         requestConfig.httpAgent = agent
@@ -659,6 +703,7 @@ router.post('/droid-accounts/:accountId/test', authenticateAdmin, async (req, re
 
     // 提取响应文本
     let responseText = ''
+
     if (response.data?.content?.[0]?.text) {
       responseText = response.data.content[0].text
     }
@@ -679,6 +724,7 @@ router.post('/droid-accounts/:accountId/test', authenticateAdmin, async (req, re
     })
   } catch (error) {
     const latency = Date.now() - startTime
+
     logger.error(`❌ Droid account test failed: ${accountId}`, error.message)
 
     return res.status(500).json({
@@ -695,10 +741,13 @@ router.post('/:accountId/reset-status', authenticateAdmin, async (req, res) => {
   try {
     const { accountId } = req.params
     const result = await droidAccountService.resetAccountStatus(accountId)
+
     logger.success(`Admin reset status for Droid account: ${accountId}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Droid account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })

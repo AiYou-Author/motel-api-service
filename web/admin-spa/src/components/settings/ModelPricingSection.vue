@@ -239,7 +239,9 @@ const pricingStatus = ref({})
 const customPricingList = ref([])
 const customMap = computed(() => {
   const m = {}
+
   for (const item of customPricingList.value) m[item.model] = item
+
   return m
 })
 const modalShow = ref(false)
@@ -262,15 +264,18 @@ const modelCount = computed(() => Object.keys(pricingData.value).length)
 
 const lastUpdated = computed(() => {
   if (!pricingStatus.value.lastUpdated) return '未知'
+
   return new Date(pricingStatus.value.lastUpdated).toLocaleString('zh-CN')
 })
 
 const allModels = computed(() => {
   const merged = { ...pricingData.value }
+
   // 自定义条目覆盖同名远程条目，并补充新模型
   for (const item of customPricingList.value) {
     merged[item.model] = item
   }
+
   return Object.entries(merged).map(([name, data]) => ({
     name,
     provider: data.litellm_provider || detectProvider(name),
@@ -308,12 +313,14 @@ const filteredModels = computed(() => {
         !n.includes('codex')
     }
     const filter = platformFilters[activePlatform.value]
+
     if (filter) models = models.filter((m) => filter(m.name.toLowerCase()))
   }
 
   // 搜索筛选
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
+
     models = models.filter((m) => m.name.toLowerCase().includes(q))
   }
 
@@ -328,20 +335,25 @@ const sortedModels = computed(() => {
     output: (m) => m.outputCost
   }
   const getter = fieldMap[sortField.value]
+
   if (!getter) return models
 
   models.sort((a, b) => {
     const va = getter(a)
     const vb = getter(b)
+
     if (typeof va === 'string') return sortAsc.value ? va.localeCompare(vb) : vb.localeCompare(va)
+
     return sortAsc.value ? va - vb : vb - va
   })
+
   return models
 })
 
 // ========== 方法 ==========
 const detectProvider = (name) => {
   const n = name.toLowerCase()
+
   if (n.includes('claude')) return 'Anthropic'
   if (n.includes('gemini')) return 'Google'
   if (
@@ -355,6 +367,7 @@ const detectProvider = (name) => {
   if (n.includes('deepseek')) return 'DeepSeek'
   if (n.includes('llama') || n.includes('meta')) return 'Meta'
   if (n.includes('mistral')) return 'Mistral'
+
   return ''
 }
 
@@ -362,6 +375,7 @@ const formatPrice = (price) => {
   if (!price || price === 0) return '-'
   if (price < 0.01) return `$${price.toFixed(4)}`
   if (price < 1) return `$${price.toFixed(3)}`
+
   return `$${price.toFixed(2)}`
 }
 
@@ -369,6 +383,7 @@ const formatContext = (tokens) => {
   if (!tokens) return '-'
   if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`
   if (tokens >= 1000) return `${(tokens / 1000).toFixed(0)}K`
+
   return String(tokens)
 }
 
@@ -384,6 +399,7 @@ const toggleSort = (field) => {
 const loadCustomPricing = async () => {
   try {
     const result = await getCustomPricingApi()
+
     if (result?.success) {
       customPricingList.value = result.data || []
     }
@@ -414,6 +430,7 @@ const confirmDelete = async (model) => {
   }
   try {
     const result = await deleteCustomPricingApi(model.name)
+
     if (result?.success) {
       showToast('已删除', 'success')
       await loadCustomPricing()
@@ -432,6 +449,7 @@ const loadData = async () => {
     getModelPricingStatusApi(),
     loadCustomPricing()
   ])
+
   if (pricingResult.success) {
     pricingData.value = pricingResult.data
   } else {
@@ -448,6 +466,7 @@ const loadData = async () => {
 const handleRefresh = async () => {
   refreshing.value = true
   const result = await refreshModelPricingApi()
+
   if (result.success) {
     showToast('价格数据已刷新', 'success')
     await loadData()

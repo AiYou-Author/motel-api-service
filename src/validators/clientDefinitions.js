@@ -98,6 +98,7 @@ function isValidClientId(clientId) {
  */
 function isPathAllowedForClient(clientId, path) {
   const definition = getClientDefinitionById(clientId)
+
   if (!definition) {
     return false
   }
@@ -108,6 +109,7 @@ function isPathAllowedForClient(clientId, path) {
   }
 
   const normalizedPath = (path || '').toLowerCase()
+
   return definition.allowedPathPrefixes.some((prefix) =>
     normalizedPath.startsWith(prefix.toLowerCase())
   )

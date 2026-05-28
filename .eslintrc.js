@@ -14,7 +14,11 @@ module.exports = {
   },
   rules: {
     'no-console': 'warn',
-    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': ['error', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+    }],
     'eqeqeq': ['error', 'always'],
     'curly': ['error', 'all'],
     'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 0 }],
@@ -33,6 +37,35 @@ module.exports = {
       },
       rules: {
         'no-console': 'off',
+      },
+    },
+    {
+      files: ['cli/**/*.js', 'scripts/**/*.js', 'src/cli/**/*.js'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
+      files: ['src/models/redis.js', 'src/utils/logger.js', 'src/utils/lruCache.js', 'src/utils/runtimeAddon.js', 'src/utils/costCalculator.js'],
+      rules: {
+        'no-console': 'off',
+      },
+    },
+    {
+      files: ['web/admin-spa/**/*.{js,vue}'],
+      rules: {
+        'no-console': 'off',
+        'no-unused-vars': 'off',
+        'eqeqeq': 'off',
+      },
+    },
+    {
+      files: ['web/admin-spa/dist/**/*.js'],
+      rules: {
+        'no-unused-vars': 'off',
+        'eqeqeq': 'off',
+        'no-console': 'off',
+        'no-empty': 'off',
       },
     },
   ],

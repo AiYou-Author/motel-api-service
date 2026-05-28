@@ -4160,6 +4160,7 @@ const determinePlatformGroup = (platform) => {
   } else if (platform === 'droid') {
     return 'droid'
   }
+
   return ''
 }
 
@@ -4178,6 +4179,7 @@ const parseProxyResponse = (rawProxy) => {
   }
 
   let proxyObject = rawProxy
+
   if (typeof rawProxy === 'string') {
     try {
       proxyObject = JSON.parse(rawProxy)
@@ -4290,6 +4292,7 @@ const toFormCooldownOverrideValue = (value) => {
     return ''
   }
   const parsed = Number(value)
+
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : ''
 }
 
@@ -4298,9 +4301,11 @@ const normalizeAccountCooldownOverride = (value) => {
     return null
   }
   const parsed = Number(value)
+
   if (!Number.isFinite(parsed) || parsed < 0) {
     return null
   }
+
   return Math.floor(parsed)
 }
 
@@ -4311,9 +4316,11 @@ const form = ref({
   platform: props.account?.platform || 'claude',
   addType: (() => {
     const platform = props.account?.platform || 'claude'
+
     if (platform === 'gemini' || platform === 'gemini-antigravity' || platform === 'openai')
       return 'oauth'
     if (platform === 'claude') return 'oauth'
+
     return 'manual'
   })(),
   name: props.account?.name || '',
@@ -4349,6 +4356,7 @@ const form = ref({
   rateLimitDuration: props.account?.rateLimitDuration || 60,
   supportedModels: (() => {
     const models = props.account?.supportedModels
+
     if (!models) return []
     // 处理对象格式（Claude Console 的新格式）
     if (typeof models === 'object' && !Array.isArray(models)) {
@@ -4358,6 +4366,7 @@ const form = ref({
     if (Array.isArray(models)) {
       return models
     }
+
     return []
   })(),
   userAgent: props.account?.userAgent || '',
@@ -4395,6 +4404,7 @@ const form = ref({
     if (props.account?.expiresAt) {
       return 'custom' // 如果有过期时间，默认显示为自定义
     }
+
     return ''
   })(),
   customExpireDate: (() => {
@@ -4403,6 +4413,7 @@ const form = ref({
       // 转换ISO时间为datetime-local格式 (YYYY-MM-DDTHH:mm)
       return new Date(props.account.expiresAt).toISOString().slice(0, 16)
     }
+
     return ''
   })(),
   expiresAt: props.account?.expiresAt || null
@@ -4434,6 +4445,7 @@ const commonModels = ref([])
 const loadCommonModels = async () => {
   try {
     const result = await httpApis.getModelsApi()
+
     if (result.success && result.data?.all) {
       commonModels.value = result.data.all
     }
@@ -4458,6 +4470,7 @@ const initModelMappings = () => {
       // 判断是白名单模式还是映射模式
       // 如果所有映射都是"映射到自己"，则视为白名单模式
       const isWhitelist = entries.every(([from, to]) => from === to)
+
       if (isWhitelist) {
         modelRestrictionMode.value = 'whitelist'
         // 白名单模式：设置 allowedModels（显示勾选的模型）
@@ -4499,6 +4512,7 @@ const parseApiKeysInput = (input) => {
   }
 
   const uniqueKeys = Array.from(new Set(segments))
+
   return uniqueKeys
 }
 
@@ -4535,11 +4549,13 @@ const apiKeyModeSliderStyle = computed(() => {
 
 const currentApiKeyModeLabel = computed(() => {
   const option = apiKeyModeOptions.find((item) => item.value === form.value.apiKeyUpdateMode)
+
   return option ? option.label : apiKeyModeOptions[0].label
 })
 
 const currentApiKeyModeDescription = computed(() => {
   const option = apiKeyModeOptions.find((item) => item.value === form.value.apiKeyUpdateMode)
+
   return option ? option.description : apiKeyModeOptions[0].description
 })
 
@@ -4591,6 +4607,7 @@ const usagePercentage = computed(() => {
     return 0
   }
   const currentUsage = calculateCurrentUsage()
+
   return (currentUsage / form.value.dailyQuota) * 100
 })
 
@@ -4607,6 +4624,7 @@ const existingApiKeyCount = computed(() => {
   } else if (typeof props.account.apiKeys === 'string') {
     try {
       const parsed = JSON.parse(props.account.apiKeys)
+
       if (Array.isArray(parsed)) {
         fallbackList = parsed.length
       }
@@ -4649,6 +4667,7 @@ const loadAccountUsage = async () => {
 
   try {
     const response = await httpApis.getClaudeConsoleAccountUsageApi(props.account.id)
+
     if (response) {
       // 更新表单中的使用量数据
       form.value.dailyUsage = response.dailyUsage || 0
@@ -4690,6 +4709,7 @@ const nextStep = async () => {
     if (!form.value.name || form.value.name.trim() === '') {
       errors.value.name = '请填写账户名称'
     }
+
     return
   }
 
@@ -4699,6 +4719,7 @@ const nextStep = async () => {
     (!form.value.groupIds || form.value.groupIds.length === 0)
   ) {
     showToast('请选择一个分组', 'error')
+
     return
   }
 
@@ -4725,6 +4746,7 @@ const nextStep = async () => {
         '继续',
         '返回填写'
       )
+
       if (!confirmed) {
         return
       }
@@ -4743,6 +4765,7 @@ const generateSetupTokenAuthUrl = async () => {
     const proxyConfig = proxyPayload ? { proxy: proxyPayload } : {}
 
     const result = await accountsStore.generateClaudeSetupTokenUrl(proxyConfig)
+
     setupTokenAuthUrl.value = result.authUrl
     setupTokenSessionId.value = result.sessionId
   } catch (error) {
@@ -4771,6 +4794,7 @@ const copySetupTokenAuthUrl = async () => {
   } catch (error) {
     // 降级方案 - 使用 textarea 替代 input，禁用 ESLint 警告
     const textarea = document.createElement('textarea')
+
     textarea.value = setupTokenAuthUrl.value
     textarea.style.position = 'fixed'
     textarea.style.opacity = '0'
@@ -4780,6 +4804,7 @@ const copySetupTokenAuthUrl = async () => {
     try {
       // eslint-disable-next-line
       const successful = document.execCommand('copy')
+
       if (successful) {
         setupTokenCopied.value = true
         showToast('链接已复制', 'success')
@@ -4810,6 +4835,7 @@ const exchangeSetupTokenCode = async () => {
 
     // 添加代理配置（如果启用）
     const proxyPayload = buildProxyPayload(form.value.proxy)
+
     if (proxyPayload) {
       data.proxy = proxyPayload
     }
@@ -4844,6 +4870,7 @@ const handleCookieAuth = async () => {
 
   if (sessionKeys.length === 0) {
     cookieAuthError.value = '请输入至少一个 sessionKey'
+
     return
   }
 
@@ -4866,6 +4893,7 @@ const handleCookieAuth = async () => {
       }
 
       let result
+
       if (isSetupToken) {
         result = await accountsStore.oauthSetupTokenWithCookie(payload)
       } else {
@@ -4956,6 +4984,7 @@ const buildClaudeAccountData = (tokenInfo, accountName, clientId) => {
   if (claudeOauthPayload) {
     const extInfoPayload = {}
     const extSource = claudeOauthPayload.extInfo
+
     if (extSource?.org_uuid) extInfoPayload.org_uuid = extSource.org_uuid
     if (extSource?.account_uuid) extInfoPayload.account_uuid = extSource.account_uuid
 
@@ -5001,6 +5030,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
 
         try {
           const result = await accountsStore.createClaudeAccount(data)
+
           results.push(result)
         } catch (error) {
           errors.push({ name: accountName, error: error.message })
@@ -5012,12 +5042,14 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
         const msg = isBatch
           ? `成功创建 ${results.length}/${tokenInfoList.length} 个账户`
           : '账户创建成功'
+
         showToast(msg, 'success')
         emit('success', results[0]) // 兼容单个创建的返回
       }
       if (errors.length > 0) {
         showToast(`${errors.length} 个账户创建失败`, 'error')
       }
+
       return
     }
 
@@ -5048,10 +5080,12 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
     if (currentPlatform === 'claude') {
       // Claude使用claudeAiOauth字段
       const claudeOauthPayload = tokenInfo.claudeAiOauth || tokenInfo
+
       data.claudeAiOauth = claudeOauthPayload
       if (claudeOauthPayload) {
         const extInfoPayload = {}
         const extSource = claudeOauthPayload.extInfo
+
         if (extSource && typeof extSource === 'object') {
           if (extSource.org_uuid) {
             extInfoPayload.org_uuid = extSource.org_uuid
@@ -5064,6 +5098,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
         if (!extSource) {
           const orgUuid = claudeOauthPayload.organization?.uuid
           const accountUuid = claudeOauthPayload.account?.uuid
+
           if (orgUuid) {
             extInfoPayload.org_uuid = orgUuid
           }
@@ -5124,6 +5159,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
       if (!normalizedTokens.refreshToken) {
         loading.value = false
         showToast('授权成功但未返回 Refresh Token，请确认已授予离线访问权限后重试。', 'error')
+
         return
       }
 
@@ -5146,6 +5182,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
       if (rawTokens.user) {
         const user = rawTokens.user
         const nameParts = []
+
         if (typeof user.first_name === 'string' && user.first_name.trim()) {
           nameParts.push(user.first_name.trim())
         }
@@ -5174,6 +5211,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
     }
 
     let result
+
     if (currentPlatform === 'claude') {
       result = await accountsStore.createClaudeAccount(data)
     } else if (currentPlatform === 'gemini') {
@@ -5195,6 +5233,7 @@ const handleOAuthSuccess = async (tokenInfoOrList) => {
 
     // 构建完整的错误提示
     let fullMessage = errorMessage
+
     if (suggestion) {
       fullMessage += `\n${suggestion}`
     }
@@ -5355,6 +5394,7 @@ const createAccount = async () => {
     } else {
       // 其他平台（如 Droid）使用多 API Key 输入
       const apiKeys = parseApiKeysInput(form.value.apiKeysInput)
+
       if (apiKeys.length === 0) {
         errors.value.apiKeys = '请至少填写一个 API Key'
         hasError = true
@@ -5484,6 +5524,7 @@ const createAccount = async () => {
 
       if (form.value.addType === 'apikey') {
         const apiKeys = parseApiKeysInput(form.value.apiKeysInput)
+
         data.apiKeys = apiKeys
         data.authenticationMethod = 'api_key'
         data.isActive = true
@@ -5581,6 +5622,7 @@ const createAccount = async () => {
     }
 
     let result
+
     if (form.value.platform === 'claude') {
       result = await accountsStore.createClaudeAccount(data)
     } else if (form.value.platform === 'claude-console' || form.value.platform === 'ccr') {
@@ -5613,6 +5655,7 @@ const createAccount = async () => {
 
     // 构建完整的错误提示
     let fullMessage = errorMessage
+
     if (suggestion) {
       fullMessage += `\n${suggestion}`
     }
@@ -5643,14 +5686,17 @@ const updateAccount = async () => {
   // 验证账户名称
   if (!form.value.name || form.value.name.trim() === '') {
     errors.value.name = '请填写账户名称'
+
     return
   }
 
   // Gemini API 的 baseUrl 验证
   if (form.value.platform === 'gemini-api') {
     const baseUrl = form.value.baseUrl?.trim() || ''
+
     if (!baseUrl) {
       errors.value.baseUrl = '请填写 API 基础地址'
+
       return
     }
   }
@@ -5661,6 +5707,7 @@ const updateAccount = async () => {
     (!form.value.groupIds || form.value.groupIds.length === 0)
   ) {
     showToast('请选择一个分组', 'error')
+
     return
   }
 
@@ -5683,6 +5730,7 @@ const updateAccount = async () => {
         '继续保存',
         '返回填写'
       )
+
       if (!confirmed) {
         return
       }
@@ -5769,13 +5817,16 @@ const updateAccount = async () => {
         if (!trimmedApiKeysInput) {
           errors.value.apiKeys = '请填写需要删除的 API Key'
           loading.value = false
+
           return
         }
 
         const removeApiKeys = parseApiKeysInput(trimmedApiKeysInput)
+
         if (removeApiKeys.length === 0) {
           errors.value.apiKeys = '请填写需要删除的 API Key'
           loading.value = false
+
           return
         }
 
@@ -5784,9 +5835,11 @@ const updateAccount = async () => {
       } else {
         if (trimmedApiKeysInput) {
           const apiKeys = parseApiKeysInput(trimmedApiKeysInput)
+
           if (apiKeys.length === 0) {
             errors.value.apiKeys = '请至少填写一个 API Key'
             loading.value = false
+
             return
           }
           data.apiKeys = apiKeys
@@ -5985,6 +6038,7 @@ const updateAccount = async () => {
 
     // 构建完整的错误提示
     let fullMessage = errorMessage
+
     if (suggestion) {
       fullMessage += `\n${suggestion}`
     }
@@ -6083,6 +6137,7 @@ const showGroupManagement = ref(false)
 // 根据平台筛选分组
 const filteredGroups = computed(() => {
   let platformFilter = form.value.platform
+
   // Claude Console 和 CCR 使用 Claude 分组
   if (form.value.platform === 'claude-console' || form.value.platform === 'ccr') {
     platformFilter = 'claude'
@@ -6095,6 +6150,7 @@ const filteredGroups = computed(() => {
   else if (form.value.platform === 'gemini-api') {
     platformFilter = 'gemini'
   }
+
   return groups.value.filter((g) => g.platform === platformFilter)
 })
 
@@ -6103,6 +6159,7 @@ const loadGroups = async () => {
   loadingGroups.value = true
   try {
     const response = await httpApis.getAccountGroupsApi()
+
     groups.value = response.data || []
   } catch (error) {
     showToast('加载分组列表失败', 'error')
@@ -6145,6 +6202,7 @@ const handleApiKeyRefresh = async () => {
   for (const refresher of refreshers) {
     try {
       await refresher()
+
       return
     } catch (error) {
       console.error('刷新账户列表失败:', error)
@@ -6258,6 +6316,7 @@ watch(
 
     if (mode === 'append' && parsed.length > 0) {
       errors.value.apiKeys = ''
+
       return
     }
 
@@ -6265,6 +6324,7 @@ watch(
       if (parsed.length > 0 || !newValue || newValue.trim() === '') {
         errors.value.apiKeys = ''
       }
+
       return
     }
 
@@ -6366,8 +6426,10 @@ const removeModelMapping = (index) => {
 const addPresetMapping = (from, to) => {
   // 检查是否已存在相同的映射
   const exists = modelMappings.value.some((mapping) => mapping.from === from)
+
   if (exists) {
     showToast(`模型 ${from} 的映射已存在`, 'info')
+
     return
   }
 
@@ -6417,12 +6479,14 @@ watch(
 
       // 获取分组ID - 可能来自 groupId 字段或 groupInfo 对象
       let groupId = ''
+
       if (newAccount.accountType === 'group') {
         groupId = newAccount.groupId || (newAccount.groupInfo && newAccount.groupInfo.id) || ''
       }
 
       // 初始化订阅类型（从 subscriptionInfo 中提取，兼容旧数据默认为 claude_max）
       let subscriptionType = 'claude_max'
+
       if (newAccount.subscriptionInfo) {
         const info =
           typeof newAccount.subscriptionInfo === 'string'
@@ -6469,6 +6533,7 @@ watch(
         priority: newAccount.priority || 50,
         supportedModels: (() => {
           const models = newAccount.supportedModels
+
           if (!models) return []
           // 处理对象格式（Claude Console 的新格式）
           if (typeof models === 'object' && !Array.isArray(models)) {
@@ -6478,6 +6543,7 @@ watch(
           if (Array.isArray(models)) {
             return models
           }
+
           return []
         })(),
         userAgent: newAccount.userAgent || '',
@@ -6565,6 +6631,7 @@ watch(
               try {
                 const response = await httpApis.getAccountGroupMembersApi(group.id)
                 const members = response.data || []
+
                 if (members.some((m) => m.id === newAccount.id)) {
                   foundGroupIds.push(group.id)
                   if (!form.value.groupId) {
@@ -6592,6 +6659,7 @@ watch(
 const fetchUnifiedUserAgent = async () => {
   try {
     const response = await httpApis.getClaudeCodeVersionApi()
+
     if (response.success && response.userAgent) {
       unifiedUserAgent.value = response.userAgent
     } else {
@@ -6608,6 +6676,7 @@ const clearUnifiedCache = async () => {
   clearingCache.value = true
   try {
     const response = await httpApis.clearClaudeCodeVersionApi()
+
     if (response.success) {
       unifiedUserAgent.value = ''
       showToast('统一User-Agent缓存已清除', 'success')
@@ -6626,7 +6695,9 @@ const clearUnifiedCache = async () => {
 const generateClientId = () => {
   // 生成64位十六进制字符串（32字节）
   const bytes = new Uint8Array(32)
+
   crypto.getRandomValues(bytes)
+
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
@@ -6652,7 +6723,9 @@ const handleUnifiedClientIdChange = () => {
 // 计算最小日期时间
 const minDateTime = computed(() => {
   const now = new Date()
+
   now.setMinutes(now.getMinutes() + 1)
+
   return now.toISOString().slice(0, 16)
 })
 
@@ -6660,6 +6733,7 @@ const minDateTime = computed(() => {
 const updateAccountExpireAt = () => {
   if (!form.value.expireDuration) {
     form.value.expiresAt = null
+
     return
   }
 
@@ -6694,6 +6768,7 @@ const updateAccountCustomExpireAt = () => {
 const formatExpireDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
+
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

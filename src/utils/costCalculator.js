@@ -312,6 +312,7 @@ class CostCalculator {
     // 如果 usage 包含详细的 cache_creation 对象或是 1M 模型，优先使用 pricingService
     if (this.isDetailedPricingRequest(usage, model)) {
       const result = pricingService.calculateCost(usage, model)
+
       if (this.isValidPricingServiceResult(result)) {
         return this.buildDetailedPricingResult(usage, model, result)
       }
@@ -345,6 +346,7 @@ class CostCalculator {
     // 如果有 ephemeral 拆分数据，构建 cache_creation 子对象
     const eph5m = aggregatedUsage.ephemeral5mTokens || aggregatedUsage.totalEphemeral5mTokens || 0
     const eph1h = aggregatedUsage.ephemeral1hTokens || aggregatedUsage.totalEphemeral1hTokens || 0
+
     if (eph5m > 0 || eph1h > 0) {
       usage.cache_creation = {
         ephemeral_5m_input_tokens: eph5m,
@@ -364,11 +366,14 @@ class CostCalculator {
     // 特殊处理：gpt-5-codex 回退到 gpt-5（如果没有专门定价）
     if (model === 'gpt-5-codex' && !MODEL_PRICING['gpt-5-codex']) {
       const gpt5Pricing = MODEL_PRICING['gpt-5']
+
       if (gpt5Pricing) {
         console.log(`Using gpt-5 pricing as fallback for ${model}`)
+
         return gpt5Pricing
       }
     }
+
     return MODEL_PRICING[model] || MODEL_PRICING['unknown']
   }
 

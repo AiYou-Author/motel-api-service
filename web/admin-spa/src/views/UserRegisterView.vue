@@ -221,6 +221,7 @@ const form = reactive({
 const redirect = computed(() => route.query.redirect || '/user/store')
 const loginRedirect = computed(() => {
   const r = route.query.redirect
+
   return r ? `/user/login?redirect=${encodeURIComponent(r)}` : '/user/login'
 })
 
@@ -229,10 +230,12 @@ const handleRegister = async () => {
 
   if (form.password !== form.confirmPassword) {
     error.value = '两次输入的密码不一致'
+
     return
   }
   if (form.password.length < 8) {
     error.value = '密码至少需要 8 位字符'
+
     return
   }
 
@@ -257,6 +260,7 @@ onMounted(() => {
   themeStore.initTheme()
   // 获取URL中的推广码
   const refCode = route.query.ref
+
   if (refCode && typeof refCode === 'string') {
     form.referralCode = refCode.toUpperCase()
   }

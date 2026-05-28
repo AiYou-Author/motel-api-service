@@ -42,6 +42,7 @@ function isWarmupRequest(body) {
   // 检查 system prompt
   if (body.system) {
     const systemText = extractSystemText(body.system)
+
     if (isTitleExtractionSystemPrompt(systemText)) {
       return true
     }
@@ -57,6 +58,7 @@ function isTitleOrWarmupText(text) {
   if (!text) {
     return false
   }
+
   return (
     text.includes('Please write a 5-10 word title for the following conversation:') ||
     text === 'Warmup'
@@ -70,6 +72,7 @@ function isTitleExtractionSystemPrompt(systemText) {
   if (!systemText) {
     return false
   }
+
   return systemText.includes(
     'nalyze if this message indicates a new conversation topic. If it does, extract a 2-3 word title'
   )
@@ -85,6 +88,7 @@ function extractSystemText(system) {
   if (Array.isArray(system)) {
     return system.map((s) => (typeof s === 'object' ? s.text || '' : String(s))).join('')
   }
+
   return ''
 }
 
@@ -181,10 +185,12 @@ function sendMockWarmupStream(res, model) {
   const sendNext = () => {
     if (index >= events.length) {
       res.end()
+
       return
     }
 
     const { event, data } = events[index]
+
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
     index++
 

@@ -206,6 +206,7 @@ const resetForm = () => {
 const loadConfig = async () => {
   if (!props.account?.id || !props.account?.platform) return
   const res = await getAccountBalanceScriptApi(props.account.id, props.account.platform)
+
   if (res?.success && res.data) {
     Object.assign(form, res.data)
   }
@@ -217,6 +218,7 @@ const saveConfig = async () => {
   const res = await updateAccountBalanceScriptApi(props.account.id, props.account.platform, {
     ...form
   })
+
   if (res?.success) {
     showToast('已保存', 'success')
     emit('saved')
@@ -233,6 +235,7 @@ const testScript = async () => {
   const res = await testAccountBalanceScriptApi(props.account.id, props.account.platform, {
     ...form
   })
+
   if (res?.success) {
     testResult.value = res.data
     showToast('测试完成', 'success')
@@ -248,6 +251,7 @@ const applyPreset = () => {
 
 const displayAmount = (val) => {
   if (val === null || val === undefined || Number.isNaN(Number(val))) return '—'
+
   return Number(val).toFixed(2)
 }
 

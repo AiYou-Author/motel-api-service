@@ -28,19 +28,23 @@ function parseTimeInput(input) {
 
   // 如果是 HH:MM 格式
   const timeMatch = input.match(/^(\d{1,2}):(\d{2})$/)
+
   if (timeMatch) {
     const hour = parseInt(timeMatch[1])
     const minute = parseInt(timeMatch[2])
 
     if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
       const time = new Date(now)
+
       time.setHours(hour, minute, 0, 0)
+
       return time
     }
   }
 
   // 如果是相对时间（如 "2小时前"）
   const relativeMatch = input.match(/^(\d+)(小时|分钟)前$/)
+
   if (relativeMatch) {
     const amount = parseInt(relativeMatch[1])
     const unit = relativeMatch[2]
@@ -57,6 +61,7 @@ function parseTimeInput(input) {
 
   // 如果是 ISO 格式或其他日期格式
   const parsedDate = new Date(input)
+
   if (!isNaN(parsedDate.getTime())) {
     return parsedDate
   }
@@ -67,6 +72,7 @@ function parseTimeInput(input) {
 // 辅助函数：显示可用的时间窗口选项
 function showTimeWindowOptions() {
   const now = new Date()
+
   console.log('\n⏰ 可用的5小时时间窗口:')
 
   for (let hour = 0; hour < 24; hour += 5) {
@@ -90,6 +96,7 @@ const commands = {
     console.log('🔍 开始调试会话窗口状态...\n')
 
     const accounts = await redis.getAllClaudeAccounts()
+
     console.log(`📊 找到 ${accounts.length} 个Claude账户\n`)
 
     const stats = {
@@ -240,8 +247,10 @@ const commands = {
     console.log('🧪 创建测试会话窗口...\n')
 
     const accounts = await redis.getAllClaudeAccounts()
+
     if (accounts.length === 0) {
       console.log('❌ 没有找到Claude账户')
+
       return
     }
 
@@ -279,8 +288,10 @@ const commands = {
 
     // 获取所有账户
     const accounts = await redis.getAllClaudeAccounts()
+
     if (accounts.length === 0) {
       console.log('❌ 没有找到Claude账户')
+
       return
     }
 
@@ -289,6 +300,7 @@ const commands = {
     accounts.forEach((account, index) => {
       const status = account.isActive === 'true' ? '✅' : '❌'
       const hasWindow = account.sessionWindowStart ? '🕐' : '➖'
+
       console.log(`   ${index + 1}. ${status} ${hasWindow} ${account.name} (${account.id})`)
     })
 
@@ -298,10 +310,12 @@ const commands = {
 
     if (selectedIndex < 0 || selectedIndex >= accounts.length) {
       console.log('❌ 无效的账户编号')
+
       return
     }
 
     const selectedAccount = accounts[selectedIndex]
+
     console.log(`\n🎯 已选择账户: ${selectedAccount.name}`)
 
     // 显示当前会话窗口状态
@@ -342,6 +356,7 @@ const commands = {
         break
       default:
         console.log('❌ 无效的选项')
+
         return
     }
   },
@@ -377,6 +392,7 @@ async function setPresetWindow(account) {
 
   if (windowIndex < 0 || windowIndex >= 5) {
     console.log('❌ 无效的窗口选择')
+
     return
   }
 
@@ -385,10 +401,12 @@ async function setPresetWindow(account) {
 
   // 创建窗口开始时间
   const windowStart = new Date(now)
+
   windowStart.setHours(startHour, 0, 0, 0)
 
   // 创建窗口结束时间
   const windowEnd = new Date(windowStart)
+
   windowEnd.setHours(windowEnd.getHours() + 5)
 
   // 如果选择的窗口已经过期，则设置为明天的同一时间段
@@ -430,6 +448,7 @@ async function setCustomLastUsed(account) {
 
   if (!lastUsedTime) {
     console.log('❌ 无效的时间格式')
+
     return
   }
 
@@ -451,6 +470,7 @@ async function setCustomLastUsed(account) {
   console.log(`   窗口: ${windowStart.toLocaleString()} - ${windowEnd.toLocaleString()}`)
 
   const now = new Date()
+
   console.log(`   状态: ${now >= windowStart && now < windowEnd ? '✅ 活跃' : '❌ 已过期'}`)
 }
 
@@ -463,18 +483,22 @@ async function setDirectWindow(account) {
 
   if (!startTime) {
     console.log('❌ 无效的开始时间格式')
+
     return
   }
 
   // 自动计算结束时间（开始时间+5小时）
   const endTime = new Date(startTime)
+
   endTime.setHours(endTime.getHours() + 5)
 
   // 如果跨天，询问是否确认
   if (endTime.getDate() !== startTime.getDate()) {
     const confirm = await askQuestion(`窗口将跨天到次日 ${endTime.getHours()}:00，确认吗? (y/N): `)
+
     if (confirm.toLowerCase() !== 'y' && confirm.toLowerCase() !== 'yes') {
       console.log('❌ 已取消设置')
+
       return
     }
   }
@@ -488,6 +512,7 @@ async function setDirectWindow(account) {
 
   // 询问是否更新最后使用时间
   const updateLastUsed = await askQuestion('是否将最后使用时间设置为窗口开始时间? (y/N): ')
+
   if (updateLastUsed.toLowerCase() === 'y' || updateLastUsed.toLowerCase() === 'yes') {
     account.lastUsedAt = startTime.toISOString()
   }
@@ -508,6 +533,7 @@ async function clearAccountWindow(account) {
 
   if (confirm.toLowerCase() !== 'y' && confirm.toLowerCase() !== 'yes') {
     console.log('❌ 已取消操作')
+
     return
   }
 
@@ -532,6 +558,7 @@ async function main() {
 
   if (command === 'help') {
     commands.help()
+
     return
   }
 

@@ -1137,6 +1137,7 @@ onMounted(async () => {
 
     // props.accounts.openai 只包含 openai 类型，openaiResponses 需要单独处理
     const openaiAccounts = []
+
     if (props.accounts.openai) {
       props.accounts.openai.forEach((account) => {
         openaiAccounts.push({
@@ -1292,6 +1293,7 @@ const refreshAccounts = async () => {
     // 处理分组数据
     if (groupsData.success) {
       const allGroups = groupsData.data || []
+
       localAccounts.value.claudeGroups = allGroups.filter((g) => g.platform === 'claude')
       localAccounts.value.geminiGroups = allGroups.filter((g) => g.platform === 'gemini')
       localAccounts.value.openaiGroups = allGroups.filter((g) => g.platform === 'openai')
@@ -1309,7 +1311,9 @@ const refreshAccounts = async () => {
 // 计算最小日期时间
 const minDateTime = computed(() => {
   const now = new Date()
+
   now.setMinutes(now.getMinutes() + 1)
+
   return now.toISOString().slice(0, 16)
 })
 
@@ -1317,6 +1321,7 @@ const minDateTime = computed(() => {
 const updateExpireAt = () => {
   if (!form.expireDuration) {
     form.expiresAt = null
+
     return
   }
 
@@ -1361,6 +1366,7 @@ const updateCustomExpireAt = () => {
 // 格式化过期日期
 const formatExpireDate = (dateString) => {
   const date = new Date(dateString)
+
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -1402,6 +1408,7 @@ const quickAddRestrictedModel = (model) => {
 const addTag = () => {
   if (newTag.value && newTag.value.trim()) {
     const tag = newTag.value.trim()
+
     if (!form.tags.includes(tag)) {
       form.tags.push(tag)
     }
@@ -1460,6 +1467,7 @@ const createApiKey = async () => {
 
   if (!form.name || !form.name.trim()) {
     errors.value.name = '请输入API Key名称'
+
     return
   }
 
@@ -1467,6 +1475,7 @@ const createApiKey = async () => {
   if (form.createType === 'batch') {
     if (!form.batchCount || form.batchCount < 2 || form.batchCount > 500) {
       showToast('批量创建数量必须在 2-500 之间', 'error')
+
       return
     }
   }
@@ -1480,6 +1489,7 @@ const createApiKey = async () => {
       '返回修改',
       'warning'
     )
+
     if (!confirmed) {
       return
     }
@@ -1491,6 +1501,7 @@ const createApiKey = async () => {
     // 准备提交的数据
     // 过滤掉空值的服务倍率
     const filteredServiceRates = {}
+
     if (enableServiceRates.value) {
       for (const [key, value] of Object.entries(form.serviceRates)) {
         if (value !== null && value !== undefined && value !== '') {

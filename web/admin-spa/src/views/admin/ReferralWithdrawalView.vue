@@ -9,8 +9,8 @@
     <div class="flex items-center space-x-4">
       <select
         v-model="filterStatus"
-        @change="loadWithdrawals"
         class="block w-40 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+        @change="loadWithdrawals"
       >
         <option value="">全部状态</option>
         <option value="pending">待审核</option>
@@ -70,14 +70,14 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div v-if="record.status === 'pending'" class="flex items-center space-x-2">
                   <button
-                    @click="openApproveDialog(record)"
                     class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                    @click="openApproveDialog(record)"
                   >
                     通过
                   </button>
                   <button
-                    @click="openRejectDialog(record)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                    @click="openRejectDialog(record)"
                   >
                     拒绝
                   </button>
@@ -127,16 +127,16 @@
           <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
             <button
               type="button"
-              @click="confirmApprove"
               :disabled="processing"
               class="inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm dark:bg-green-500 dark:hover:bg-green-600"
+              @click="confirmApprove"
             >
               {{ processing ? '处理中…' : '确认通过' }}
             </button>
             <button
               type="button"
-              @click="closeDialog"
               class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              @click="closeDialog"
             >
               取消
             </button>
@@ -176,16 +176,16 @@
           <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
             <button
               type="button"
-              @click="confirmReject"
               :disabled="processing || !rejectReason"
               class="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm dark:bg-red-500 dark:hover:bg-red-600"
+              @click="confirmReject"
             >
               {{ processing ? '处理中…' : '确认拒绝' }}
             </button>
             <button
               type="button"
-              @click="closeDialog"
               class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:mt-0 sm:w-auto sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              @click="closeDialog"
             >
               取消
             </button>
@@ -214,6 +214,7 @@ const loadWithdrawals = async () => {
   try {
     const params = filterStatus.value ? { status: filterStatus.value } : {}
     const { requests } = await getAdminWithdrawalsApi(params)
+
     withdrawals.value = requests
   } catch (error) {
     showToast('加载提现列表失败', 'error')
@@ -257,6 +258,7 @@ const confirmApprove = async () => {
 const confirmReject = async () => {
   if (!rejectReason.value.trim()) {
     showToast('请填写拒绝原因', 'error')
+
     return
   }
   processing.value = true

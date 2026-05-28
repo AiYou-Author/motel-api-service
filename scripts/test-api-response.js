@@ -17,6 +17,7 @@ async function testApiResponse() {
     // 1. 测试 Claude OAuth 账号服务
     console.log('📋 测试 Claude OAuth 账号服务...')
     const claudeAccounts = await claudeAccountService.getAllAccounts()
+
     console.log(`找到 ${claudeAccounts.length} 个 Claude OAuth 账号`)
 
     // 检查前3个账号的数据结构
@@ -41,6 +42,7 @@ async function testApiResponse() {
     // 2. 测试 Claude Console 账号服务
     console.log('\n\n📋 测试 Claude Console 账号服务...')
     const consoleAccounts = await claudeConsoleAccountService.getAllAccounts()
+
     console.log(`找到 ${consoleAccounts.length} 个 Claude Console 账号`)
 
     // 检查前3个账号的数据结构
@@ -65,6 +67,7 @@ async function testApiResponse() {
     // 3. 测试账号分组服务
     console.log('\n\n📋 测试账号分组服务...')
     const groups = await accountGroupService.getAllGroups()
+
     console.log(`找到 ${groups.length} 个账号分组`)
 
     // 显示分组信息

@@ -40,6 +40,7 @@ class AtomicUsageReporter {
   async reportOnce(requestId, usageData, apiKeyId, modelToRecord, accountId, requestMeta = null) {
     if (this.reportedUsage.has(requestId)) {
       logger.debug(`Usage already reported for request: ${requestId}`)
+
       return false
     }
 
@@ -56,11 +57,14 @@ class AtomicUsageReporter {
       accountId,
       requestMeta
     )
+
     this.pendingReports.set(requestId, reportPromise)
 
     try {
       const result = await reportPromise
+
       this.reportedUsage.add(requestId)
+
       return result
     } finally {
       this.pendingReports.delete(requestId)
@@ -105,6 +109,7 @@ class AtomicUsageReporter {
       // 同步更新 Azure 账户的 lastUsedAt 和累计使用量
       try {
         const totalTokens = inputTokens + outputTokens + cacheCreateTokens + cacheReadTokens
+
         if (accountId) {
           await azureOpenaiAccountService.updateAccountUsage(accountId, totalTokens)
         }
@@ -118,9 +123,11 @@ class AtomicUsageReporter {
           `input=${inputTokens}, output=${outputTokens}, ` +
           `cache_create=${cacheCreateTokens}, cache_read=${cacheReadTokens}`
       )
+
       return true
     } catch (error) {
       logger.error('Failed to report Azure OpenAI usage:', error)
+
       return false
     }
   }
@@ -173,6 +180,7 @@ router.post('/chat/completions', authenticateApiKey, async (req, res) => {
   try {
     // 获取绑定的 Azure OpenAI 账户
     let account = null
+
     if (req.apiKey?.azureOpenaiAccountId) {
       account = await azureOpenaiAccountService.getAccount(req.apiKey.azureOpenaiAccountId)
       if (account) {
@@ -180,6 +188,7 @@ router.post('/chat/completions', authenticateApiKey, async (req, res) => {
           account.id,
           'azure-openai'
         )
+
         if (isTempUnavailable) {
           logger.warn(`⏱️ Bound Azure OpenAI account temporarily unavailable, falling back to pool`)
           account = null
@@ -214,9 +223,11 @@ router.post('/chat/completions', authenticateApiKey, async (req, res) => {
         response.status === 403 ||
         response.status === 429 ||
         response.status >= 500)
+
     if (shouldPause) {
       const customTtl =
         response.status === 429 ? upstreamErrorHelper.parseRetryAfter(response.headers) : null
+
       await upstreamErrorHelper
         .markTempUnavailable(account.id, 'azure-openai', response.status, customTtl)
         .catch(() => {})
@@ -228,6 +239,7 @@ router.post('/chat/completions', authenticateApiKey, async (req, res) => {
         onEnd: async ({ usageData, actualModel }) => {
           if (usageData) {
             const modelToRecord = actualModel || req.body.model || 'unknown'
+
             await usageReporter.reportOnce(
               requestId,
               usageData,
@@ -255,6 +267,7 @@ router.post('/chat/completions', authenticateApiKey, async (req, res) => {
 
       if (usageData) {
         const modelToRecord = actualModel || req.body.model || 'unknown'
+
         await usageReporter.reportOnce(
           requestId,
           usageData,
@@ -304,6 +317,7 @@ router.post('/responses', authenticateApiKey, async (req, res) => {
   try {
     // 获取绑定的 Azure OpenAI 账户
     let account = null
+
     if (req.apiKey?.azureOpenaiAccountId) {
       account = await azureOpenaiAccountService.getAccount(req.apiKey.azureOpenaiAccountId)
       if (account) {
@@ -311,6 +325,7 @@ router.post('/responses', authenticateApiKey, async (req, res) => {
           account.id,
           'azure-openai'
         )
+
         if (isTempUnavailable) {
           logger.warn(`⏱️ Bound Azure OpenAI account temporarily unavailable, falling back to pool`)
           account = null
@@ -345,9 +360,11 @@ router.post('/responses', authenticateApiKey, async (req, res) => {
         response.status === 403 ||
         response.status === 429 ||
         response.status >= 500)
+
     if (shouldPause) {
       const customTtl =
         response.status === 429 ? upstreamErrorHelper.parseRetryAfter(response.headers) : null
+
       await upstreamErrorHelper
         .markTempUnavailable(account.id, 'azure-openai', response.status, customTtl)
         .catch(() => {})
@@ -359,6 +376,7 @@ router.post('/responses', authenticateApiKey, async (req, res) => {
         onEnd: async ({ usageData, actualModel }) => {
           if (usageData) {
             const modelToRecord = actualModel || req.body.model || 'unknown'
+
             await usageReporter.reportOnce(
               requestId,
               usageData,
@@ -386,6 +404,7 @@ router.post('/responses', authenticateApiKey, async (req, res) => {
 
       if (usageData) {
         const modelToRecord = actualModel || req.body.model || 'unknown'
+
         await usageReporter.reportOnce(
           requestId,
           usageData,
@@ -434,6 +453,7 @@ router.post('/embeddings', authenticateApiKey, async (req, res) => {
   try {
     // 获取绑定的 Azure OpenAI 账户
     let account = null
+
     if (req.apiKey?.azureOpenaiAccountId) {
       account = await azureOpenaiAccountService.getAccount(req.apiKey.azureOpenaiAccountId)
       if (account) {
@@ -441,6 +461,7 @@ router.post('/embeddings', authenticateApiKey, async (req, res) => {
           account.id,
           'azure-openai'
         )
+
         if (isTempUnavailable) {
           logger.warn(`⏱️ Bound Azure OpenAI account temporarily unavailable, falling back to pool`)
           account = null
@@ -475,9 +496,11 @@ router.post('/embeddings', authenticateApiKey, async (req, res) => {
         response.status === 403 ||
         response.status === 429 ||
         response.status >= 500)
+
     if (shouldPause) {
       const customTtl =
         response.status === 429 ? upstreamErrorHelper.parseRetryAfter(response.headers) : null
+
       await upstreamErrorHelper
         .markTempUnavailable(account.id, 'azure-openai', response.status, customTtl)
         .catch(() => {})
@@ -491,6 +514,7 @@ router.post('/embeddings', authenticateApiKey, async (req, res) => {
 
     if (usageData) {
       const modelToRecord = actualModel || req.body.model || 'unknown'
+
       await usageReporter.reportOnce(
         requestId,
         usageData,

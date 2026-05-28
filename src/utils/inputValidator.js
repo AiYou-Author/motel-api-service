@@ -23,6 +23,7 @@ class InputValidator {
 
     // 格式检查：只允许字母、数字、下划线、连字符
     const usernameRegex = /^[a-zA-Z0-9_-]+$/
+
     if (!usernameRegex.test(trimmed)) {
       throw new Error('用户名只能包含字母、数字、下划线和连字符')
     }
@@ -51,6 +52,7 @@ class InputValidator {
     // 基本格式验证
     const emailRegex =
       /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+
     if (!emailRegex.test(trimmed)) {
       throw new Error('电子邮件格式无效')
     }
@@ -147,6 +149,7 @@ class InputValidator {
 
       // 检查是否是内网IP
       const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/
+
       if (ipRegex.test(hostname)) {
         const parts = hostname.split('.').map(Number)
 
@@ -190,6 +193,7 @@ class InputValidator {
     // 禁止特殊控制字符（排除常见的换行和制表符）
     // eslint-disable-next-line no-control-regex
     const controlCharRegex = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/
+
     if (controlCharRegex.test(trimmed)) {
       throw new Error('显示名称不能包含控制字符')
     }
@@ -237,6 +241,7 @@ class InputValidator {
     // 禁止特殊控制字符（排除常见的换行和制表符）
     // eslint-disable-next-line no-control-regex
     const controlCharRegex = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/
+
     if (controlCharRegex.test(trimmed)) {
       throw new Error('API Key名称不能包含控制字符')
     }
@@ -280,6 +285,7 @@ class InputValidator {
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
     if (!uuidRegex.test(uuid)) {
       throw new Error('UUID格式无效')
     }

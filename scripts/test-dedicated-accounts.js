@@ -13,6 +13,7 @@ async function testDedicatedAccounts() {
 
     // 获取所有 Claude 账号
     const claudeKeys = await redis.client.keys('claude:account:*')
+
     console.log(`找到 ${claudeKeys.length} 个 Claude 账号\n`)
 
     const dedicatedAccounts = []
@@ -69,12 +70,14 @@ async function testDedicatedAccounts() {
 
     // 检查分组
     const groupKeys = await redis.client.keys('account_group:*')
+
     console.log(`\n找到 ${groupKeys.length} 个账号分组`)
 
     if (groupKeys.length > 0) {
       console.log('📋 分组列表:')
       for (const key of groupKeys) {
         const group = await redis.client.hgetall(key)
+
         console.log(
           `  - ${group.name} (平台: ${group.platform}, 成员数: ${group.memberCount || 0})`
         )
@@ -83,6 +86,7 @@ async function testDedicatedAccounts() {
 
     // 检查 Claude Console 账号
     const consoleKeys = await redis.client.keys('claude_console_account:*')
+
     console.log(`\n找到 ${consoleKeys.length} 个 Claude Console 账号`)
 
     const dedicatedConsoleAccounts = []

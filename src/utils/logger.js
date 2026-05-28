@@ -41,6 +41,7 @@ const safeStringify = (obj, maxDepth = Infinity) => {
       // 过滤掉常见的循环引用对象
       if (value.constructor) {
         const constructorName = value.constructor.name
+
         if (
           ['Socket', 'TLSSocket', 'HTTPParser', 'IncomingMessage', 'ServerResponse'].includes(
             constructorName
@@ -55,12 +56,15 @@ const safeStringify = (obj, maxDepth = Infinity) => {
         return value.map((item, index) => replacer(index, item, depth + 1))
       } else {
         const result = {}
+
         for (const [k, v] of Object.entries(value)) {
           // 确保键名也是安全的
           // eslint-disable-next-line no-control-regex
           const safeKey = typeof k === 'string' ? k.replace(/[\u0000-\u001F\u007F]/g, '') : k
+
           result[safeKey] = replacer(safeKey, v, depth + 1)
         }
+
         return result
       }
     }
@@ -71,35 +75,42 @@ const safeStringify = (obj, maxDepth = Infinity) => {
   try {
     const processed = replacer('', obj)
     const result = JSON.stringify(processed)
+
     // 体积保护: 超过 50KB 时对大字段做截断，保留顶层结构
     if (result.length > 50000 && processed && typeof processed === 'object') {
       const truncated = { ...processed, _truncated: true, _totalChars: result.length }
+
       // 第一轮: 截断单个大字段
       for (const [k, v] of Object.entries(truncated)) {
         if (k.startsWith('_')) {
           continue
         }
         const fieldStr = typeof v === 'string' ? v : JSON.stringify(v)
+
         if (fieldStr && fieldStr.length > 10000) {
           truncated[k] = `${fieldStr.substring(0, 10000)}...[truncated]`
         }
       }
       // 第二轮: 如果总长度仍超 50KB，逐字段缩减到 2KB
       let secondResult = JSON.stringify(truncated)
+
       if (secondResult.length > 50000) {
         for (const [k, v] of Object.entries(truncated)) {
           if (k.startsWith('_')) {
             continue
           }
           const fieldStr = typeof v === 'string' ? v : JSON.stringify(v)
+
           if (fieldStr && fieldStr.length > 2000) {
             truncated[k] = `${fieldStr.substring(0, 2000)}...[truncated]`
           }
         }
         secondResult = JSON.stringify(truncated)
       }
+
       return secondResult
     }
+
     return result
   } catch (error) {
     // 如果JSON.stringify仍然失败，使用更保守的方法
@@ -136,11 +147,13 @@ const createConsoleFormat = () =>
 
       if (entries.length > 0) {
         const indent = ' '.repeat(shortTime.length + 1)
+
         entries.forEach(([key, value], i) => {
           const isLast = i === entries.length - 1
           const branch = isLast ? '└─' : '├─'
           const displayValue =
             value !== null && typeof value === 'object' ? safeStringify(value) : String(value)
+
           logMessage += `\n${indent}${branch} ${key}: ${displayValue}`
         })
       }
@@ -148,6 +161,7 @@ const createConsoleFormat = () =>
       if (stack) {
         logMessage += `\n${stack}`
       }
+
       return logMessage
     })
   )
@@ -159,6 +173,7 @@ const createFileFormat = () =>
     winston.format.errors({ stack: true }),
     winston.format.printf(({ level, message, timestamp, stack, ...rest }) => {
       const entry = { ts: timestamp, lvl: level, msg: message }
+
       // 合并所有 metadata
       for (const [k, v] of Object.entries(rest)) {
         if (k !== 'level' && k !== 'message' && k !== 'timestamp' && k !== 'stack') {
@@ -168,6 +183,7 @@ const createFileFormat = () =>
       if (stack) {
         entry.stack = stack
       }
+
       return safeStringify(entry)
     })
   )
@@ -234,6 +250,7 @@ const authDetailLogger = winston.createLogger({
     winston.format.printf(({ level, message, timestamp, data }) => {
       // 使用更深的深度和格式化的JSON输出
       const jsonData = data ? JSON.stringify(data, null, 2) : '{}'
+
       return `[${timestamp}] ${level.toUpperCase()}: ${message}\n${jsonData}\n${'='.repeat(80)}`
     })
   ),
@@ -356,10 +373,13 @@ logger.audit = (message, metadata = {}) => {
 // 🔧 性能监控方法
 logger.timer = (label) => {
   const start = Date.now()
+
   return {
     end: (message = '', metadata = {}) => {
       const duration = Date.now() - start
+
       logger.performance(`${label} ${message}`, { duration, ...metadata })
+
       return duration
     }
   }
@@ -379,11 +399,13 @@ const originalInfo = logger.info
 
 logger.error = function (message, ...args) {
   logger.stats.errors++
+
   return originalError.call(this, message, ...args)
 }
 
 logger.warn = function (message, ...args) {
   logger.stats.warnings++
+
   return originalWarn.call(this, message, ...args)
 }
 
@@ -392,6 +414,7 @@ logger.info = function (message, ...args) {
   if (args.length > 0 && typeof args[0] === 'object' && args[0].type === 'request') {
     logger.stats.requests++
   }
+
   return originalInfo.call(this, message, ...args)
 }
 
@@ -409,7 +432,9 @@ logger.resetStats = () => {
 logger.healthCheck = () => {
   try {
     const testMessage = 'Logger health check'
+
     logger.debug(testMessage)
+
     return { healthy: true, timestamp: new Date().toISOString() }
   } catch (error) {
     return { healthy: false, error: error.message, timestamp: new Date().toISOString() }

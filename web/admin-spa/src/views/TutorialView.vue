@@ -88,12 +88,14 @@ const cliTools = [
 // 当前工具标题
 const currentToolTitle = computed(() => {
   const tool = cliTools.find((t) => t.key === activeCliTool.value)
+
   return tool ? tool.name : 'CLI 工具'
 })
 
 // 当前教程组件
 const currentTutorialComponent = computed(() => {
   const tool = cliTools.find((t) => t.key === activeCliTool.value)
+
   return tool ? tool.component : null
 })
 </script>

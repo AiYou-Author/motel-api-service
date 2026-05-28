@@ -833,6 +833,7 @@ const geminiOauthProvider = computed(() => {
   if (props.platform === 'gemini-antigravity') {
     return 'antigravity'
   }
+
   return 'gemini-cli'
 })
 const sessionId = ref('') // 保存sessionId用于后续交换
@@ -863,6 +864,7 @@ const canExchange = computed(() => {
   if (props.platform === 'droid') {
     return !!sessionId.value
   }
+
   return authUrl.value && authCode.value.trim()
 })
 
@@ -872,6 +874,7 @@ const formattedCountdown = computed(() => {
   }
   const minutes = Math.floor(remainingSeconds.value / 60)
   const seconds = remainingSeconds.value % 60
+
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 })
 
@@ -879,6 +882,7 @@ const startCountdown = (seconds) => {
   stopCountdown()
   if (!seconds || seconds <= 0) {
     remainingSeconds.value = 0
+
     return
   }
 
@@ -991,6 +995,7 @@ const generateAuthUrl = async () => {
 
     if (props.platform === 'claude') {
       const result = await accountsStore.generateClaudeAuthUrl(proxyConfig)
+
       authUrl.value = result.authUrl
       sessionId.value = result.sessionId
     } else if (props.platform === 'gemini' || props.platform === 'gemini-antigravity') {
@@ -998,14 +1003,17 @@ const generateAuthUrl = async () => {
         ...proxyConfig,
         oauthProvider: geminiOauthProvider.value
       })
+
       authUrl.value = result.authUrl
       sessionId.value = result.sessionId
     } else if (props.platform === 'openai') {
       const result = await accountsStore.generateOpenAIAuthUrl(proxyConfig)
+
       authUrl.value = result.authUrl
       sessionId.value = result.sessionId
     } else if (props.platform === 'droid') {
       const result = await accountsStore.generateDroidAuthUrl(proxyConfig)
+
       authUrl.value = result.verificationUriComplete || result.verificationUri
       verificationUri.value = result.verificationUri
       verificationUriComplete.value = result.verificationUriComplete || result.verificationUri
@@ -1039,6 +1047,7 @@ const regenerateAuthUrl = () => {
 const copyAuthUrl = async () => {
   if (!authUrl.value) {
     showToast('请先生成授权链接', 'warning')
+
     return
   }
   try {
@@ -1051,6 +1060,7 @@ const copyAuthUrl = async () => {
   } catch (error) {
     // 降级方案
     const input = document.createElement('input')
+
     input.value = authUrl.value
     document.body.appendChild(input)
     input.select()
@@ -1067,6 +1077,7 @@ const copyAuthUrl = async () => {
 const copyUserCode = async () => {
   if (!userCode.value) {
     showToast('请先生成授权验证码', 'warning')
+
     return
   }
   try {
@@ -1074,6 +1085,7 @@ const copyUserCode = async () => {
     showToast('验证码已复制', 'success')
   } catch (error) {
     const input = document.createElement('input')
+
     input.value = userCode.value
     document.body.appendChild(input)
     input.select()
@@ -1136,6 +1148,7 @@ const exchangeCode = async () => {
     }
 
     let tokenInfo
+
     if (props.platform === 'claude') {
       tokenInfo = await accountsStore.exchangeClaudeCode(data)
     } else if (props.platform === 'gemini' || props.platform === 'gemini-antigravity') {
@@ -1148,13 +1161,16 @@ const exchangeCode = async () => {
       tokenInfo = await accountsStore.exchangeOpenAICode(data)
     } else if (props.platform === 'droid') {
       const response = await accountsStore.exchangeDroidCode(data)
+
       if (!response.success) {
         if (response.pending) {
           const message = response.message || '授权尚未完成，请在浏览器确认后稍候再次尝试。'
+
           showToast(message, 'info')
           if (typeof response.expiresIn === 'number' && response.expiresIn >= 0) {
             startCountdown(response.expiresIn)
           }
+
           return
         }
         throw new Error(response.message || '授权失败，请重试')
@@ -1185,6 +1201,7 @@ const handleCookieAuth = async () => {
 
   if (sessionKeys.length === 0) {
     cookieAuthError.value = '请输入至少一个 sessionKey'
+
     return
   }
 
@@ -1213,6 +1230,7 @@ const handleCookieAuth = async () => {
         sessionKey: sessionKeys[i],
         proxy: proxyConfig
       })
+
       results.push(result)
     } catch (error) {
       errors.push({
