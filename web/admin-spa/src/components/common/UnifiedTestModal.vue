@@ -388,7 +388,7 @@ const apikeyServiceConfigs = {
   openai: {
     name: 'OpenAI (Codex)',
     endpoint: '/api-key/test-openai',
-    defaultModel: 'gpt-5',
+    defaultModel: 'gpt-5.3-codex',
     displayEndpoint: '/openai/responses'
   }
 }

@@ -96,11 +96,18 @@ function isStandardResponsesRoute(req) {
 }
 
 function getCodexCompatibleModel(requestedModel = null) {
-  const isCodexModel =
-    typeof requestedModel === 'string' && requestedModel.toLowerCase().includes('codex')
+  if (typeof requestedModel !== 'string' || !requestedModel) {
+    return requestedModel
+  }
 
-  if (requestedModel && requestedModel.startsWith('gpt-5-') && !isCodexModel) {
-    return 'gpt-5'
+  const model = requestedModel.toLowerCase()
+
+  if (model === 'gpt-5.3-codex') {
+    return requestedModel
+  }
+
+  if (model === 'gpt-5' || model.startsWith('gpt-5-') || model.includes('codex')) {
+    return 'gpt-5.3-codex'
   }
 
   return requestedModel
@@ -111,7 +118,9 @@ function normalizeGpt5ModelForCodex(body = {}) {
   const compatibleModel = getCodexCompatibleModel(requestedModel)
 
   if (compatibleModel !== requestedModel) {
-    logger.info(`📝 Model ${requestedModel} detected, normalizing to gpt-5 for Codex API`)
+    logger.info(
+      `📝 Model ${requestedModel} detected, normalizing to ${compatibleModel} for Codex API`
+    )
     body.model = compatibleModel
   }
 
