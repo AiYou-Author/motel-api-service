@@ -68,9 +68,8 @@ jobs:
             [ -z "$file" ] && continue
             
             # 检查是否是需要忽略的文件
-            if [[ ! "$file" =~ \.(md|txt)$ ]] && 
-               [[ ! "$file" =~ ^docs/ ]] && 
-               [[ ! "$file" =~ ^\.github/ ]] &&
+            if [[ ! "$file" =~ \.(md|txt)$ ]] &&
+               [[ ! "$file" =~ ^docs/ ]] &&
                [[ "$file" != "VERSION" ]] &&
                [[ "$file" != ".gitignore" ]] &&
                [[ "$file" != "LICENSE" ]]; then
