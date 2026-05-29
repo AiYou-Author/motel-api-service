@@ -201,9 +201,9 @@ jobs:
         
         # 添加 README
         cat > README.md << EOF
-        # Claude Relay Service - Web Frontend Build
-        
-        This branch contains the pre-built frontend assets for Claude Relay Service.
+        # Motel API Service - Web Frontend Build
+
+        This branch contains the pre-built frontend assets for Motel API Service.
         
         **DO NOT EDIT FILES IN THIS BRANCH DIRECTLY**
         
@@ -269,16 +269,9 @@ jobs:
       id: image_names
       if: steps.check.outputs.needs_bump == 'true'
       run: |
-        DOCKER_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
-        if [ -z "$DOCKER_USERNAME" ]; then
-          DOCKER_USERNAME="weishaw"
-        fi
-
-        DOCKER_IMAGE=$(echo "${DOCKER_USERNAME}/claude-relay-service" | tr '[:upper:]' '[:lower:]')
-        GHCR_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/claude-relay-service" | tr '[:upper:]' '[:lower:]')
+        GHCR_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/motel-api-service" | tr '[:upper:]' '[:lower:]')
 
         {
-          echo "docker_image=${DOCKER_IMAGE}"
           echo "ghcr_image=${GHCR_IMAGE}"
         } >> "$GITHUB_OUTPUT"
 
@@ -290,10 +283,8 @@ jobs:
         name: Release ${{ steps.next_version.outputs.new_version }}
         body: |
           ## 🐳 Docker 镜像
-          
+
           ```bash
-          docker pull ${{ steps.image_names.outputs.docker_image }}:${{ steps.next_version.outputs.new_tag }}
-          docker pull ${{ steps.image_names.outputs.docker_image }}:latest
           docker pull ${{ steps.image_names.outputs.ghcr_image }}:${{ steps.next_version.outputs.new_tag }}
           docker pull ${{ steps.image_names.outputs.ghcr_image }}:latest
           ```
@@ -418,14 +409,6 @@ jobs:
       if: steps.check.outputs.needs_bump == 'true'
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Docker Hub
-      if: steps.check.outputs.needs_bump == 'true'
-      uses: docker/login-action@v3
-      with:
-        registry: docker.io
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-
     - name: Log in to GitHub Container Registry
       if: steps.check.outputs.needs_bump == 'true'
       uses: docker/login-action@v3
@@ -442,9 +425,6 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: |
-          ${{ steps.image_names.outputs.docker_image }}:${{ steps.next_version.outputs.new_tag }}
-          ${{ steps.image_names.outputs.docker_image }}:latest
-          ${{ steps.image_names.outputs.docker_image }}:${{ steps.next_version.outputs.new_version }}
           ${{ steps.image_names.outputs.ghcr_image }}:${{ steps.next_version.outputs.new_tag }}
           ${{ steps.image_names.outputs.ghcr_image }}:latest
           ${{ steps.image_names.outputs.ghcr_image }}:${{ steps.next_version.outputs.new_version }}
@@ -460,7 +440,6 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        DOCKER_IMAGE: ${{ steps.image_names.outputs.docker_image }}
         GHCR_IMAGE: ${{ steps.image_names.outputs.ghcr_image }}
       continue-on-error: true
       run: |
@@ -476,23 +455,20 @@ jobs:
         fi
         
         # 构建消息内容
-        MESSAGE="🚀 *Claude Relay Service 新版本发布！*"$'\n'$'\n'
+        MESSAGE="🚀 *Motel API Service 新版本发布！*"$'\n'$'\n'
         MESSAGE+="📦 版本号: \`${VERSION}\`"$'\n'$'\n'
         MESSAGE+="📝 *更新内容:*"$'\n'
         MESSAGE+="${CHANGELOG_TRUNCATED}"$'\n'$'\n'
         MESSAGE+="🐳 *Docker 部署:*"$'\n'
         MESSAGE+="\`\`\`bash"$'\n'
-        MESSAGE+="docker pull ${DOCKER_IMAGE}:${TAG}"$'\n'
-        MESSAGE+="docker pull ${DOCKER_IMAGE}:latest"$'\n'
         MESSAGE+="docker pull ${GHCR_IMAGE}:${TAG}"$'\n'
         MESSAGE+="docker pull ${GHCR_IMAGE}:latest"$'\n'
         MESSAGE+="\`\`\`"$'\n'$'\n'
         MESSAGE+="🔗 *相关链接:*"$'\n'
         MESSAGE+="• [GitHub Release](https://github.com/${REPO}/releases/tag/${TAG})"$'\n'
         MESSAGE+="• [完整更新日志](https://github.com/${REPO}/releases)"$'\n'
-        MESSAGE+="• [Docker Hub](https://hub.docker.com/r/${DOCKER_IMAGE%/*}/claude-relay-service)"$'\n'
         MESSAGE+="• [GHCR](https://ghcr.io/${GHCR_IMAGE#ghcr.io/})"$'\n'$'\n'
-        MESSAGE+="#ClaudeRelay #Update #v${VERSION//./_}"
+        MESSAGE+="#MotelAPI #Update #v${VERSION//./_}"
         
         # 使用 jq 构建 JSON 并发送
         jq -n \

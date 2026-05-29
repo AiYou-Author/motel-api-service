@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Claude Relay Service 管理脚本
+# Motel API Service 管理脚本
 # 用于安装、更新、卸载、启动、停止、重启服务
 # 可以使用 crs 快捷命令调用
 
@@ -14,7 +14,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # 默认配置
-DEFAULT_INSTALL_DIR="$HOME/claude-relay-service"
+DEFAULT_INSTALL_DIR="$HOME/motel-api-service"
 DEFAULT_REDIS_HOST="localhost"
 DEFAULT_REDIS_PORT="6379"
 DEFAULT_REDIS_PASSWORD=""
@@ -378,7 +378,7 @@ persist_install_path() {
 
 # 安装服务
 install_service() {
-    print_info "开始安装 Claude Relay Service..."
+    print_info "开始安装 Motel API Service..."
     
     # 询问安装目录
     echo -n "安装目录 (默认: $DEFAULT_INSTALL_DIR): "
@@ -422,7 +422,7 @@ install_service() {
         rm -rf "$APP_DIR"
     fi
     
-    if ! git clone https://github.com/Wei-Shaw/claude-relay-service.git "$APP_DIR"; then
+    if ! git clone https://github.com/AiYou-Author/motel-api-service.git "$APP_DIR"; then
         print_error "克隆项目失败"
         return 1
     fi
@@ -488,7 +488,7 @@ EOF
         
         # 使用 sparse-checkout 来只获取需要的文件
         git clone --depth 1 --branch web-dist --single-branch \
-            https://github.com/Wei-Shaw/claude-relay-service.git \
+            https://github.com/AiYou-Author/motel-api-service.git \
             "$TEMP_CLONE_DIR" 2>/dev/null || {
             # 如果 HTTPS 失败，尝试使用当前仓库的 remote URL
             REPO_URL=$(git config --get remote.origin.url)
@@ -569,7 +569,7 @@ update_service() {
         return 1
     fi
     
-    print_info "更新 Claude Relay Service..."
+    print_info "更新 Motel API Service..."
     
     cd "$APP_DIR"
     
@@ -691,7 +691,7 @@ update_service() {
             print_info "尝试下载前端文件 (第 $attempt 次)..."
             
             if git clone --depth 1 --branch web-dist --single-branch \
-                https://github.com/Wei-Shaw/claude-relay-service.git \
+                https://github.com/AiYou-Author/motel-api-service.git \
                 "$TEMP_CLONE_DIR" 2>/dev/null; then
                 clone_success=true
                 break
@@ -806,7 +806,7 @@ uninstall_service() {
         return 1
     fi
     
-    print_warning "即将卸载 Claude Relay Service"
+    print_warning "即将卸载 Motel API Service"
     echo -n "确定要卸载吗？(y/N): "
     read -n 1 confirm
     echo
@@ -824,7 +824,7 @@ uninstall_service() {
     echo
     
     if [[ "$backup" =~ ^[Yy]$ ]]; then
-        local backup_dir="$HOME/claude-relay-backup-$(date +%Y%m%d%H%M%S)"
+        local backup_dir="$HOME/motel-api-backup-$(date +%Y%m%d%H%M%S)"
         mkdir -p "$backup_dir"
         
         # Redis使用系统默认位置，不需要备份
@@ -870,11 +870,11 @@ start_service() {
     if command_exists pm2 && [ "$1" != "--no-pm2" ]; then
         print_info "使用 pm2 启动服务..."
         # 直接使用pm2启动，避免循环调用
-        pm2 start "$APP_DIR/src/app.js" --name "claude-relay" --log "$APP_DIR/logs/pm2.log" 2>/dev/null
+        pm2 start "$APP_DIR/src/app.js" --name "motel-api" --log "$APP_DIR/logs/pm2.log" 2>/dev/null
         sleep 2
         
         # 检查是否启动成功
-        if pm2 list 2>/dev/null | grep -q "claude-relay"; then
+        if pm2 list 2>/dev/null | grep -q "motel-api"; then
             print_success "服务已通过 pm2 启动"
             pm2 save 2>/dev/null || true
         else
@@ -937,8 +937,8 @@ stop_service() {
     # 尝试使用pm2停止
     if command_exists pm2 && [ -n "$APP_DIR" ] && [ -d "$APP_DIR" ]; then
         cd "$APP_DIR" 2>/dev/null
-        pm2 stop claude-relay 2>/dev/null || true
-        pm2 delete claude-relay 2>/dev/null || true
+        pm2 stop motel-api 2>/dev/null || true
+        pm2 delete motel-api 2>/dev/null || true
     fi
     
     # 使用PID文件停止
@@ -1228,7 +1228,7 @@ switch_branch() {
             
             # 下载前端文件
             if git clone --depth 1 --branch "$web_branch" --single-branch \
-                https://github.com/Wei-Shaw/claude-relay-service.git \
+                https://github.com/AiYou-Author/motel-api-service.git \
                 "$TEMP_CLONE_DIR" 2>/dev/null; then
                 
                 # 复制文件到目标目录
@@ -1289,7 +1289,7 @@ switch_branch() {
 
 # 显示状态
 show_status() {
-    echo -e "\n${BLUE}=== Claude Relay Service 状态 ===${NC}"
+    echo -e "\n${BLUE}=== Motel API Service 状态 ===${NC}"
     
     # 获取实际端口
     local actual_port="$APP_PORT"
@@ -1361,7 +1361,7 @@ show_status() {
 
 # 显示帮助
 show_help() {
-    echo "Claude Relay Service 管理脚本"
+    echo "Motel API Service 管理脚本"
     echo ""
     echo "用法: $0 [命令]"
     echo ""
@@ -1384,7 +1384,7 @@ show_help() {
 show_menu() {
     clear
     echo -e "${BOLD}======================================${NC}"
-    echo -e "${BOLD}  Claude Relay Service (CRS) 管理工具  ${NC}"
+    echo -e "${BOLD}  Motel API Service (MRS) 管理工具  ${NC}"
     echo -e "${BOLD}======================================${NC}"
     echo ""
     
