@@ -223,8 +223,8 @@ jobs:
           .env
           EOF
 
-          # 只添加必要的文件，排除 node_modules
-          git add --all -- ':!node_modules'
+          # 只添加必要的文件
+          git add .
           git commit -m "chore: update frontend build for v${{ steps.next_version.outputs.new_version }} [skip ci]"
           git push origin web-dist --force
 
