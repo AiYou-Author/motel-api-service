@@ -1,4 +1,4 @@
-# Claude Relay Service
+# Motel API Service
 
 > [!CAUTION]
 > **安全更新通知**：v1.1.248 及以下版本存在严重的管理员认证绕过漏洞，攻击者可未授权访问管理面板。
@@ -11,8 +11,8 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Redis](https://img.shields.io/badge/Redis-6+-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![Docker Build](https://github.com/Wei-Shaw/claude-relay-service/actions/workflows/auto-release-pipeline.yml/badge.svg)](https://github.com/Wei-Shaw/claude-relay-service/actions/workflows/auto-release-pipeline.yml)
-[![Docker Pulls](https://img.shields.io/docker/pulls/weishaw/claude-relay-service)](https://hub.docker.com/r/weishaw/claude-relay-service)
+[![Docker Build](https://github.com/AiYou-Author/motel-api-service/actions/workflows/auto-release-pipeline.yml/badge.svg)](https://github.com/AiYou-Author/motel-api-service/actions/workflows/auto-release-pipeline.yml)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io/aiyou--author/motel--api--service-blue)](https://github.com/AiYou-Author/motel-api-service/pkgs/container/motel-api-service)
 
 **🔐 自行搭建Claude API中转服务，支持多账户管理**
 
@@ -230,8 +230,8 @@ sudo systemctl start redis
 
 ```bash
 # 下载项目
-git clone https://github.com/Wei-Shaw//claude-relay-service.git
-cd claude-relay-service
+git clone https://github.com/AiYou-Author/motel-api-service.git
+cd motel-api-service
 
 # 安装依赖
 npm install
@@ -303,62 +303,101 @@ npm run service:status
 
 ## 🐳 Docker 部署
 
-### Docker compose
+镜像由 CI/CD 自动构建，推送到 GitHub Container Registry (GHCR)。
 
-#### 第一步：下载构建docker-compose.yml文件的脚本并执行
-```bash
-curl -fsSL https://pincc.ai/crs-compose.sh -o crs-compose.sh && chmod +x crs-compose.sh && ./crs-compose.sh
+### 镜像地址
+
+```
+ghcr.io/aiyou-author/motel-api-service:latest
 ```
 
-#### 第二步：启动
+### 第一步：准备文件
+
+在服务器上创建项目目录，放入 `docker-compose.yml`：
+
 ```bash
+mkdir -p /opt/motel-api && cd /opt/motel-api
+
+# 从仓库下载 docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/AiYou-Author/motel-api-service/main/docker-compose.yml -o docker-compose.yml
+```
+
+### 第二步：配置 .env
+
+```bash
+# 生成随机密钥
+JWT_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 16)
+
+# 创建 .env
+cat > .env << EOF
+JWT_SECRET=${JWT_SECRET}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-secure-password
+LOG_LEVEL=info
+EOF
+```
+
+### 第三步：拉取镜像并启动
+
+**如果 GHCR 包是 Public（无需登录）：**
+
+```bash
+docker-compose pull
 docker-compose up -d
 ```
 
-### Docker Compose 配置
+**如果 GHCR 包是 Private（需先登录）：**
 
-docker-compose.yml 已包含：
-
-- ✅ 自动初始化管理员账号
-- ✅ 数据持久化（logs和data目录自动挂载）
-- ✅ Redis数据库
-- ✅ 健康检查
-- ✅ 自动重启
+```bash
+echo "<GitHub Token>" | docker login ghcr.io -u AiYou-Author --password-stdin
+docker-compose pull
+docker-compose up -d
+```
 
 ### 环境变量说明
 
 #### 必填项
 
-- `JWT_SECRET`: JWT密钥，至少32个字符
-- `ENCRYPTION_KEY`: 加密密钥，必须是32个字符
+| 变量 | 说明 | 生成方式 |
+|------|------|---------|
+| `JWT_SECRET` | JWT 密钥，至少 32 字符 | `openssl rand -hex 32` |
+| `ENCRYPTION_KEY` | AES 加密密钥，恰好 32 字符 | `openssl rand -hex 16` |
 
 #### 可选项
 
-- `ADMIN_USERNAME`: 管理员用户名（不设置则自动生成）
-- `ADMIN_PASSWORD`: 管理员密码（不设置则自动生成）
-- `LOG_LEVEL`: 日志级别（默认：info）
-- 更多配置项请参考 `.env.example` 文件
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `ADMIN_USERNAME` | - | 不设则自动生成，存于 `data/init.json` |
+| `ADMIN_PASSWORD` | - | 不设则自动生成，存于 `data/init.json` |
+| `PORT` | 3000 | 服务端口 |
+| `REDIS_PASSWORD` | - | Redis 密码 |
+| `LOG_LEVEL` | info | 日志级别 |
+| `DEBUG` | false | 调试模式 |
 
-### 管理员凭据获取方式
+更多配置项见 `docker-compose.yml` 中的 `environment` 部分。
 
-1. **查看容器日志**
+### 更新到最新版本
 
-   ```bash
-   docker logs claude-relay-service
-   ```
+```bash
+cd /opt/motel-api
+docker-compose pull          # 拉取最新镜像
+docker-compose up -d         # 重建容器
+docker image prune -f        # 清理旧镜像
+```
 
-2. **查看挂载的文件**
+### 管理员凭据获取
 
-   ```bash
-   cat ./data/init.json
-   ```
+```bash
+# 如果未预设 ADMIN_USERNAME/ADMIN_PASSWORD，查看自动生成的凭据
+cat ./data/init.json
 
-3. **使用环境变量预设**
-   ```bash
-   # 在 .env 文件中设置
-   ADMIN_USERNAME=cr_admin_custom
-   ADMIN_PASSWORD=your-secure-password
-   ```
+# 或查看容器日志
+docker logs motel-api
+```
+
+管理界面：`http://<服务器IP>:3000/admin-next/`
 
 ---
 
@@ -702,7 +741,7 @@ npm run service:stop
 
 ```bash
 # 1. 进入项目目录
-cd claude-relay-service
+cd motel-api-service
 
 # 2. 拉取最新代码
 git pull origin main
