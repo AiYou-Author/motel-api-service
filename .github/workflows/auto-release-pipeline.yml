@@ -162,12 +162,15 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: web/admin-spa/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            web/admin-spa/package-lock.json
 
       - name: Build Frontend
         if: steps.check.outputs.needs_bump == 'true'
         run: |
           echo "Building frontend for version ${{ steps.next_version.outputs.new_version }}..."
+          npm ci
           cd web/admin-spa
           npm ci
           npm run build
