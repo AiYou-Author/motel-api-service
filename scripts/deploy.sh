@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Relay Service 部署脚本
+# Motel API Service 部署脚本
 # 支持平滑升级，数据自动备份
 
 set -e
@@ -22,7 +22,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 mkdir -p "$BACKUP_DIR"
 
 log_info "========================================"
-log_info "Claude Relay Service 部署脚本"
+log_info "Motel API Service 部署脚本"
 log_info "时间: $(date '+%Y-%m-%d %H:%M:%S')"
 log_info "========================================"
 
@@ -55,13 +55,13 @@ ls -t "$BACKUP_DIR"/backup_*.tar.gz 2>/dev/null | tail -n +11 | xargs rm -f 2>/d
 # 2. 停止服务
 log_info "2/6 停止服务..."
 cd "$APP_DIR"
-if [ -f "$APP_DIR/claude-relay-service.pid" ]; then
+if [ -f "$APP_DIR/motel-api-service.pid" ]; then
     npm run service:stop 2>/dev/null || {
-        PID=$(cat "$APP_DIR/claude-relay-service.pid" 2>/dev/null)
+        PID=$(cat "$APP_DIR/motel-api-service.pid" 2>/dev/null)
         if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
             kill "$PID" 2>/dev/null || true
         fi
-        rm -f "$APP_DIR/claude-relay-service.pid"
+        rm -f "$APP_DIR/motel-api-service.pid"
     }
     log_info "服务已停止"
 else
@@ -154,7 +154,7 @@ if curl -sf http://127.0.0.1:3000/health > /dev/null 2>&1; then
     log_info "服务状态: ✅ 运行正常"
 else
     log_error "服务状态: ❌ 启动失败，请检查日志"
-    tail -20 "$APP_DIR/logs/service.log" 2>/dev/null || tail -20 "$APP_DIR/logs/claude-relay-$(date +%Y-%m-%d).log" 2>/dev/null
+    tail -20 "$APP_DIR/logs/service.log" 2>/dev/null || tail -20 "$APP_DIR/logs/motel-api-$(date +%Y-%m-%d).log" 2>/dev/null
 fi
 
 # 显示访问地址

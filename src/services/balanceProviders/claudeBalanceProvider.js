@@ -1,5 +1,5 @@
 const BaseBalanceProvider = require('./baseBalanceProvider')
-const claudeAccountService = require('../claudeAccountService')
+const claudeAccountService = require('../account/claude/ClaudeAccountService')
 
 class ClaudeBalanceProvider extends BaseBalanceProvider {
   constructor() {

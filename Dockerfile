@@ -34,8 +34,8 @@ RUN npm run build
 FROM node:18-alpine
 
 # 📋 设置标签
-LABEL maintainer="claude-relay-service@example.com"
-LABEL description="Claude Code API Relay Service"
+LABEL maintainer="motel-api-service@example.com"
+LABEL description="Motel API Service - Multi-platform AI API relay"
 LABEL version="1.0.0"
 
 # 🔧 安装系统依赖

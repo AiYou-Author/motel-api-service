@@ -1,6 +1,6 @@
 const express = require('express')
 const crypto = require('crypto')
-const droidAccountService = require('../../services/account/droidAccountService')
+const droidAccountService = require('../../services/account/droid/DroidAccountService')
 const accountGroupService = require('../../services/accountGroupService')
 const apiKeyService = require('../../services/apiKeyService')
 const redis = require('../../models/redis')
