@@ -150,7 +150,7 @@ jobs:
     
     - name: Build Docker image
       run: |
-        docker build -t claude-relay-service:ci-test .
+        docker build -t motel-api-service:ci-test .
     
     - name: Test Docker image
       run: |
