@@ -1,5 +1,7 @@
 const logger = require('../logging/logger')
-const { normalizeTempUnavailablePolicyFromAccountData } = require('../upstream/tempUnavailablePolicy')
+const {
+  normalizeTempUnavailablePolicyFromAccountData
+} = require('../upstream/tempUnavailablePolicy')
 
 const TEMP_UNAVAILABLE_PREFIX = 'temp_unavailable'
 const ERROR_HISTORY_PREFIX = 'error_history'

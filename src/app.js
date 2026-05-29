@@ -583,7 +583,10 @@ class Application {
 
       // 注册各个服务的缓存实例
       const services = [
-        { name: 'claudeAccount', service: require('./services/account/claude/ClaudeAccountService') },
+        {
+          name: 'claudeAccount',
+          service: require('./services/account/claude/ClaudeAccountService')
+        },
         {
           name: 'claudeConsole',
           service: require('./services/account/claudeConsole/ClaudeConsoleAccountService')
