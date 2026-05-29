@@ -6,8 +6,8 @@
 const express = require('express')
 const router = express.Router()
 
-const claudeAccountService = require('../../services/account/claudeAccountService')
-const claudeRelayService = require('../../services/relay/claudeRelayService')
+const claudeAccountService = require('../../services/account/claude/ClaudeAccountService')
+const claudeRelayService = require('../../services/relay/claude/ClaudeRelayService')
 const accountGroupService = require('../../services/accountGroupService')
 const accountTestSchedulerService = require('../../services/accountTestSchedulerService')
 const apiKeyService = require('../../services/apiKeyService')

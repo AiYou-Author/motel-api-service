@@ -51,124 +51,13 @@ class Application {
 
   async initialize() {
     try {
-      // 🔗 连接Redis
-      logger.info('🔄 Connecting to Redis...')
-      await redis.connect()
-      logger.success('Redis connected successfully')
+      // Bootstrap: Redis, Services, Admin initialization
+      const bootstrap = require('./bootstrap')
 
-      // 📊 检查数据迁移（版本 > 1.1.250 时执行）
-      const { getAppVersion, versionGt } = require('./utils/commonHelper')
-      const currentVersion = getAppVersion()
-      const migratedVersion = await redis.getMigratedVersion()
-
-      if (versionGt(currentVersion, '1.1.250') && versionGt(currentVersion, migratedVersion)) {
-        logger.info(`🔄 检测到新版本 ${currentVersion}，检查数据迁移...`)
-        try {
-          if (await redis.needsGlobalStatsMigration()) {
-            await redis.migrateGlobalStats()
-          }
-          await redis.cleanupSystemMetrics() // 清理过期的系统分钟统计
-        } catch (err) {
-          logger.error('⚠️ 数据迁移出错，但不影响启动:', err.message)
-        }
-        await redis.setMigratedVersion(currentVersion)
-        logger.success(`✅ 数据迁移完成，版本: ${currentVersion}`)
-      }
-
-      // 📅 后台检查月份索引完整性（不阻塞启动）
-      redis.ensureMonthlyMonthsIndex().catch((err) => {
-        logger.error('📅 月份索引检查失败:', err.message)
-      })
-
-      // 📊 后台异步迁移 usage 索引（不阻塞启动）
-      redis.migrateUsageIndex().catch((err) => {
-        logger.error('📊 Background usage index migration failed:', err)
-      })
-
-      // 📊 迁移 alltime 模型统计（阻塞式，确保数据完整）
-      await redis.migrateAlltimeModelStats()
-
-      // 💳 初始化账户余额查询服务（Provider 注册）
-      try {
-        const accountBalanceService = require('./services/account/accountBalanceService')
-        const { registerAllProviders } = require('./services/balanceProviders')
-
-        registerAllProviders(accountBalanceService)
-        logger.info('✅ 账户余额查询服务已初始化')
-      } catch (error) {
-        logger.warn('⚠️ 账户余额查询服务初始化失败:', error.message)
-      }
-
-      // 💰 初始化价格服务
-      logger.info('🔄 Initializing pricing service...')
-      await pricingService.initialize()
-
-      // 📋 初始化模型服务
-      logger.info('🔄 Initializing model service...')
-      const modelService = require('./services/modelService')
-
-      await modelService.initialize()
+      await bootstrap.initialize(redis, pricingService)
 
       // 📊 初始化缓存监控
       await this.initializeCacheMonitoring()
-
-      // 🔧 初始化管理员凭据
-      logger.info('🔄 Initializing admin credentials...')
-      await this.initializeAdmin()
-
-      // 🔒 安全启动：清理无效/伪造的管理员会话
-      logger.info('🔒 Cleaning up invalid admin sessions...')
-      await this.cleanupInvalidSessions()
-
-      // 💰 初始化费用数据
-      logger.info('💰 Checking cost data initialization...')
-      const costInitService = require('./services/costInitService')
-      const needsInit = await costInitService.needsInitialization()
-
-      if (needsInit) {
-        logger.info('💰 Initializing cost data for all API Keys...')
-        const result = await costInitService.initializeAllCosts()
-
-        logger.info(
-          `💰 Cost initialization completed: ${result.processed} processed, ${result.errors} errors`
-        )
-      }
-
-      // 💰 启动回填：本周 Claude 周费用（用于 API Key 维度周限额）
-      try {
-        logger.info('💰 Backfilling current-week Claude weekly cost...')
-        const weeklyClaudeCostInitService = require('./services/weeklyClaudeCostInitService')
-
-        await weeklyClaudeCostInitService.backfillCurrentWeekClaudeCosts()
-      } catch (error) {
-        logger.warn('⚠️ Weekly Claude cost backfill failed (startup continues):', error.message)
-      }
-
-      // 🕐 初始化Claude账户会话窗口
-      logger.info('🕐 Initializing Claude account session windows...')
-      const claudeAccountService = require('./services/account/claudeAccountService')
-
-      await claudeAccountService.initializeSessionWindows()
-
-      // 📊 初始化费用排序索引服务
-      logger.info('📊 Initializing cost rank service...')
-      const costRankService = require('./services/costRankService')
-
-      await costRankService.initialize()
-
-      // 🔍 初始化 API Key 索引服务（用于分页查询优化）
-      logger.info('🔍 Initializing API Key index service...')
-      const apiKeyIndexService = require('./services/apiKeyIndexService')
-
-      apiKeyIndexService.init(redis)
-      await apiKeyIndexService.checkAndRebuild()
-
-      // 📁 确保账户分组反向索引存在（后台执行，不阻塞启动）
-      const accountGroupService = require('./services/accountGroupService')
-
-      accountGroupService.ensureReverseIndexes().catch((err) => {
-        logger.error('📁 Account group reverse index migration failed:', err)
-      })
 
       // 超早期拦截 /admin-next/ 请求 - 在所有中间件之前
       this.app.use((req, res, next) => {
@@ -694,10 +583,10 @@ class Application {
 
       // 注册各个服务的缓存实例
       const services = [
-        { name: 'claudeAccount', service: require('./services/account/claudeAccountService') },
+        { name: 'claudeAccount', service: require('./services/account/claude/ClaudeAccountService') },
         {
           name: 'claudeConsole',
-          service: require('./services/account/claudeConsoleAccountService')
+          service: require('./services/account/claudeConsole/ClaudeConsoleAccountService')
         },
         { name: 'bedrockAccount', service: require('./services/account/bedrockAccountService') }
       ]
@@ -733,7 +622,7 @@ class Application {
         logger.info('🧹 Starting scheduled cleanup...')
 
         const apiKeyService = require('./services/apiKeyService')
-        const claudeAccountService = require('./services/account/claudeAccountService')
+        const claudeAccountService = require('./services/account/claude/ClaudeAccountService')
 
         const [expiredKeys, errorAccounts] = await Promise.all([
           apiKeyService.cleanupExpiredKeys(),

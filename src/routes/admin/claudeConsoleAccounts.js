@@ -6,8 +6,8 @@
 const express = require('express')
 const router = express.Router()
 
-const claudeConsoleAccountService = require('../../services/account/claudeConsoleAccountService')
-const claudeConsoleRelayService = require('../../services/relay/claudeConsoleRelayService')
+const claudeConsoleAccountService = require('../../services/account/claudeConsole/ClaudeConsoleAccountService')
+const claudeConsoleRelayService = require('../../services/relay/claudeConsole/ClaudeConsoleRelayService')
 const accountGroupService = require('../../services/accountGroupService')
 const apiKeyService = require('../../services/apiKeyService')
 const redis = require('../../models/redis')

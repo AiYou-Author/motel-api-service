@@ -1,6 +1,6 @@
 const BaseBalanceProvider = require('./baseBalanceProvider')
 const antigravityClient = require('../antigravityClient')
-const geminiAccountService = require('../geminiAccountService')
+const geminiAccountService = require('../account/gemini/GeminiAccountService')
 
 const OAUTH_PROVIDER_ANTIGRAVITY = 'antigravity'
 
