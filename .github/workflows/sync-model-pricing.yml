@@ -11,10 +11,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 检出 price-mirror 分支
+      - name: 检出 develop 分支
         uses: actions/checkout@v4
         with:
-          ref: price-mirror
+          ref: develop
           fetch-depth: 0
 
       - name: 下载上游价格文件
@@ -59,4 +59,4 @@ jobs:
             COMMIT_MSG="$COMMIT_MSG (${NEW_HASH})"
           fi
           git commit -m "$COMMIT_MSG"
-          git push origin price-mirror
+          git push origin develop

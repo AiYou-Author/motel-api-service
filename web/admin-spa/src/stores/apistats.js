@@ -111,12 +111,14 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
     if (!trimmedKey) {
       error.value = '请输入 API Key'
+
       return
     }
 
     // 验证 API Key 格式：长度应在 10-512 之间
     if (trimmedKey.length < 10 || trimmedKey.length > 512) {
       error.value = 'API Key 格式无效：长度应在 10-512 个字符之间'
+
       return
     }
 
@@ -172,7 +174,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载所有时间段的统计数据
   async function loadAllPeriodStats() {
-    if (!apiId.value) return
+    if (!apiId.value) {
+      return
+    }
 
     // 并行加载今日和本月的数据
     await Promise.all([loadPeriodStats('daily'), loadPeriodStats('monthly')])
@@ -183,7 +187,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载所有时间段的模型统计
   async function loadAllModelStats() {
-    if (!apiId.value) return
+    if (!apiId.value) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -260,7 +266,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载模型统计数据
   async function loadModelStats(period = 'daily') {
-    if (!apiId.value) return
+    if (!apiId.value) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -291,6 +299,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
     // 多 Key 模式下加载批量模型统计
     if (multiKeyMode.value && apiIds.value.length > 0) {
       await loadBatchModelStats(period)
+
       return
     }
 
@@ -309,7 +318,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 使用 apiId 直接加载数据
   async function loadStatsWithApiId() {
-    if (!apiId.value) return
+    if (!apiId.value) {
+      return
+    }
 
     loading.value = true
     error.value = ''
@@ -354,6 +365,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
     oemLoading.value = true
     try {
       const result = await httpApis.getOemSettingsApi()
+
       if (result && result.success && result.data) {
         oemSettings.value = { ...oemSettings.value, ...result.data }
       }
@@ -374,6 +386,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
   async function loadServiceRates() {
     try {
       const result = await httpApis.getServiceRatesApi()
+
       if (result && result.success && result.data) {
         serviceRates.value = result.data
       }
@@ -405,6 +418,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
   function updateURL() {
     if (apiId.value) {
       const url = new URL(window.location)
+
       url.searchParams.set('apiId', apiId.value)
       window.history.pushState({}, '', url)
     }
@@ -425,8 +439,10 @@ export const useApiStatsStore = defineStore('apistats', () => {
   // 批量查询统计数据
   async function queryBatchStats() {
     const keys = parseApiKeys()
+
     if (keys.length === 0) {
       error.value = '请输入至少一个有效的 API Key'
+
       return
     }
 
@@ -495,7 +511,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 加载批量模型统计
   async function loadBatchModelStats(period = 'daily') {
-    if (apiIds.value.length === 0) return
+    if (apiIds.value.length === 0) {
+      return
+    }
 
     modelStatsLoading.value = true
 
@@ -517,7 +535,9 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
   // 解析 API Keys
   function parseApiKeys() {
-    if (!apiKey.value) return []
+    if (!apiKey.value) {
+      return []
+    }
 
     const keys = apiKey.value
       .split(/[,\n]+/)
@@ -526,6 +546,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
 
     // 去重并限制最多30个
     const uniqueKeys = [...new Set(keys)]
+
     return uniqueKeys.slice(0, 30)
   }
 
@@ -533,6 +554,7 @@ export const useApiStatsStore = defineStore('apistats', () => {
   function updateBatchURL() {
     if (apiIds.value.length > 0) {
       const url = new URL(window.location)
+
       url.searchParams.set('apiIds', apiIds.value.join(','))
       url.searchParams.set('batch', 'true')
       window.history.pushState({}, '', url)

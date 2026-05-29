@@ -49,21 +49,36 @@ export const changePasswordApi = (data) =>
 export const getOemSettingsApi = () => request({ url: '/admin/oem-settings', method: 'GET' })
 // 推广奖励相关
 // 用户端
-export const getReferralInfoApi = () => request({ url: '/api/referral/info', method: 'GET' })
-export const getReferralRecordsApi = (params) => request({ url: '/api/referral/records', method: 'GET', params })
-export const getReferralWithdrawalsApi = (params) => request({ url: '/api/referral/withdrawals', method: 'GET', params })
-export const createWithdrawRequestApi = (data) => request({ url: '/api/referral/withdraw', method: 'POST', data })
+export const getReferralInfoApi = () =>
+  userAxios()
+    .get('/api/referral/info')
+    .then((res) => res.data)
+export const getReferralRecordsApi = (params) =>
+  userAxios()
+    .get('/api/referral/records', { params })
+    .then((res) => res.data)
+export const getReferralWithdrawalsApi = (params) =>
+  userAxios()
+    .get('/api/referral/withdrawals', { params })
+    .then((res) => res.data)
+export const createWithdrawRequestApi = (data) =>
+  userAxios()
+    .post('/api/referral/withdraw', data)
+    .then((res) => res.data)
 
 // 管理端
 export const getReferralConfigApi = () => request({ url: '/admin/referral/config', method: 'GET' })
-export const updateReferralConfigApi = (data) => request({ url: '/admin/referral/config', method: 'PUT', data })
-export const getAdminWithdrawalsApi = (params) => request({ url: '/admin/referral/withdrawals', method: 'GET', params })
-export const approveWithdrawApi = (id, data) => request({ url: `/admin/referral/withdrawals/${id}/approve`, method: 'POST', data })
-export const rejectWithdrawApi = (id, data) => request({ url: `/admin/referral/withdrawals/${id}/reject`, method: 'POST', data })
-export const getAdminCommissionRecordsApi = (params) => request({ url: '/admin/referral/commissions', method: 'GET', params })
+export const updateReferralConfigApi = (data) =>
+  request({ url: '/admin/referral/config', method: 'PUT', data })
+export const getAdminWithdrawalsApi = (params) =>
+  request({ url: '/admin/referral/withdrawals', method: 'GET', params })
+export const approveWithdrawApi = (id, data) =>
+  request({ url: `/admin/referral/withdrawals/${id}/approve`, method: 'POST', data })
+export const rejectWithdrawApi = (id, data) =>
+  request({ url: `/admin/referral/withdrawals/${id}/reject`, method: 'POST', data })
+export const getAdminCommissionRecordsApi = (params) =>
+  request({ url: '/admin/referral/commissions', method: 'GET', params })
 
-// OEM 设置
-export const getOemSettingsApi = () => request({ url: '/admin/oem-settings', method: 'GET' })
 export const updateOemSettingsApi = (data) =>
   request({ url: '/admin/oem-settings', method: 'PUT', data })
 
@@ -396,7 +411,9 @@ export const clearClaudeCodeVersionApi = () =>
 const userAxios = () => {
   const token = localStorage.getItem('userToken')
   const headers = { 'Content-Type': 'application/json' }
+
   if (token) headers['x-user-token'] = token
+
   return axios.create({ baseURL: APP_CONFIG.apiPrefix, headers })
 }
 
@@ -440,17 +457,14 @@ export const saveAdminPlansApi = (plans, expectedVersion) =>
   })
 
 // ─── 推广返佣（用户端）──────────────────────────────────────────────
-export const getReferralInfoApi = () =>
-  request({ url: '/api/referral/info', method: 'GET' })
-
-export const getReferralRecordsApi = (params) =>
-  request({ url: '/api/referral/records', method: 'GET', params })
-
-export const getReferralWithdrawalsApi = (params) =>
-  request({ url: '/api/referral/withdrawals', method: 'GET', params })
+// getReferralInfoApi 已在前面定义
+// getReferralRecordsApi 已在前面定义
+// getReferralWithdrawalsApi 已在前面定义
 
 export const submitReferralWithdrawApi = (data) =>
-  request({ url: '/api/referral/withdraw', method: 'POST', data })
+  userAxios()
+    .post('/api/referral/withdraw', data)
+    .then((res) => res.data)
 
 // ─── 推广返佣（管理端）──────────────────────────────────────────────
 export const getAdminReferralConfigApi = () =>

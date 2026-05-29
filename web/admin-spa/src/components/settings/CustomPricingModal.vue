@@ -194,6 +194,7 @@ watch(
     if (props.initial) {
       isEdit.value = true
       const d = props.initial
+
       form.value = {
         model: d.model,
         inputPerMillion: (Number(d.input_cost_per_token) || 0) * 1e6,
@@ -232,8 +233,10 @@ async function onSubmit() {
     max_tokens: Number(f.maxTokens) || 0,
     litellm_provider: f.provider || 'custom'
   }
+
   try {
     const result = await setCustomPricingApi(f.model.trim(), payload)
+
     if (result?.success) {
       showToast(isEdit.value ? '已更新' : '已添加', 'success')
       emit('saved', result.data)

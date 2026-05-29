@@ -351,6 +351,7 @@ const selectedLabel = computed(() => {
   const matchedSpecial = specialOptionsList.value.find(
     (option) => option.value === props.modelValue
   )
+
   if (matchedSpecial) {
     return matchedSpecial.label
   }
@@ -362,6 +363,7 @@ const selectedLabel = computed(() => {
   if (props.modelValue.startsWith('group:')) {
     const groupId = props.modelValue.substring(6)
     const group = props.groups.find((g) => g.id === groupId)
+
     return group ? `${group.name} (${group.memberCount || 0} 个成员)` : ''
   }
 
@@ -371,6 +373,7 @@ const selectedLabel = computed(() => {
     const account = props.accounts.find(
       (a) => a.id === accountId && a.platform === 'claude-console'
     )
+
     return account ? `${account.name} (${getAccountStatusText(account)})` : ''
   }
 
@@ -380,6 +383,7 @@ const selectedLabel = computed(() => {
     const account = props.accounts.find(
       (a) => a.id === accountId && a.platform === 'openai-responses'
     )
+
     return account ? `${account.name} (${getAccountStatusText(account)})` : ''
   }
 
@@ -387,11 +391,13 @@ const selectedLabel = computed(() => {
   if (props.modelValue.startsWith('api:')) {
     const accountId = props.modelValue.substring(4)
     const account = props.accounts.find((a) => a.id === accountId && a.platform === 'gemini-api')
+
     return account ? `${account.name} (${getAccountStatusText(account)})` : ''
   }
 
   // OAuth 账号
   const account = props.accounts.find((a) => a.id === props.modelValue)
+
   return account ? `${account.name} (${getAccountStatusText(account)})` : ''
 })
 
@@ -434,6 +440,7 @@ const sortedAccounts = computed(() => {
   return [...props.accounts].sort((a, b) => {
     const dateA = new Date(a.createdAt || 0)
     const dateB = new Date(b.createdAt || 0)
+
     return dateB - dateA // 倒序排序
   })
 })
@@ -447,12 +454,14 @@ const filteredGroups = computed(() => {
     if (group.platform) {
       return group.platform === props.platform
     }
+
     // 向后兼容：如果没有platform字段，通过其他方式判断
     return true
   })
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     groups = groups.filter((group) => group.name.toLowerCase().includes(query))
   }
 
@@ -483,6 +492,7 @@ const filteredOAuthAccounts = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     accounts = accounts.filter((account) => account.name.toLowerCase().includes(query))
   }
 
@@ -497,6 +507,7 @@ const filteredConsoleAccounts = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     accounts = accounts.filter((account) => account.name.toLowerCase().includes(query))
   }
 
@@ -511,6 +522,7 @@ const filteredOpenAIResponsesAccounts = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     accounts = accounts.filter((account) => account.name.toLowerCase().includes(query))
   }
 
@@ -525,6 +537,7 @@ const filteredGeminiApiAccounts = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+
     accounts = accounts.filter((account) => account.name.toLowerCase().includes(query))
   }
 
@@ -549,6 +562,7 @@ const updateDropdownPosition = () => {
   if (!showDropdown.value || !dropdownRef.value || !triggerRef.value) return
 
   const trigger = triggerRef.value
+
   if (!trigger) return
 
   const rect = trigger.getBoundingClientRect()
@@ -590,6 +604,7 @@ const updateDropdownPosition = () => {
   // 确保下拉框不超出视窗左右边界
   let left = rect.left
   const dropdownWidth = rect.width
+
   if (left + dropdownWidth > windowWidth - margin) {
     left = windowWidth - dropdownWidth - margin
   }

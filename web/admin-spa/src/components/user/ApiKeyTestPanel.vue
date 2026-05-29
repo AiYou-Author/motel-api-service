@@ -108,16 +108,20 @@ const MODEL_OPTIONS_BY_CHANNEL = {
 
 const isOpenAIChannel = computed(() => {
   const o = props.order
+
   if (!o) return false
   if (o.channel === 'codex') return true
   if (o.accountType === 'openai') return true
   if (Array.isArray(o.permissions) && o.permissions.includes('openai')) return true
+
   return false
 })
 
 const channelKey = computed(() => {
   const c = props.order?.channel
+
   if (c && MODEL_OPTIONS_BY_CHANNEL[c]) return c
+
   return isOpenAIChannel.value ? 'codex' : 'claude-code'
 })
 
@@ -167,15 +171,19 @@ function clearMessages() {
 
 async function send() {
   const text = input.value.trim()
+
   if (!text || streaming.value) return
   const apiKey = props.order?.apiKeyValue
+
   if (!apiKey) {
     messages.value.push({ role: 'error', content: '订单未审批通过或缺少 API Key' })
+
     return
   }
   messages.value.push({ role: 'user', content: text })
   input.value = ''
   const assistantMsg = { role: 'assistant', content: '', usage: null }
+
   messages.value.push(assistantMsg)
   scrollToBottom()
   streaming.value = true
@@ -222,8 +230,10 @@ async function streamAnthropic(apiKey, assistantMsg) {
     body: JSON.stringify(body),
     signal: abortCtrl.signal
   })
+
   if (!resp.ok) {
     const text = await resp.text()
+
     throw Object.assign(new Error(text || resp.statusText), { status: resp.status })
   }
   await readSSE(resp, (event) => {
@@ -259,13 +269,16 @@ async function streamOpenAI(apiKey, assistantMsg) {
     body: JSON.stringify(body),
     signal: abortCtrl.signal
   })
+
   if (!resp.ok) {
     const text = await resp.text()
+
     throw Object.assign(new Error(text || resp.statusText), { status: resp.status })
   }
   await readSSE(resp, (event) => {
     if (event === '[DONE]') return
     const choice = event.choices?.[0]
+
     if (choice?.delta?.content) {
       assistantMsg.content += choice.delta.content
       scrollToBottom()
@@ -283,20 +296,26 @@ async function readSSE(resp, onEvent) {
   const reader = resp.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+
   for (;;) {
     const { done, value } = await reader.read()
+
     if (done) break
     buffer += decoder.decode(value, { stream: true })
     let idx
+
     while ((idx = buffer.indexOf('\n\n')) !== -1) {
       const chunk = buffer.slice(0, idx)
+
       buffer = buffer.slice(idx + 2)
       const dataLines = chunk
         .split('\n')
         .filter((l) => l.startsWith('data:'))
         .map((l) => l.slice(5).trim())
+
       if (dataLines.length === 0) continue
       const dataStr = dataLines.join('\n')
+
       if (dataStr === '[DONE]') {
         onEvent('[DONE]')
         continue

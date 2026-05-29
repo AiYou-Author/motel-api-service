@@ -42,11 +42,13 @@ function filterForOpenAI(headers) {
   ]
 
   const filtered = {}
+
   for (const [key, value] of Object.entries(headers)) {
     if (!skipHeaders.includes(key.toLowerCase())) {
       filtered[key] = value
     }
   }
+
   return filtered
 }
 
@@ -81,8 +83,10 @@ function filterForClaude(headers) {
   ]
 
   const filtered = {}
+
   Object.keys(headers || {}).forEach((key) => {
     const lowerKey = key.toLowerCase()
+
     if (allowedHeaders.includes(lowerKey)) {
       filtered[key] = headers[key]
     }
@@ -106,11 +110,13 @@ function filterForGemini(headers) {
   ]
 
   const filtered = {}
+
   for (const [key, value] of Object.entries(headers)) {
     if (!skipHeaders.includes(key.toLowerCase())) {
       filtered[key] = value
     }
   }
+
   return filtered
 }
 

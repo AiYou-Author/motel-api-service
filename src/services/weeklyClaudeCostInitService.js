@@ -27,12 +27,14 @@ function inferAccountType(keyData) {
   if (keyData?.claudeAccountId) {
     return 'claude-official'
   }
+
   // bedrock/azure/gemini 等不计入周费用
   return null
 }
 
 function toInt(v) {
   const n = parseInt(v || '0', 10)
+
   return Number.isFinite(n) ? n : 0
 }
 
@@ -41,14 +43,18 @@ class WeeklyClaudeCostInitService {
   _getLast7DaysInTimezone() {
     const tzNow = redis.getDateInTimezone(new Date())
     const tzToday = new Date(tzNow)
+
     tzToday.setUTCHours(0, 0, 0, 0)
 
     const dates = []
+
     for (let i = 7; i >= 0; i--) {
       const d = new Date(tzToday)
+
       d.setUTCDate(tzToday.getUTCDate() - i)
       dates.push(formatTzDateYmd(d))
     }
+
     return dates
   }
 
@@ -68,13 +74,16 @@ class WeeklyClaudeCostInitService {
    */
   async backfillCurrentWeekClaudeCosts() {
     const client = redis.getClientSafe()
+
     if (!client) {
       logger.warn('⚠️ Claude 周费用回填跳过：Redis client 不可用')
+
       return { success: false, reason: 'redis_unavailable' }
     }
 
     if (!pricingService || !pricingService.pricingData) {
       logger.warn('⚠️ Claude 周费用回填跳过：pricing service 未初始化')
+
       return { success: false, reason: 'pricing_uninitialized' }
     }
 
@@ -83,8 +92,10 @@ class WeeklyClaudeCostInitService {
 
     try {
       const alreadyDone = await client.get(doneKey)
+
       if (alreadyDone) {
         logger.info(`ℹ️ Claude 周费用回填已完成（${todayStr}），跳过`)
+
         return { success: true, skipped: true }
       }
     } catch (e) {
@@ -96,12 +107,15 @@ class WeeklyClaudeCostInitService {
     const lockTtlMs = 15 * 60 * 1000
 
     const lockAcquired = await redis.setAccountLock(lockKey, lockValue, lockTtlMs)
+
     if (!lockAcquired) {
       logger.info(`ℹ️ Claude 周费用回填已在运行（${todayStr}），跳过`)
+
       return { success: true, skipped: true, reason: 'locked' }
     }
 
     const startedAt = Date.now()
+
     try {
       logger.info(`💰 开始回填 Claude 周费用（${todayStr}）...`)
 
@@ -112,15 +126,19 @@ class WeeklyClaudeCostInitService {
       const keyDataCache = new Map()
       const globalRateCache = new Map()
       const batchSize = 500
+
       for (let i = 0; i < keyIds.length; i += batchSize) {
         const batch = keyIds.slice(i, i + batchSize)
         const pipeline = client.pipeline()
+
         for (const keyId of batch) {
           pipeline.hgetall(`apikey:${keyId}`)
         }
         const results = await pipeline.exec()
+
         for (let j = 0; j < batch.length; j++) {
           const [, data] = results[j] || []
+
           if (data && Object.keys(data).length > 0) {
             keyDataCache.set(batch[j], data)
           }
@@ -139,17 +157,21 @@ class WeeklyClaudeCostInitService {
 
         do {
           const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 1000)
+
           cursor = nextCursor
           scannedKeys += keys.length
 
           const entries = []
+
           for (const usageKey of keys) {
             const match = usageKey.match(/^usage:([^:]+):model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
             if (!match) {
               continue
             }
             const keyId = match[1]
             const model = match[2]
+
             if (!isClaudeFamilyModel(model)) {
               continue
             }
@@ -162,6 +184,7 @@ class WeeklyClaudeCostInitService {
           }
 
           const pipeline = client.pipeline()
+
           for (const entry of entries) {
             pipeline.hgetall(entry.usageKey)
           }
@@ -170,6 +193,7 @@ class WeeklyClaudeCostInitService {
           for (let i = 0; i < entries.length; i++) {
             const entry = entries[i]
             const [, data] = results[i] || []
+
             if (!data || Object.keys(data).length === 0) {
               continue
             }
@@ -202,6 +226,7 @@ class WeeklyClaudeCostInitService {
 
             const costInfo = pricingService.calculateCost(usage, entry.model)
             const realCost = costInfo && costInfo.totalCost ? costInfo.totalCost : 0
+
             if (realCost <= 0) {
               continue
             }
@@ -216,12 +241,14 @@ class WeeklyClaudeCostInitService {
             const service = serviceRatesService.getService(accountType, entry.model)
 
             let globalRate = globalRateCache.get(service)
+
             if (globalRate === undefined) {
               globalRate = await serviceRatesService.getServiceRate(service)
               globalRateCache.set(service, globalRate)
             }
 
             let keyRates = {}
+
             try {
               keyRates = JSON.parse(keyData?.serviceRates || '{}')
             } catch (e) {
@@ -235,6 +262,7 @@ class WeeklyClaudeCostInitService {
               costByKeyDate.set(entry.keyId, new Map())
             }
             const dateMap = costByKeyDate.get(entry.keyId)
+
             dateMap.set(entry.dateStr, (dateMap.get(entry.dateStr) || 0) + ratedCost)
           }
         } while (cursor !== '0')
@@ -243,9 +271,11 @@ class WeeklyClaudeCostInitService {
       // 为每个 API Key 按其重置配置计算当前周期费用
       const ttlSeconds = 14 * 24 * 3600
       let filledCount = 0
+
       for (let i = 0; i < keyIds.length; i += batchSize) {
         const batch = keyIds.slice(i, i + batchSize)
         const pipeline = client.pipeline()
+
         for (const keyId of batch) {
           const keyData = keyDataCache.get(keyId)
           const resetDay = parseInt(keyData?.weeklyResetDay || 1)
@@ -259,6 +289,7 @@ class WeeklyClaudeCostInitService {
           // 汇总该 key 在当前周期内的费用
           const dateMap = costByKeyDate.get(keyId)
           let periodCost = 0
+
           if (dateMap) {
             for (const [dateStr, cost] of dateMap) {
               if (dateStr >= periodStartDateStr) {
@@ -272,6 +303,7 @@ class WeeklyClaudeCostInitService {
           }
 
           const weeklyKey = this._buildWeeklyOpusKey(keyId, periodString)
+
           pipeline.set(weeklyKey, String(periodCost))
           pipeline.expire(weeklyKey, ttlSeconds)
         }
@@ -282,6 +314,7 @@ class WeeklyClaudeCostInitService {
       await client.set(doneKey, new Date().toISOString(), 'EX', 2 * 24 * 3600)
 
       const durationMs = Date.now() - startedAt
+
       logger.info(
         `✅ Claude 周费用回填完成（${todayStr}）：keys=${keyIds.length}, scanned=${scannedKeys}, matchedClaude=${matchedClaudeKeys}, filled=${filledCount}（${durationMs}ms）`
       )
@@ -297,6 +330,7 @@ class WeeklyClaudeCostInitService {
       }
     } catch (error) {
       logger.error(`❌ Claude 周费用回填失败（${todayStr}）：`, error)
+
       return { success: false, error: error.message }
     } finally {
       await redis.releaseAccountLock(lockKey, lockValue)
@@ -308,8 +342,10 @@ class WeeklyClaudeCostInitService {
    */
   async backfillSingleKey(keyId) {
     const client = redis.getClientSafe()
+
     if (!client) {
       logger.warn(`⚠️ 单 Key 回填跳过 (${keyId})：Redis client 不可用`)
+
       return { success: false, reason: 'redis_unavailable' }
     }
 
@@ -318,12 +354,14 @@ class WeeklyClaudeCostInitService {
         await pricingService.initialize()
       } catch (e) {
         logger.warn(`⚠️ 单 Key 回填跳过 (${keyId})：pricing service 未初始化`)
+
         return { success: false, reason: 'pricing_uninitialized' }
       }
     }
 
     try {
       const keyData = await redis.getApiKey(keyId)
+
       if (!keyData || Object.keys(keyData).length === 0) {
         return { success: false, reason: 'key_not_found' }
       }
@@ -332,10 +370,13 @@ class WeeklyClaudeCostInitService {
       const resetHour = parseInt(keyData.weeklyResetHour || 0)
 
       const accountType = inferAccountType(keyData)
+
       if (!accountType || !OPUS_ACCOUNT_TYPES.includes(accountType)) {
         // 非 Claude 账户，写入 0 即可
         const periodString = redis.getPeriodString(resetDay, resetHour)
+
         await redis.setWeeklyOpusCost(keyId, 0, periodString)
+
         return { success: true, cost: 0, reason: 'non_claude_account' }
       }
 
@@ -358,6 +399,7 @@ class WeeklyClaudeCostInitService {
 
         do {
           const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 1000)
+
           cursor = nextCursor
 
           if (keys.length === 0) {
@@ -366,8 +408,10 @@ class WeeklyClaudeCostInitService {
 
           const pipeline = client.pipeline()
           const models = []
+
           for (const usageKey of keys) {
             const match = usageKey.match(/^usage:[^:]+:model:daily:(.+):(\d{4}-\d{2}-\d{2})$/)
+
             if (!match || !isClaudeFamilyModel(match[1])) {
               continue
             }
@@ -384,6 +428,7 @@ class WeeklyClaudeCostInitService {
           for (let i = 0; i < models.length; i++) {
             const model = models[i]
             const [, data] = results[i] || []
+
             if (!data || Object.keys(data).length === 0) {
               continue
             }
@@ -416,6 +461,7 @@ class WeeklyClaudeCostInitService {
 
             const costInfo = pricingService.calculateCost(usage, model)
             const realCost = costInfo && costInfo.totalCost ? costInfo.totalCost : 0
+
             if (realCost <= 0) {
               continue
             }
@@ -423,18 +469,21 @@ class WeeklyClaudeCostInitService {
             const service = serviceRatesService.getService(accountType, model)
 
             let globalRate = globalRateCache.get(service)
+
             if (globalRate === undefined) {
               globalRate = await serviceRatesService.getServiceRate(service)
               globalRateCache.set(service, globalRate)
             }
 
             let keyRates = {}
+
             try {
               keyRates = JSON.parse(keyData.serviceRates || '{}')
             } catch (e) {
               keyRates = {}
             }
             const keyRate = keyRates[service] ?? 1.0
+
             totalCost += realCost * globalRate * keyRate
           }
         } while (cursor !== '0')
@@ -448,6 +497,7 @@ class WeeklyClaudeCostInitService {
       return { success: true, cost: totalCost, periodString }
     } catch (error) {
       logger.error(`❌ 单 Key 回填失败 (${keyId})：`, error)
+
       return { success: false, error: error.message }
     }
   }

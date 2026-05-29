@@ -9,11 +9,13 @@ const logger = require('../utils/logger')
 // 收集模型基础价格（每百万 token 美元）
 function collectModelPricing(modelIds) {
   const pricing = {}
+
   for (const modelId of modelIds) {
     // 优先查 customPricing，再查 pricingData
     const custom = pricingService.customPricing?.[modelId]
     const builtin = pricingService.pricingData?.[modelId]
     const data = custom || builtin
+
     if (data) {
       pricing[modelId] = {
         input: data.input_cost_per_token ? data.input_cost_per_token * 1000000 : null,
@@ -21,6 +23,7 @@ function collectModelPricing(modelIds) {
       }
     }
   }
+
   return pricing
 }
 
@@ -34,6 +37,7 @@ router.get('/plans', async (req, res) => {
 
     // 收集所有套餐涉及的模型价格
     const allModelIds = new Set()
+
     plans.forEach((p) => {
       if (Array.isArray(p.models)) {
         p.models.forEach((m) => allModelIds.add(m))
@@ -67,14 +71,17 @@ router.post('/orders', authenticateUser, async (req, res) => {
 
     const plans = await storeService.getPlans(true)
     const plan = plans.find((p) => p.id === planId)
+
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found or disabled' })
     }
 
     // 处理佣金抵扣
     const commissionAmount = parseFloat(useCommissionAmount) || 0
+
     if (commissionAmount > 0) {
       const balance = await referralService.getWalletBalance(userId)
+
       if (balance < commissionAmount) {
         return res.status(400).json({ error: 'INSUFFICIENT_COMMISSION', message: '佣金余额不足' })
       }
@@ -96,7 +103,9 @@ router.post('/orders', authenticateUser, async (req, res) => {
       // 扣减佣金（如果有）
       if (usedCommission > 0) {
         if (usedCommission > parsedAmount) {
-          return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+          return res
+            .status(400)
+            .json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
         }
         await referralService.debitWallet(userId, usedCommission, {
           type: 'purchase',
@@ -129,10 +138,13 @@ router.post('/orders', authenticateUser, async (req, res) => {
 
     // ── 兼容旧固定价格套餐 ────────────────────────────────────────
     const planPrice = Number(plan.price) || 0
+
     // 扣减佣金（如果有）
     if (usedCommission > 0) {
       if (usedCommission > planPrice) {
-        return res.status(400).json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
+        return res
+          .status(400)
+          .json({ error: 'INVALID_COMMISSION_AMOUNT', message: '抵扣金额不能超过订单总金额' })
       }
       await referralService.debitWallet(userId, usedCommission, {
         type: 'purchase',
@@ -169,6 +181,7 @@ router.get('/orders', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id
     const orders = await storeService.getUserOrders(userId)
+
     res.json({ orders })
   } catch (error) {
     logger.error('❌ Error getting user orders:', error)
@@ -205,6 +218,7 @@ router.patch('/orders/:orderId/note', authenticateUser, async (req, res) => {
     const userId = req.user?.id
 
     const order = await storeService.getOrder(orderId)
+
     if (!order) {
       return res.status(404).json({ error: 'Order not found' })
     }
@@ -226,6 +240,7 @@ router.delete('/orders/:orderId', authenticateUser, async (req, res) => {
     const { orderId } = req.params
     const userId = req.user?.id
     const result = await storeService.deleteUserOrder(userId, orderId)
+
     res.json({ success: true, ...result })
   } catch (error) {
     const map = {
@@ -237,6 +252,7 @@ router.delete('/orders/:orderId', authenticateUser, async (req, res) => {
       API_KEY_DISABLE_FAILED: { code: 500, msg: '禁用 API Key 失败，订单未删除' }
     }
     const hit = map[error.message]
+
     if (hit) {
       return res.status(hit.code).json({ error: error.message, message: hit.msg })
     }

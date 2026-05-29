@@ -26,6 +26,7 @@ function parse(userId) {
       const obj = JSON.parse(userId)
       const deviceId = obj.device_id
       const sessionId = obj.session_id
+
       if (
         typeof deviceId !== 'string' ||
         !deviceId ||
@@ -34,6 +35,7 @@ function parse(userId) {
       ) {
         return null
       }
+
       return {
         deviceId,
         accountUuid: typeof obj.account_uuid === 'string' ? obj.account_uuid : '',
@@ -47,6 +49,7 @@ function parse(userId) {
 
   // 尝试旧格式
   const match = userId.match(OLD_FORMAT_REGEX)
+
   if (match) {
     return {
       deviceId: match[1],
@@ -66,6 +69,7 @@ function parse(userId) {
  */
 function extractSessionId(userId) {
   const parsed = parse(userId)
+
   return parsed ? parsed.sessionId : null
 }
 

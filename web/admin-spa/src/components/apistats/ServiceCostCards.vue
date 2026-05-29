@@ -135,6 +135,7 @@ const serviceLabels = {
 const getServiceFromModel = (model) => {
   if (!model) return 'claude'
   const m = model.toLowerCase()
+
   if (m.includes('claude') || m.includes('sonnet') || m.includes('opus') || m.includes('haiku'))
     return 'claude'
   if (m.includes('gpt') || m.includes('o1') || m.includes('o3') || m.includes('o4')) return 'codex'
@@ -142,6 +143,7 @@ const getServiceFromModel = (model) => {
   if (m.includes('droid') || m.includes('factory')) return 'droid'
   if (m.includes('bedrock') || m.includes('amazon')) return 'bedrock'
   if (m.includes('azure')) return 'azure'
+
   return 'claude'
 }
 
@@ -167,6 +169,7 @@ const serviceStats = computed(() => {
   // 聚合模型数据 - 按模型逐个计算计费费用
   modelStats.value.forEach((model) => {
     const service = getServiceFromModel(model.model)
+
     if (stats[service]) {
       stats[service].inputTokens += model.inputTokens || 0
       stats[service].outputTokens += model.outputTokens || 0
@@ -174,6 +177,7 @@ const serviceStats = computed(() => {
       stats[service].cacheReadTokens += model.cacheReadTokens || 0
       // 累加官方费用
       const modelRealCost = model.costs?.real ?? model.costs?.total ?? 0
+
       stats[service].realCost += modelRealCost
       // 按模型判断：有存储费用用存储的，否则用当前倍率计算
       const globalRate = serviceRates.value.rates[service] || 1.0
@@ -182,6 +186,7 @@ const serviceStats = computed(() => {
         !model.isLegacy && model.costs?.rated !== undefined
           ? model.costs.rated
           : modelRealCost * globalRate * keyRate
+
       stats[service].ratedCost += modelRatedCost
       if (!stats[service].pricing && model.pricing) {
         stats[service].pricing = model.pricing
@@ -202,6 +207,7 @@ const serviceStats = computed(() => {
       const globalRate = serviceRates.value.rates[service] || 1.0
       const keyRate = multiKeyMode.value ? 1.0 : (keyServiceRates.value?.[service] ?? 1.0)
       const p = data.pricing
+
       return {
         name: service,
         label: serviceLabels[service] || service,
@@ -231,6 +237,7 @@ const formatCost = (cost) => {
   if (!cost || cost === 0) return '$0.00'
   if (cost >= 1) return '$' + cost.toFixed(2)
   if (cost >= 0.01) return '$' + cost.toFixed(4)
+
   return '$' + cost.toFixed(6)
 }
 

@@ -26,6 +26,7 @@ const params = {}
 
 args.slice(1).forEach((arg) => {
   const [key, value] = arg.split('=')
+
   params[key.replace('--', '')] = value || true
 })
 
@@ -153,6 +154,7 @@ function formatCSVValue(key, value, shouldSanitize = false) {
       if (shouldSanitize && value.length > 10) {
         return `${value.substring(0, 10)}...[已脱敏]`
       }
+
       return value
 
     case 'isActive':
@@ -186,6 +188,7 @@ function formatCSVValue(key, value, shouldSanitize = false) {
     case 'tags':
       try {
         const parsed = JSON.parse(value)
+
         return Array.isArray(parsed) ? parsed.join('; ') : value
       } catch {
         return value
@@ -209,6 +212,7 @@ function formatCSVValue(key, value, shouldSanitize = false) {
           return value
         }
       }
+
       return ''
 
     case 'rateLimitWindow':
@@ -241,6 +245,7 @@ function escapeCSVField(field) {
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     // 先转义引号（双引号变成两个双引号）
     const escaped = str.replace(/"/g, '""')
+
     return `"${escaped}"`
   }
 
@@ -264,8 +269,10 @@ function convertToCSV(exportDataObj, shouldSanitize = false) {
   for (const apiKey of apiKeys) {
     const row = fields.map((field) => {
       const value = formatCSVValue(field, apiKey[field], shouldSanitize)
+
       return escapeCSVField(value)
     })
+
     csvLines.push(row.join(','))
   }
 
@@ -336,6 +343,7 @@ async function exportData() {
       logger.info('📤 Exporting Claude accounts...')
       // 注意：Claude 账户使用 claude:account: 前缀，不是 claude_account:
       const keys = await redis.client.keys('claude:account:*')
+
       logger.info(`Found ${keys.length} Claude account keys in Redis`)
       const accounts = []
 
@@ -362,6 +370,7 @@ async function exportData() {
       // 导出 Gemini 账户
       logger.info('📤 Exporting Gemini accounts...')
       const geminiKeys = await redis.client.keys('gemini_account:*')
+
       logger.info(`Found ${geminiKeys.length} Gemini account keys in Redis`)
       const geminiAccounts = []
 
@@ -403,6 +412,7 @@ async function exportData() {
 
     // 根据格式写入文件
     let fileContent
+
     if (format === 'csv') {
       fileContent = convertToCSV(exportDataObj, shouldSanitize)
       // 添加 UTF-8 BOM 以便 Excel 正确识别中文
@@ -449,6 +459,7 @@ async function exportData() {
 async function importData() {
   try {
     const inputFile = params.input
+
     if (!inputFile) {
       logger.error('❌ Please specify input file with --input=filename.json')
       process.exit(1)
@@ -479,8 +490,10 @@ async function importData() {
     if (importDataObj.metadata.sanitized) {
       logger.warn('⚠️  This backup contains sanitized data. Sensitive fields will be missing!')
       const proceed = await askConfirmation('Continue with sanitized data?')
+
       if (!proceed) {
         logger.info('❌ Import cancelled')
+
         return
       }
     }
@@ -505,8 +518,10 @@ async function importData() {
 
     // 确认导入
     const confirmed = await askConfirmation('⚠️  Proceed with import?')
+
     if (!confirmed) {
       logger.info('❌ Import cancelled')
+
       return
     }
 
@@ -536,6 +551,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `API Key "${apiKey.name}" (${apiKey.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -545,6 +561,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(apiKey)) {
             pipeline.hset(`apikey:${apiKey.id}`, field, value)
           }
@@ -580,6 +597,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `Claude account "${account.name}" (${account.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -589,6 +607,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(account)) {
             // 如果是对象，需要序列化
             if (field === 'claudeAiOauth' && typeof value === 'object') {
@@ -623,6 +642,7 @@ async function importData() {
               const overwrite = await askConfirmation(
                 `Gemini account "${account.name}" (${account.id}) exists. Overwrite?`
               )
+
               if (!overwrite) {
                 stats.skipped++
                 continue
@@ -632,6 +652,7 @@ async function importData() {
 
           // 使用 hset 存储到哈希表
           const pipeline = redis.client.pipeline()
+
           for (const [field, value] of Object.entries(account)) {
             pipeline.hset(`gemini_account:${account.id}`, field, value)
           }

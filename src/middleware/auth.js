@@ -46,6 +46,7 @@ async function shouldRejectDueToOverload(apiKeyId, timeoutMs, queueConfig, maxQu
     // 这避免了在队列较短时过于保守地拒绝请求
     // 使用 ceil 确保小队列（如 maxQueueSize=3）时阈值为 2，即队列 <=1 时跳过
     const queueLoadThreshold = Math.ceil(maxQueueSize * 0.5)
+
     if (currentQueueCount <= queueLoadThreshold) {
       return {
         reject: false,
@@ -91,6 +92,7 @@ async function shouldRejectDueToOverload(apiKeyId, timeoutMs, queueConfig, maxQu
   } catch (error) {
     // 健康检查出错时不阻塞请求，记录警告并继续
     logger.warn(`Health check failed for ${apiKeyId}:`, error.message)
+
     return { reject: false, reason: 'health_check_error', error: error.message }
   }
 }
@@ -124,9 +126,11 @@ const resolveConcurrencyConfig = () => {
 
   const toNumber = (value, fallback) => {
     const parsed = Number(value)
+
     if (!Number.isFinite(parsed)) {
       return fallback
     }
+
     return parsed
   }
 
@@ -136,6 +140,7 @@ const resolveConcurrencyConfig = () => {
   )
 
   let renewIntervalSeconds
+
   if (raw.renewIntervalSeconds === 0 || raw.renewIntervalSeconds === '0') {
     renewIntervalSeconds = 0
   } else {
@@ -184,6 +189,7 @@ function extractApiKey(req) {
     }
 
     let trimmed = value.trim()
+
     if (!trimmed) {
       continue
     }
@@ -207,21 +213,26 @@ function normalizeRequestPath(value) {
   }
   const lower = value.split('?')[0].toLowerCase()
   const collapsed = lower.replace(/\/{2,}/g, '/')
+
   if (collapsed.length > 1 && collapsed.endsWith('/')) {
     return collapsed.slice(0, -1)
   }
+
   return collapsed || '/'
 }
 
 function isTokenCountRequest(req) {
   const combined = normalizeRequestPath(`${req.baseUrl || ''}${req.path || ''}`)
+
   if (TOKEN_COUNT_PATHS.has(combined)) {
     return true
   }
   const original = normalizeRequestPath(req.originalUrl || '')
+
   if (TOKEN_COUNT_PATHS.has(original)) {
     return true
   }
+
   return false
 }
 
@@ -302,6 +313,7 @@ async function waitForConcurrencySlot(req, res, apiKeyId, queueOptions) {
         redis
           .incrConcurrencyQueueStats(apiKeyId, 'cancelled')
           .catch((e) => logger.warn('Failed to record cancelled stat:', e))
+
         return {
           acquired: false,
           reason: 'client_disconnected',
@@ -312,6 +324,7 @@ async function waitForConcurrencySlot(req, res, apiKeyId, queueOptions) {
       // 尝试获取槽位（先占后检查）
       try {
         const count = await redis.incrConcurrency(apiKeyId, requestId, leaseSeconds)
+
         redisFailCount = 0 // 重置失败计数
 
         if (count <= concurrencyLimit) {
@@ -348,6 +361,7 @@ async function waitForConcurrencySlot(req, res, apiKeyId, queueOptions) {
 
           // 成功返回前清除标记（所有权转移给调用方，由其负责释放）
           internalSlotAcquired = false
+
           return { acquired: true, waitTimeMs }
         }
 
@@ -390,6 +404,7 @@ async function waitForConcurrencySlot(req, res, apiKeyId, queueOptions) {
       //    这是预期行为：负抖动可使间隔略微缩短，正抖动可使间隔略微延长
       //    目的是分散多个等待者的轮询时间点，避免同时请求 Redis
       const jitter = nextInterval * jitterRatio * (Math.random() * 2 - 1)
+
       nextInterval = nextInterval + jitter
       // 3. 确保在合理范围内：最小 1ms，最大 maxPollIntervalMs
       //    Math.max(1, ...) 保证即使负抖动也不会产生 ≤0 的间隔
@@ -400,6 +415,7 @@ async function waitForConcurrencySlot(req, res, apiKeyId, queueOptions) {
     redis
       .incrConcurrencyQueueStats(apiKeyId, 'timeout')
       .catch((e) => logger.warn('Failed to record timeout stat:', e))
+
     return { acquired: false, reason: 'timeout', waitTimeMs: Date.now() - startTime }
   } finally {
     // 确保清理：
@@ -453,6 +469,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     if (!apiKey) {
       logger.security(`Missing API key attempt from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Missing API key',
         message:
@@ -463,6 +480,7 @@ const authenticateApiKey = async (req, res, next) => {
     // 基本API Key格式验证
     if (typeof apiKey !== 'string' || apiKey.length < 10 || apiKey.length > 512) {
       logger.security(`Invalid API key format from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Invalid API key format',
         message: 'API key format is invalid'
@@ -474,7 +492,9 @@ const authenticateApiKey = async (req, res, next) => {
 
     if (!validation.valid) {
       const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
       logger.security(`Invalid API key attempt: ${validation.error} from ${clientIP}`)
+
       return res.status(401).json({
         error: 'Invalid API key',
         message: validation.error
@@ -497,9 +517,11 @@ const authenticateApiKey = async (req, res, next) => {
 
       if (!validationResult.allowed) {
         const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
         logger.security(
           `🚫 Client restriction failed for key: ${validation.keyData.id} (${validation.keyData.name}) from ${clientIP}`
         )
+
         return res.status(403).json({
           error: 'Client not allowed',
           message: 'Your client is not authorized to use this API key',
@@ -539,9 +561,11 @@ const authenticateApiKey = async (req, res, next) => {
 
             if (!isClaudeCode) {
               const clientIP = req.ip || req.connection?.remoteAddress || 'unknown'
+
               logger.api(
                 `❌ Claude Code client validation failed (global: ${globalClaudeCodeOnly}, key: ${keyClaudeCodeOnly}) from ${clientIP}`
               )
+
               return res.status(403).json({
                 error: {
                   type: 'client_validation_error',
@@ -563,13 +587,16 @@ const authenticateApiKey = async (req, res, next) => {
 
     // 检查并发限制
     const concurrencyLimit = validation.keyData.concurrencyLimit || 0
+
     if (!skipKeyRestrictions && concurrencyLimit > 0) {
       const { leaseSeconds: configLeaseSeconds, renewIntervalSeconds: configRenewIntervalSeconds } =
         resolveConcurrencyConfig()
       const leaseSeconds = Math.max(Number(configLeaseSeconds) || 300, 30)
       let renewIntervalSeconds = configRenewIntervalSeconds
+
       if (renewIntervalSeconds > 0) {
         const maxSafeRenew = Math.max(leaseSeconds - 5, 15)
+
         renewIntervalSeconds = Math.min(Math.max(renewIntervalSeconds, 15), maxSafeRenew)
       } else {
         renewIntervalSeconds = 0
@@ -625,6 +652,7 @@ const authenticateApiKey = async (req, res, next) => {
         requestId,
         leaseSeconds
       )
+
       hasConcurrencySlot = true
       setTemporaryConcurrencyCleanup()
       logger.api(
@@ -656,6 +684,7 @@ const authenticateApiKey = async (req, res, next) => {
           )
           // 建议客户端在短暂延迟后重试（并发场景下通常很快会有槽位释放）
           res.set('Retry-After', '1')
+
           return res.status(429).json({
             error: 'Concurrency limit exceeded',
             message: `Too many concurrent requests. Limit: ${concurrencyLimit} concurrent requests`,
@@ -678,9 +707,11 @@ const authenticateApiKey = async (req, res, next) => {
           queueConfig,
           maxQueueSize
         )
+
         if (overloadCheck.reject) {
           // 使用健康检查返回的当前排队数，避免重复调用 Redis
           const currentQueueCount = overloadCheck.currentQueueCount || 0
+
           logger.api(
             `🚨 Queue overloaded for key: ${validation.keyData.id} (${validation.keyData.name}), ` +
               `P90=${overloadCheck.estimatedWaitMs}ms, timeout=${overloadCheck.timeoutMs}ms, ` +
@@ -693,7 +724,9 @@ const authenticateApiKey = async (req, res, next) => {
             .catch((e) => logger.warn('Failed to record rejected_overload stat:', e))
           // 返回 429 + Retry-After，让客户端稍后重试
           const retryAfterSeconds = 30
+
           res.set('Retry-After', String(retryAfterSeconds))
+
           return res.status(429).json({
             error: 'Queue overloaded',
             message: `Queue is overloaded. Estimated wait time (${overloadCheck.estimatedWaitMs}ms) exceeds threshold. Limit: ${concurrencyLimit} concurrent requests, queue: ${currentQueueCount}/${maxQueueSize}. Please retry later.`,
@@ -710,11 +743,13 @@ const authenticateApiKey = async (req, res, next) => {
 
         // 5. 尝试进入排队（原子操作：先增加再检查，避免竞态条件）
         let queueIncremented = false
+
         try {
           const newQueueCount = await redis.incrConcurrencyQueue(
             validation.keyData.id,
             queueConfig.concurrentRequestQueueTimeoutMs
           )
+
           queueIncremented = true
 
           if (newQueueCount > maxQueueSize) {
@@ -727,7 +762,9 @@ const authenticateApiKey = async (req, res, next) => {
             )
             // 队列已满，建议客户端在排队超时时间后重试
             const retryAfterSeconds = Math.ceil(queueConfig.concurrentRequestQueueTimeoutMs / 1000)
+
             res.set('Retry-After', String(retryAfterSeconds))
+
             return res.status(429).json({
               error: 'Concurrency queue full',
               message: `Too many requests waiting in queue. Limit: ${concurrencyLimit} concurrent requests, queue: ${newQueueCount - 1}/${maxQueueSize}, timeout: ${retryAfterSeconds}s`,
@@ -795,6 +832,7 @@ const authenticateApiKey = async (req, res, next) => {
               logger.api(
                 `🔌 Client disconnected while queuing for key: ${validation.keyData.id} (${validation.keyData.name})`
               )
+
               return
             }
 
@@ -803,6 +841,7 @@ const authenticateApiKey = async (req, res, next) => {
               logger.error(
                 `❌ Redis error during queue wait for key: ${validation.keyData.id} (${validation.keyData.name})`
               )
+
               return res.status(503).json({
                 error: 'Service temporarily unavailable',
                 message: 'Failed to acquire concurrency slot due to internal error'
@@ -820,7 +859,9 @@ const authenticateApiKey = async (req, res, next) => {
             // - 最小值 5 秒，最大值 30 秒，避免极端情况
             const timeoutSeconds = Math.ceil(queueConfig.concurrentRequestQueueTimeoutMs / 1000)
             const retryAfterSeconds = Math.max(5, Math.min(30, Math.ceil(timeoutSeconds / 2)))
+
             res.set('Retry-After', String(retryAfterSeconds))
+
             return res.status(429).json({
               error: 'Queue timeout',
               message: `Request timed out waiting for concurrency slot. Limit: ${concurrencyLimit} concurrent requests, maxQueue: ${maxQueueSize}, Queue timeout: ${timeoutSeconds}s, waited: ${slot.waitTimeMs}ms`,
@@ -846,6 +887,7 @@ const authenticateApiKey = async (req, res, next) => {
           // 但 TCP 连接仍然存活。此时继续处理请求是浪费资源。
           // 注意：如果发送了心跳，headersSent 会是 true，但这是正常的
           const postQueueSocket = req.socket
+
           // 只检查连接是否真正断开（destroyed/writableEnded/socketDestroyed）
           // headersSent 在心跳场景下是正常的，不应该作为放弃的依据
           if (res.destroyed || res.writableEnded || postQueueSocket?.destroyed) {
@@ -859,6 +901,7 @@ const authenticateApiKey = async (req, res, next) => {
             await redis
               .decrConcurrency(validation.keyData.id, requestId)
               .catch((e) => logger.error('Failed to release slot after client abandoned:', e))
+
             // 不返回响应（客户端已不在等待）
             return
           }
@@ -890,6 +933,7 @@ const authenticateApiKey = async (req, res, next) => {
             redis
               .incrConcurrencyQueueStats(validation.keyData.id, 'socket_changed')
               .catch((e) => logger.warn('Failed to record socket_changed stat:', e))
+
             // 不返回响应（socket 已被其他请求使用）
             return
           }
@@ -955,6 +999,7 @@ const authenticateApiKey = async (req, res, next) => {
                 )
               })
             }
+
             return
           }
 
@@ -983,6 +1028,7 @@ const authenticateApiKey = async (req, res, next) => {
           }
           try {
             const newCount = await redis.decrConcurrency(validation.keyData.id, requestId)
+
             logger.api(
               `📉 Decremented concurrency for key: ${validation.keyData.id} (${validation.keyData.name}), new count: ${newCount}`
             )
@@ -991,6 +1037,7 @@ const authenticateApiKey = async (req, res, next) => {
           }
         }
       }
+
       // 升级为完整清理函数（包含 leaseRenewInterval 清理逻辑）
       // 此时请求已通过认证，后续由 res.close/req.close 事件触发清理
       if (hasConcurrencySlot) {
@@ -1123,6 +1170,7 @@ const authenticateApiKey = async (req, res, next) => {
 
       // 兼容性检查：优先使用Token限制（历史数据），否则使用费用限制
       const tokenLimit = parseInt(validation.keyData.tokenLimit)
+
       if (tokenLimit > 0) {
         // 使用Token限制（向后兼容）
         if (currentTokens >= tokenLimit) {
@@ -1186,6 +1234,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     // 检查每日费用限制
     const dailyCostLimit = validation.keyData.dailyCostLimit || 0
+
     if (dailyCostLimit > 0) {
       const dailyCost = validation.keyData.dailyCost || 0
 
@@ -1219,6 +1268,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     // 检查总费用限制
     const totalCostLimit = validation.keyData.totalCostLimit || 0
+
     if (totalCostLimit > 0) {
       const totalCost = validation.keyData.totalCost || 0
 
@@ -1250,6 +1300,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     // 检查 Claude 周费用限制
     const weeklyOpusCostLimit = validation.keyData.weeklyOpusCostLimit || 0
+
     if (weeklyOpusCostLimit > 0) {
       // 从请求中获取模型信息
       const requestBody = req.body || {}
@@ -1324,6 +1375,7 @@ const authenticateApiKey = async (req, res, next) => {
 
     const authDuration = Date.now() - startTime
     const userAgent = req.headers['user-agent'] || 'No User-Agent'
+
     logger.api(
       `🔓 Authenticated request from key: ${validation.keyData.name} (${validation.keyData.id}) in ${authDuration}ms`
     )
@@ -1333,6 +1385,7 @@ const authenticateApiKey = async (req, res, next) => {
   } catch (error) {
     authErrored = true
     const authDuration = Date.now() - startTime
+
     logger.error(`❌ Authentication middleware error (${authDuration}ms):`, {
       error: error.message,
       stack: error.stack,
@@ -1369,6 +1422,7 @@ const authenticateAdmin = async (req, res, next) => {
 
     if (!token) {
       logger.security(`Missing admin token attempt from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Missing admin token',
         message: 'Please provide an admin token'
@@ -1378,6 +1432,7 @@ const authenticateAdmin = async (req, res, next) => {
     // 基本token格式验证
     if (typeof token !== 'string' || token.length < 32 || token.length > 512) {
       logger.security(`Invalid admin token format from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Invalid admin token format',
         message: 'Admin token format is invalid'
@@ -1394,6 +1449,7 @@ const authenticateAdmin = async (req, res, next) => {
 
     if (!adminSession || Object.keys(adminSession).length === 0) {
       logger.security(`Invalid admin token attempt from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Invalid admin token',
         message: 'Invalid or expired admin session'
@@ -1406,6 +1462,7 @@ const authenticateAdmin = async (req, res, next) => {
         `🔒 Corrupted admin session from ${req.ip || 'unknown'} - missing required fields (username: ${!!adminSession.username}, loginTime: ${!!adminSession.loginTime})`
       )
       await redis.deleteSession(token) // 清理无效/伪造的会话
+
       return res.status(401).json({
         error: 'Invalid session',
         message: 'Session data corrupted or incomplete'
@@ -1423,6 +1480,7 @@ const authenticateAdmin = async (req, res, next) => {
         `🔒 Expired admin session for ${adminSession.username} from ${req.ip || 'unknown'}`
       )
       await redis.deleteSession(token) // 清理过期会话
+
       return res.status(401).json({
         error: 'Session expired',
         message: 'Admin session has expired due to inactivity'
@@ -1451,12 +1509,14 @@ const authenticateAdmin = async (req, res, next) => {
     }
 
     const authDuration = Date.now() - startTime
+
     req._authInfo = `${adminSession.username} ${authDuration}ms`
     logger.security(`Admin authenticated: ${adminSession.username} in ${authDuration}ms`)
 
     return next()
   } catch (error) {
     const authDuration = Date.now() - startTime
+
     logger.error(`❌ Admin authentication error (${authDuration}ms):`, {
       error: error.message,
       ip: req.ip,
@@ -1484,6 +1544,7 @@ const authenticateUser = async (req, res, next) => {
 
     if (!sessionToken) {
       logger.security(`Missing user session token attempt from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Missing user session token',
         message: 'Please login to access this resource'
@@ -1493,6 +1554,7 @@ const authenticateUser = async (req, res, next) => {
     // 基本token格式验证
     if (typeof sessionToken !== 'string' || sessionToken.length < 32 || sessionToken.length > 128) {
       logger.security(`Invalid user session token format from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Invalid session token format',
         message: 'Session token format is invalid'
@@ -1504,6 +1566,7 @@ const authenticateUser = async (req, res, next) => {
 
     if (!sessionValidation) {
       logger.security(`Invalid user session token attempt from ${req.ip || 'unknown'}`)
+
       return res.status(401).json({
         error: 'Invalid session token',
         message: 'Invalid or expired user session'
@@ -1517,6 +1580,7 @@ const authenticateUser = async (req, res, next) => {
       logger.security(
         `🔒 Disabled user login attempt: ${user.username} from ${req.ip || 'unknown'}`
       )
+
       return res.status(403).json({
         error: 'Account disabled',
         message: 'Your account has been disabled. Please contact administrator.'
@@ -1537,11 +1601,13 @@ const authenticateUser = async (req, res, next) => {
     }
 
     const authDuration = Date.now() - startTime
+
     logger.info(`👤 User authenticated: ${user.username} (${user.id}) in ${authDuration}ms`)
 
     return next()
   } catch (error) {
     const authDuration = Date.now() - startTime
+
     logger.error(`❌ User authentication error (${authDuration}ms):`, {
       error: error.message,
       ip: req.ip,
@@ -1577,6 +1643,7 @@ const authenticateUserOrAdmin = async (req, res, next) => {
     if (adminToken) {
       try {
         const adminSession = await redis.getSession(adminToken)
+
         if (adminSession && Object.keys(adminSession).length > 0) {
           // 🔒 安全修复：验证会话必须字段（与 authenticateAdmin 保持一致）
           if (!adminSession.username || !adminSession.loginTime) {
@@ -1594,8 +1661,10 @@ const authenticateUserOrAdmin = async (req, res, next) => {
             req.userType = 'admin'
 
             const authDuration = Date.now() - startTime
+
             req._authInfo = `${adminSession.username} ${authDuration}ms`
             logger.security(`Admin authenticated: ${adminSession.username} in ${authDuration}ms`)
+
             return next()
           }
         }
@@ -1608,6 +1677,7 @@ const authenticateUserOrAdmin = async (req, res, next) => {
     if (userToken) {
       try {
         const sessionValidation = await userService.validateUserSession(userToken)
+
         if (sessionValidation) {
           const { session, user } = sessionValidation
 
@@ -1626,7 +1696,9 @@ const authenticateUserOrAdmin = async (req, res, next) => {
             req.userType = 'user'
 
             const authDuration = Date.now() - startTime
+
             logger.info(`👤 User authenticated: ${user.username} (${user.id}) in ${authDuration}ms`)
+
             return next()
           }
         }
@@ -1637,12 +1709,14 @@ const authenticateUserOrAdmin = async (req, res, next) => {
 
     // 如果都失败了，返回未授权
     logger.security(`Authentication failed from ${req.ip || 'unknown'}`)
+
     return res.status(401).json({
       error: 'Authentication required',
       message: 'Please login as user or admin to access this resource'
     })
   } catch (error) {
     const authDuration = Date.now() - startTime
+
     logger.error(`❌ User/Admin authentication error (${authDuration}ms):`, {
       error: error.message,
       ip: req.ip,
@@ -1675,6 +1749,7 @@ const requireRole = (allowedRoles) => (req, res, next) => {
       logger.security(
         `🚫 Access denied for user ${req.user.username} (role: ${userRole}) to ${req.originalUrl}`
       )
+
       return res.status(403).json({
         error: 'Insufficient permissions',
         message: `This resource requires one of the following roles: ${allowed.join(', ')}`
@@ -1702,6 +1777,7 @@ const requireAdmin = (req, res, next) => {
   logger.security(
     `🚫 Admin access denied for ${req.user?.username || 'unknown'} from ${req.ip || 'unknown'}`
   )
+
   return res.status(403).json({
     error: 'Admin access required',
     message: 'This resource requires administrator privileges'
@@ -1778,6 +1854,7 @@ const requestLogger = (req, res, next) => {
 
   // 请求开始 → debug 级别（减少正常请求的日志量）
   const isDebugRoute = req.originalUrl.includes('event_logging')
+
   if (req.originalUrl !== '/health') {
     logger.debug(`▶ [${requestId}] ${req.method} ${req.originalUrl}`, {
       ip: clientIP,
@@ -1787,8 +1864,10 @@ const requestLogger = (req, res, next) => {
 
   // 拦截 res.json() 捕获响应体
   const originalJson = res.json.bind(res)
+
   res.json = (body) => {
     res._responseBody = body
+
     return originalJson(body)
   }
 
@@ -1817,6 +1896,7 @@ const requestLogger = (req, res, next) => {
 
     // 查询参数（GET 请求且有查询参数时单独显示）
     const queryIdx = req.originalUrl.indexOf('?')
+
     if (queryIdx > -1) {
       meta.query = req.originalUrl.substring(queryIdx + 1)
     }
@@ -1855,6 +1935,7 @@ const requestLogger = (req, res, next) => {
 
   res.on('error', (error) => {
     const duration = Date.now() - start
+
     logger.error(`💥 [${requestId}] Response error after ${duration}ms:`, error)
   })
 
@@ -2083,6 +2164,7 @@ const requestSizeLimit = (req, res, next) => {
 
   if (contentLength > maxSize) {
     logger.security(`🚨 Request too large: ${contentLength} bytes from ${req.ip}`)
+
     return res.status(413).json({
       error: 'Payload Too Large',
       message: 'Request body size exceeds limit',

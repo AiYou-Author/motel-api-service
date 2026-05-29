@@ -377,6 +377,7 @@ const permissionsDisplay = computed(() => {
   if (!Array.isArray(permissions.value) || permissions.value.length === 0) {
     return '全部'
   }
+
   return permissions.value.join(', ')
 })
 
@@ -404,16 +405,19 @@ const hasLimits = computed(() => {
 
 const dailyCostPercentage = computed(() => {
   if (!props.apiKey.dailyCostLimit || props.apiKey.dailyCostLimit === 0) return 0
+
   return (dailyCost.value / props.apiKey.dailyCostLimit) * 100
 })
 
 const totalUsagePercentage = computed(() => {
   if (!totalCostLimit.value || totalCostLimit.value === 0) return 0
+
   return (totalCost.value / totalCostLimit.value) * 100
 })
 
 const opusUsagePercentage = computed(() => {
   if (!weeklyOpusCostLimit.value || weeklyOpusCostLimit.value === 0) return 0
+
   return (weeklyOpusCost.value / weeklyOpusCostLimit.value) * 100
 })
 
@@ -426,6 +430,7 @@ const formatTokenCount = (count) => {
   } else if (count >= 1000) {
     return (count / 1000).toFixed(1) + 'K'
   }
+
   return count.toString()
 }
 

@@ -29,12 +29,14 @@ function parseVendorPrefixedModel(modelStr) {
     }
 
     const parts = trimmed.split(',')
+
     if (parts.length < 2) {
       break
     }
 
     // Extract base model (everything after the first comma, rejoined in case model name contains commas)
     const baseModel = parts.slice(1).join(',').trim()
+
     return {
       vendor: vendorPrefix,
       baseModel
@@ -55,6 +57,7 @@ function parseVendorPrefixedModel(modelStr) {
  */
 function hasVendorPrefix(modelStr) {
   const { vendor } = parseVendorPrefixedModel(modelStr)
+
   return vendor !== null
 }
 
@@ -66,6 +69,7 @@ function hasVendorPrefix(modelStr) {
  */
 function getEffectiveModel(modelStr) {
   const { baseModel } = parseVendorPrefixedModel(modelStr)
+
   return baseModel
 }
 
@@ -76,6 +80,7 @@ function getEffectiveModel(modelStr) {
  */
 function getVendorType(modelStr) {
   const { vendor } = parseVendorPrefixedModel(modelStr)
+
   return vendor
 }
 
@@ -101,6 +106,7 @@ function isOpus45OrNewer(modelName) {
   }
 
   const lowerModel = modelName.toLowerCase()
+
   if (!lowerModel.includes('opus')) {
     return false
   }
@@ -113,6 +119,7 @@ function isOpus45OrNewer(modelName) {
   // Old format: claude-{version}-opus (version before opus)
   // e.g., claude-3-opus-20240229, claude-3.5-opus
   const oldFormatMatch = lowerModel.match(/claude[- ](\d+)(?:[.-](\d+))?[- ]opus/)
+
   if (oldFormatMatch) {
     const majorVersion = parseInt(oldFormatMatch[1], 10)
     const minorVersion = oldFormatMatch[2] ? parseInt(oldFormatMatch[2], 10) : 0
@@ -127,12 +134,14 @@ function isOpus45OrNewer(modelName) {
     if (majorVersion === 4 && minorVersion >= 5) {
       return true
     }
+
     return false
   }
 
   // New format 1: opus-{major}.{minor} (dot-separated)
   // e.g., claude-opus-4.5, opus-4.5
   const dotFormatMatch = lowerModel.match(/opus[- ]?(\d+)\.(\d+)/)
+
   if (dotFormatMatch) {
     const majorVersion = parseInt(dotFormatMatch[1], 10)
     const minorVersion = parseInt(dotFormatMatch[2], 10)
@@ -147,6 +156,7 @@ function isOpus45OrNewer(modelName) {
     if (majorVersion === 4 && minorVersion >= 5) {
       return true
     }
+
     return false
   }
 
@@ -181,6 +191,7 @@ function isOpus45OrNewer(modelName) {
     if (majorVersion === 4 && minorVersion >= 5) {
       return true
     }
+
     return false
   }
 
@@ -205,6 +216,7 @@ function isClaudeFamilyModel(modelName) {
 
   const { baseModel } = parseVendorPrefixedModel(modelName)
   const m = (baseModel || '').trim().toLowerCase()
+
   if (!m) {
     return false
   }

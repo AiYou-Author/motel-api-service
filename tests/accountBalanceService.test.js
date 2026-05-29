@@ -45,6 +45,7 @@ describe('AccountBalanceService', () => {
 
   it('should normalize platform aliases', () => {
     const service = new AccountBalanceService({ redis: buildMockRedis(), logger: mockLogger })
+
     expect(service.normalizePlatform('claude-official')).toBe('claude')
     expect(service.normalizePlatform('azure-openai')).toBe('azure_openai')
     expect(service.normalizePlatform('gemini-api')).toBe('gemini-api')
@@ -73,6 +74,7 @@ describe('AccountBalanceService', () => {
 
   it('should use cached balance when account has no dailyQuota', async () => {
     const mockRedis = buildMockRedis()
+
     mockRedis.getAccountBalance.mockResolvedValue({
       status: 'success',
       balance: 12.34,
@@ -84,6 +86,7 @@ describe('AccountBalanceService', () => {
     })
 
     const service = new AccountBalanceService({ redis: mockRedis, logger: mockLogger })
+
     service._computeMonthlyCost = jest.fn().mockResolvedValue(0)
     service._computeTotalCost = jest.fn().mockResolvedValue(0)
 
@@ -127,15 +130,18 @@ describe('AccountBalanceService', () => {
     process.env.BALANCE_SCRIPT_ENABLED = 'false'
 
     const mockRedis = buildMockRedis()
+
     mockRedis.getBalanceScriptConfig.mockResolvedValue({
       scriptBody: '({ request: { url: "http://example.com" }, extractor: function(){ return {} } })'
     })
 
     const service = new AccountBalanceService({ redis: mockRedis, logger: mockLogger })
+
     service._computeMonthlyCost = jest.fn().mockResolvedValue(0)
     service._computeTotalCost = jest.fn().mockResolvedValue(0)
 
     const provider = { queryBalance: jest.fn().mockResolvedValue({ balance: 1, currency: 'USD' }) }
+
     service.registerProvider('openai', provider)
 
     const scriptSpy = jest.spyOn(service, '_getBalanceFromScript')
@@ -155,15 +161,18 @@ describe('AccountBalanceService', () => {
     process.env.BALANCE_SCRIPT_ENABLED = 'true'
 
     const mockRedis = buildMockRedis()
+
     mockRedis.getBalanceScriptConfig.mockResolvedValue({
       scriptBody: '({ request: { url: "http://example.com" }, extractor: function(){ return {} } })'
     })
 
     const service = new AccountBalanceService({ redis: mockRedis, logger: mockLogger })
+
     service._computeMonthlyCost = jest.fn().mockResolvedValue(0)
     service._computeTotalCost = jest.fn().mockResolvedValue(0)
 
     const provider = { queryBalance: jest.fn().mockResolvedValue({ balance: 2, currency: 'USD' }) }
+
     service.registerProvider('openai', provider)
 
     jest.spyOn(service, '_getBalanceFromScript').mockResolvedValue({
@@ -212,6 +221,7 @@ describe('AccountBalanceService', () => {
     })
 
     const summary = await service.getBalanceSummary()
+
     expect(summary.lowBalanceCount).toBe(1)
     expect(summary.platforms['claude-console'].lowBalanceCount).toBe(1)
   })

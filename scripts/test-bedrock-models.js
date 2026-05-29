@@ -8,6 +8,7 @@ async function testBedrockModels() {
 
     // 测试可用模型列表
     const models = await bedrockRelayService.getAvailableModels()
+
     console.log(`📋 找到 ${models.length} 个可用模型:`)
     models.forEach((model) => {
       console.log(`  - ${model.id} (${model.name})`)

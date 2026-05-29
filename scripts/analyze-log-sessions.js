@@ -30,9 +30,11 @@ class LogSessionAnalyzer {
   // 解析时间戳
   parseTimestamp(line) {
     const match = line.match(this.timestampPattern)
+
     if (match) {
       return new Date(match[1])
     }
+
     return null
   }
 
@@ -62,12 +64,14 @@ class LogSessionAnalyzer {
 
       // 解析时间戳
       const timestamp = this.parseTimestamp(line)
+
       if (!timestamp) {
         continue
       }
 
       // 查找账户使用记录
       const accountUsageMatch = line.match(this.accountUsagePattern)
+
       if (accountUsageMatch) {
         const accountName = accountUsageMatch[1]
         const accountId = accountUsageMatch[2]
@@ -86,6 +90,7 @@ class LogSessionAnalyzer {
         }
 
         const account = this.accounts.get(accountId)
+
         account.sessions.add(sessionId)
 
         if (timestamp < account.firstRequest) {
@@ -98,6 +103,7 @@ class LogSessionAnalyzer {
 
       // 查找请求处理记录
       const processingMatch = line.match(this.processingPattern)
+
       if (processingMatch) {
         const apiKeyName = processingMatch[1]
         const accountId = processingMatch[2]
@@ -116,6 +122,7 @@ class LogSessionAnalyzer {
         }
 
         const account = this.accounts.get(accountId)
+
         account.requests.push({
           timestamp,
           apiKeyName,
@@ -143,6 +150,7 @@ class LogSessionAnalyzer {
 
       // 查找请求完成记录
       const completedMatch = line.match(this.completedPattern)
+
       if (completedMatch) {
         const duration = parseInt(completedMatch[1])
         const apiKeyName = completedMatch[2]
@@ -158,6 +166,7 @@ class LogSessionAnalyzer {
 
       // 查找使用统计记录
       const usageMatch = line.match(this.usageRecordedPattern)
+
       if (usageMatch) {
         const model = usageMatch[1]
         const inputTokens = parseInt(usageMatch[2])
@@ -208,6 +217,7 @@ class LogSessionAnalyzer {
 
       if (logFiles.length === 0) {
         console.log('❌ 没有找到日志文件')
+
         return
       }
 
@@ -218,6 +228,7 @@ class LogSessionAnalyzer {
       // 分析每个文件
       for (const file of logFiles) {
         const filePath = path.join(logDir, file)
+
         await this.analyzeLogFile(filePath)
       }
     } catch (error) {
@@ -233,6 +244,7 @@ class LogSessionAnalyzer {
     try {
       if (!fs.existsSync(filePath)) {
         console.log('❌ 文件不存在')
+
         return
       }
 
@@ -249,9 +261,11 @@ class LogSessionAnalyzer {
     const windowStartHour = Math.floor(hour / 5) * 5
 
     const windowStart = new Date(requestTime)
+
     windowStart.setHours(windowStartHour, 0, 0, 0)
 
     const windowEnd = new Date(windowStart)
+
     windowEnd.setHours(windowEnd.getHours() + 5)
 
     return { windowStart, windowEnd }
@@ -330,14 +344,17 @@ class LogSessionAnalyzer {
           result.currentActiveWindow.windowStart,
           result.currentActiveWindow.windowEnd
         )
+
         console.log(`       窗口进度: ${progress}%`)
       } else if (result.mostRecentWindow) {
         const window = result.mostRecentWindow
+
         console.log(
           `   ⏰ 最近窗口(已过期): ${window.windowStart.toLocaleString()} - ${window.windowEnd.toLocaleString()}`
         )
         console.log(`       窗口内请求: ${window.requests.length} 次`)
         const hoursAgo = Math.round((new Date() - window.windowEnd) / (1000 * 60 * 60))
+
         console.log(`       过期时间: ${hoursAgo} 小时前`)
       } else {
         console.log('   ❌ 无会话窗口数据')
@@ -347,9 +364,11 @@ class LogSessionAnalyzer {
       if (result.windows.length > 1) {
         console.log(`   📈 历史窗口: ${result.windows.length} 个`)
         const recentWindows = result.windows.slice(0, 3)
+
         for (let i = 0; i < recentWindows.length; i++) {
           const window = recentWindows[i]
           const status = window.isActive ? '活跃' : '已过期'
+
           console.log(
             `      ${i + 1}. ${window.windowStart.toLocaleString()} - ${window.windowEnd.toLocaleString()} (${status}, ${window.requests.length}次请求)`
           )
@@ -358,6 +377,7 @@ class LogSessionAnalyzer {
 
       // 显示最近几个会话的API Key使用情况
       const accountData = this.accounts.get(result.accountId)
+
       if (accountData && accountData.requests && accountData.requests.length > 0) {
         const apiKeyStats = {}
 
@@ -386,6 +406,7 @@ class LogSessionAnalyzer {
     const now = new Date()
     const totalDuration = windowEnd.getTime() - windowStart.getTime()
     const elapsedTime = now.getTime() - windowStart.getTime()
+
     return Math.max(0, Math.min(100, Math.round((elapsedTime / totalDuration) * 100)))
   }
 
@@ -492,6 +513,7 @@ class LogSessionAnalyzer {
 
       if (this.accounts.size === 0) {
         console.log('❌ 没有找到任何Claude账户的请求记录')
+
         return []
       }
 
@@ -589,6 +611,7 @@ async function main() {
     const options = parseArgs()
 
     const analyzer = new LogSessionAnalyzer()
+
     await analyzer.analyze(options)
 
     console.log('🎉 分析完成')

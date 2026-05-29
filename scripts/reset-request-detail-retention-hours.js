@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 let dotenvLoaded = false
+
 try {
   require('dotenv').config()
   dotenvLoaded = true
@@ -18,8 +19,10 @@ const SCAN_COUNT = 200
 
 const args = process.argv.slice(2)
 const params = {}
+
 args.forEach((arg) => {
   const [key, value] = arg.split('=')
+
   params[key.replace(/^--/, '')] = value ?? true
 })
 
@@ -46,6 +49,7 @@ async function scanRequestDetailKeys(client) {
       'COUNT',
       SCAN_COUNT
     )
+
     cursor = nextCursor
     if (Array.isArray(batch) && batch.length > 0) {
       keys.push(...batch)
@@ -94,12 +98,14 @@ async function resetRequestDetailRetentionHours() {
       updatedAt: new Date().toISOString(),
       updatedBy: 'request-detail-retention-hours-reset-script'
     }
+
     delete nextConfig.requestDetailRetentionDays
 
     if (!isDryRun) {
       if (requestDetailKeys.length > 0) {
         for (let index = 0; index < requestDetailKeys.length; index += SCAN_COUNT) {
           const batch = requestDetailKeys.slice(index, index + SCAN_COUNT)
+
           // Use UNLINK to avoid blocking Redis with a large DEL.
           await client.unlink(...batch)
         }

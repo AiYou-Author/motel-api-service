@@ -329,15 +329,18 @@ const platformTabs = [
 // 各平台分组数量
 const platformCounts = computed(() => {
   const counts = { all: groups.value.length }
+
   platformTabs.slice(1).forEach((tab) => {
     counts[tab.key] = groups.value.filter((g) => g.platform === tab.key).length
   })
+
   return counts
 })
 
 // 过滤后的分组列表
 const filteredGroups = computed(() => {
   if (activeTab.value === 'all') return groups.value
+
   return groups.value.filter((g) => g.platform === activeTab.value)
 })
 
@@ -371,6 +374,7 @@ const loadGroups = async () => {
   loading.value = true
   try {
     const response = await httpApis.getAccountGroupsApi()
+
     groups.value = response.data || []
   } catch (error) {
     showToast('加载分组列表失败', 'error')
@@ -383,6 +387,7 @@ const loadGroups = async () => {
 const createGroup = async () => {
   if (!createForm.value.name || !createForm.value.platform) {
     showToast('请填写必填项', 'error')
+
     return
   }
 
@@ -436,6 +441,7 @@ const editGroup = (group) => {
 const updateGroup = async () => {
   if (!editForm.value.name) {
     showToast('请填写分组名称', 'error')
+
     return
   }
 
@@ -472,6 +478,7 @@ const cancelEdit = () => {
 const deleteGroup = (group) => {
   if (group.memberCount > 0) {
     showToast('分组内还有成员，无法删除', 'error')
+
     return
   }
   deletingGroup.value = group

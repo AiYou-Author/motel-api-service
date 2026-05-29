@@ -18,6 +18,7 @@ class ModelService {
       (sum, config) => sum + config.models.length,
       0
     )
+
     logger.success(`Model service initialized with ${totalModels} models`)
   }
 
@@ -102,6 +103,7 @@ class ModelService {
       try {
         const pricingService = require('./pricingService')
         const custom = pricingService.customPricing || {}
+
         for (const [modelId, info] of Object.entries(custom)) {
           if (seen.has(modelId)) {
             continue
@@ -124,6 +126,7 @@ class ModelService {
       if (a.owned_by !== b.owned_by) {
         return a.owned_by.localeCompare(b.owned_by)
       }
+
       return a.id.localeCompare(b.id)
     })
   }
@@ -152,6 +155,7 @@ class ModelService {
     const collectFromAccount = async (accountId) => {
       try {
         const acc = await claudeConsoleAccountService.getAccount(accountId)
+
         if (!acc) {
           return { unrestricted: false, models: [] }
         }
@@ -165,6 +169,7 @@ class ModelService {
           // 尝试 JSON 解析
           try {
             const parsed = JSON.parse(sm)
+
             if (Array.isArray(parsed)) {
               list = parsed
             } else if (parsed && typeof parsed === 'object') {
@@ -186,9 +191,11 @@ class ModelService {
         if (list.length === 0) {
           return { unrestricted: true, models: [] }
         }
+
         return { unrestricted: false, models: list }
       } catch (e) {
         logger.warn(`⚠️  resolveAllowedModelsForApiKey 读取账号 ${accountId} 失败: ${e.message}`)
+
         return { unrestricted: false, models: [] }
       }
     }
@@ -197,14 +204,17 @@ class ModelService {
     const resolveGroup = async (groupId) => {
       try {
         const memberIds = await accountGroupService.getGroupMembers(groupId)
+
         if (!Array.isArray(memberIds) || memberIds.length === 0) {
           return null
         }
 
         const union = new Set()
         let sawConsole = false
+
         for (const memberId of memberIds) {
           const r = await collectFromAccount(memberId)
+
           if (r.models.length === 0 && !r.unrestricted) {
             // 非 claude-console 成员（取不到）忽略
             continue
@@ -218,9 +228,11 @@ class ModelService {
         if (!sawConsole) {
           return null
         }
+
         return union.size > 0 ? union : null
       } catch (e) {
         logger.warn(`⚠️  resolveAllowedModelsForApiKey 解析分组 ${groupId} 失败: ${e.message}`)
+
         return null
       }
     }
@@ -230,19 +242,23 @@ class ModelService {
       // 可能是 "group:xxx" 或直接账号 ID
       if (apiKey.claudeConsoleAccountId.startsWith('group:')) {
         const groupId = apiKey.claudeConsoleAccountId.replace('group:', '')
+
         return await resolveGroup(groupId)
       }
       // 直接账号 ID
       const r = await collectFromAccount(apiKey.claudeConsoleAccountId)
+
       if (r.unrestricted) {
         return null
       }
+
       return r.models.length > 0 ? new Set(r.models) : null
     }
 
     // 2) 回退：账号组（claudeAccountId 以 "group:" 开头）
     if (typeof apiKey.claudeAccountId === 'string' && apiKey.claudeAccountId.startsWith('group:')) {
       const groupId = apiKey.claudeAccountId.replace('group:', '')
+
       return await resolveGroup(groupId)
     }
 
@@ -265,6 +281,7 @@ class ModelService {
     if (!modelId) {
       return false
     }
+
     return this.getAllModels().some((m) => m.id === modelId)
   }
 
@@ -274,6 +291,7 @@ class ModelService {
    */
   getModelProvider(modelId) {
     const model = this.getAllModels().find((m) => m.id === modelId)
+
     return model ? model.owned_by : null
   }
 

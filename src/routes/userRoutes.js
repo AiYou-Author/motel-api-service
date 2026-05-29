@@ -45,6 +45,7 @@ function initRateLimiters() {
       // 速率限制器初始化失败时继续运行，但记录错误
     }
   }
+
   return { ipRateLimiter, strictIpRateLimiter }
 }
 
@@ -66,6 +67,7 @@ router.post('/register', async (req, res) => {
     }
 
     let validatedUsername
+
     try {
       validatedUsername = inputValidator.validateUsername(username)
       inputValidator.validatePassword(password)
@@ -122,8 +124,10 @@ router.post('/login', async (req, res) => {
         await limiters.ipRateLimiter.consume(clientIp)
       } catch (rateLimiterRes) {
         const retryAfter = Math.round(rateLimiterRes.msBeforeNext / 1000) || 900
+
         logger.security(`🚫 Login rate limit exceeded for IP: ${clientIp}`)
         res.set('Retry-After', String(retryAfter))
+
         return res.status(429).json({
           error: 'Too many requests',
           message: `Too many login attempts from this IP. Please try again later.`
@@ -137,8 +141,10 @@ router.post('/login', async (req, res) => {
         await limiters.strictIpRateLimiter.consume(clientIp)
       } catch (rateLimiterRes) {
         const retryAfter = Math.round(rateLimiterRes.msBeforeNext / 1000) || 3600
+
         logger.security(`🚫 Strict rate limit exceeded for IP: ${clientIp} - possible brute force`)
         res.set('Retry-After', String(retryAfter))
+
         return res.status(429).json({
           error: 'Too many requests',
           message: 'Too many login attempts detected. Access temporarily blocked.'
@@ -155,6 +161,7 @@ router.post('/login', async (req, res) => {
 
     // 验证输入格式
     let validatedUsername
+
     try {
       validatedUsername = inputValidator.validateUsername(username)
       inputValidator.validatePassword(password)
@@ -178,8 +185,10 @@ router.post('/login', async (req, res) => {
     if (config.ldap && config.ldap.enabled) {
       // LDAP 认证路径
       const authResult = await ldapService.authenticateUserCredentials(validatedUsername, password)
+
       if (!authResult.success) {
         logger.info(`🚫 Failed LDAP login for user: ${validatedUsername} from IP: ${clientIp}`)
+
         return res.status(401).json({ error: 'Authentication failed', message: authResult.message })
       }
       authUser = authResult.user
@@ -187,8 +196,10 @@ router.post('/login', async (req, res) => {
     } else {
       // 原生密码认证路径
       const user = await userService.authenticateNative(validatedUsername, password)
+
       if (!user) {
         logger.info(`🚫 Failed native login for user: ${validatedUsername} from IP: ${clientIp}`)
+
         return res
           .status(401)
           .json({ error: 'Authentication failed', message: 'Invalid username or password' })
@@ -247,6 +258,7 @@ router.post('/logout', authenticateUser, async (req, res) => {
 router.get('/profile', authenticateUser, async (req, res) => {
   try {
     const user = await userService.getUserById(req.user.id)
+
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -375,6 +387,7 @@ router.post('/api-keys', authenticateUser, async (req, res) => {
 
     // 检查用户API Key数量限制
     const userApiKeys = await apiKeyService.getUserApiKeys(req.user.id)
+
     if (userApiKeys.length >= config.userManagement.maxApiKeysPerUser) {
       return res.status(400).json({
         error: 'API key limit exceeded',
@@ -444,6 +457,7 @@ router.delete('/api-keys/:keyId', authenticateUser, async (req, res) => {
 
     // 检查API Key是否属于当前用户
     const existingKey = await apiKeyService.getApiKeyById(keyId)
+
     if (!existingKey || existingKey.userId !== req.user.id) {
       return res.status(404).json({
         error: 'API key not found',
@@ -455,6 +469,7 @@ router.delete('/api-keys/:keyId', authenticateUser, async (req, res) => {
 
     // 更新用户API Key数量
     const userApiKeys = await apiKeyService.getUserApiKeys(req.user.id)
+
     await userService.updateUserApiKeyCount(req.user.id, userApiKeys.length)
 
     logger.info(`🗑️ User ${req.user.username} deleted API key: ${existingKey.name}`)
@@ -529,8 +544,10 @@ router.get('/', authenticateUserOrAdmin, requireAdmin, async (req, res) => {
 
     // 如果有搜索条件，进行过滤
     let filteredUsers = result.users
+
     if (search) {
       const searchLower = search.toLowerCase()
+
       filteredUsers = result.users.filter(
         (user) =>
           user.username.toLowerCase().includes(searchLower) ||
@@ -564,6 +581,7 @@ router.get('/:userId', authenticateUserOrAdmin, requireAdmin, async (req, res) =
     const { userId } = req.params
 
     const user = await userService.getUserById(userId)
+
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -636,6 +654,7 @@ router.patch('/:userId/status', authenticateUserOrAdmin, requireAdmin, async (re
     const updatedUser = await userService.updateUserStatus(userId, isActive)
 
     const adminUser = req.admin?.username || req.user?.username
+
     logger.info(
       `🔄 Admin ${adminUser} ${isActive ? 'enabled' : 'disabled'} user: ${updatedUser.username}`
     )
@@ -666,6 +685,7 @@ router.patch('/:userId/role', authenticateUserOrAdmin, requireAdmin, async (req,
     const { role } = req.body
 
     const validRoles = ['user', 'admin']
+
     if (!role || !validRoles.includes(role)) {
       return res.status(400).json({
         error: 'Invalid role',
@@ -676,6 +696,7 @@ router.patch('/:userId/role', authenticateUserOrAdmin, requireAdmin, async (req,
     const updatedUser = await userService.updateUserRole(userId, role)
 
     const adminUser = req.admin?.username || req.user?.username
+
     logger.info(`🔄 Admin ${adminUser} changed user ${updatedUser.username} role to: ${role}`)
 
     res.json({
@@ -703,6 +724,7 @@ router.post('/:userId/disable-keys', authenticateUserOrAdmin, requireAdmin, asyn
     const { userId } = req.params
 
     const user = await userService.getUserById(userId)
+
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -713,6 +735,7 @@ router.post('/:userId/disable-keys', authenticateUserOrAdmin, requireAdmin, asyn
     const result = await apiKeyService.disableUserApiKeys(userId)
 
     const adminUser = req.admin?.username || req.user?.username
+
     logger.info(`🔑 Admin ${adminUser} disabled all API keys for user: ${user.username}`)
 
     res.json({
@@ -736,6 +759,7 @@ router.get('/:userId/usage-stats', authenticateUserOrAdmin, requireAdmin, async 
     const { period = 'week', model } = req.query
 
     const user = await userService.getUserById(userId)
+
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -851,6 +875,7 @@ router.post('/redeem-card', authenticateUser, async (req, res) => {
 
     // 验证 API Key 属于当前用户
     const keyData = await redis.getApiKey(apiKeyId)
+
     if (!keyData || Object.keys(keyData).length === 0) {
       return res.status(404).json({
         error: 'API key not found',
@@ -921,6 +946,7 @@ router.get('/quota-info', authenticateUser, async (req, res) => {
 
     // 验证 API Key 属于当前用户
     const keyData = await redis.getApiKey(apiKeyId)
+
     if (!keyData || Object.keys(keyData).length === 0) {
       return res.status(404).json({
         error: 'API key not found',

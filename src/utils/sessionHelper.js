@@ -17,8 +17,10 @@ class SessionHelper {
     // 1. 最高优先级：使用metadata中的session ID（直接使用，无需hash）
     if (requestBody.metadata && requestBody.metadata.user_id) {
       const sessionId = metadataUserIdHelper.extractSessionId(requestBody.metadata.user_id)
+
       if (sessionId) {
         logger.debug(`📋 Session ID extracted from metadata.user_id: ${sessionId}`)
+
         return sessionId
       }
     }
@@ -60,6 +62,7 @@ class SessionHelper {
       if (hasCacheControl) {
         for (const message of messages) {
           let messageText = ''
+
           if (typeof message.content === 'string') {
             messageText = message.content
           } else if (Array.isArray(message.content)) {
@@ -85,13 +88,16 @@ class SessionHelper {
         .update(cacheableContent)
         .digest('hex')
         .substring(0, 32)
+
       logger.debug(`📋 Session hash generated from cacheable content: ${hash}`)
+
       return hash
     }
 
     // 4. Fallback: 使用system内容
     if (system) {
       let systemText = ''
+
       if (typeof system === 'string') {
         systemText = system
       } else if (Array.isArray(system)) {
@@ -100,7 +106,9 @@ class SessionHelper {
 
       if (systemText) {
         const hash = crypto.createHash('sha256').update(systemText).digest('hex').substring(0, 32)
+
         logger.debug(`📋 Session hash generated from system content: ${hash}`)
+
         return hash
       }
     }
@@ -129,13 +137,16 @@ class SessionHelper {
           .update(firstMessageText)
           .digest('hex')
           .substring(0, 32)
+
         logger.debug(`📋 Session hash generated from first message: ${hash}`)
+
         return hash
       }
     }
 
     // 无法生成会话哈希
     logger.debug('📋 Unable to generate session hash - no suitable content found')
+
     return null
   }
 

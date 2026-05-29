@@ -31,6 +31,7 @@ jest.mock('../src/utils/logger', () => ({
 }))
 
 const requestDetailService = require('../src/services/requestDetailService')
+
 require('../src/routes/admin/requestDetails')
 
 function createResponse() {
@@ -39,23 +40,28 @@ function createResponse() {
     body: null,
     json: jest.fn((payload) => {
       res.body = payload
+
       return res
     }),
     status: jest.fn((code) => {
       res.statusCode = code
+
       return res
     })
   }
+
   return res
 }
 
 function findGetHandler(path) {
   const route = mockRouter.get.mock.calls.find((call) => call[0] === path)
+
   return route?.[2]
 }
 
 function findPostHandler(path) {
   const route = mockRouter.post.mock.calls.find((call) => call[0] === path)
+
   return route?.[2]
 }
 
@@ -69,6 +75,7 @@ describe('requestDetails admin routes', () => {
 
   test('returns 400 for invalid request detail queries', async () => {
     const error = new Error('Invalid date range')
+
     error.statusCode = 400
     requestDetailService.listRequestDetails.mockRejectedValue(error)
 

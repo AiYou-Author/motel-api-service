@@ -34,19 +34,23 @@ class WebhookService {
       // 检查是否启用webhook
       if (!config.enabled) {
         logger.debug('Webhook通知已禁用')
+
         return
       }
 
       // 检查通知类型是否启用（test类型始终允许发送）
       if (type !== 'test' && config.notificationTypes && !config.notificationTypes[type]) {
         logger.debug(`通知类型 ${type} 已禁用`)
+
         return
       }
 
       // 获取启用的平台
       const enabledPlatforms = await webhookConfigService.getEnabledPlatforms()
+
       if (enabledPlatforms.length === 0) {
         logger.debug('没有启用的webhook平台')
+
         return
       }
 
@@ -82,6 +86,7 @@ class WebhookService {
   async sendToPlatform(platform, type, data, retrySettings) {
     try {
       const handler = this.platformHandlers[platform.type]
+
       if (!handler) {
         throw new Error(`不支持的平台类型: ${platform.type}`)
       }
@@ -135,6 +140,7 @@ class WebhookService {
     if (platform.enableSign && platform.secret) {
       const timestamp = Date.now()
       const sign = this.generateDingTalkSign(platform.secret, timestamp)
+
       url = `${url}&timestamp=${timestamp}&sign=${encodeURIComponent(sign)}`
     }
 
@@ -170,6 +176,7 @@ class WebhookService {
     if (platform.enableSign && platform.secret) {
       const timestamp = Math.floor(Date.now() / 1000)
       const sign = this.generateFeishuSign(platform.secret, timestamp)
+
       payload.timestamp = timestamp.toString()
       payload.sign = sign
     }
@@ -248,6 +255,7 @@ class WebhookService {
       platform.timeout || 10000,
       axiosOptions
     )
+
     if (!response || response.ok !== true) {
       throw new Error(`Telegram API 错误: ${response?.description || '未知错误'}`)
     }
@@ -277,6 +285,7 @@ class WebhookService {
     }
 
     const url = platform.serverUrl || 'https://api.day.app/push'
+
     await this.sendHttpRequest(url, payload, platform.timeout || 10000)
   }
 
@@ -316,6 +325,7 @@ class WebhookService {
 
       // 发送邮件
       const info = await transporter.sendMail(mailOptions)
+
       logger.info(`✅ 邮件发送成功: ${info.messageId}`)
 
       return info
@@ -362,6 +372,7 @@ class WebhookService {
 
         if (i < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, i) // 指数退避
+
           logger.debug(`🔄 重试 ${i + 1}/${maxRetries}，等待 ${delay}ms`)
           await new Promise((resolve) => setTimeout(resolve, delay))
         }
@@ -377,7 +388,9 @@ class WebhookService {
   generateDingTalkSign(secret, timestamp) {
     const stringToSign = `${timestamp}\n${secret}`
     const hmac = crypto.createHmac('sha256', secret)
+
     hmac.update(stringToSign)
+
     return hmac.digest('base64')
   }
 
@@ -387,7 +400,9 @@ class WebhookService {
   generateFeishuSign(secret, timestamp) {
     const stringToSign = `${timestamp}\n${secret}`
     const hmac = crypto.createHmac('sha256', stringToSign)
+
     hmac.update('')
+
     return hmac.digest('base64')
   }
 
@@ -397,6 +412,7 @@ class WebhookService {
   formatMessageForWechatWork(type, data) {
     const title = this.getNotificationTitle(type)
     const details = this.formatNotificationDetails(data)
+
     return (
       `## ${title}\n\n` +
       `> **服务**: Claude Relay Service\n` +
@@ -438,12 +454,14 @@ class WebhookService {
    */
   normalizeTelegramApiBase(baseUrl) {
     const defaultBase = 'https://api.telegram.org'
+
     if (!baseUrl) {
       return defaultBase
     }
 
     try {
       const parsed = new URL(baseUrl)
+
       if (!['http:', 'https:'].includes(parsed.protocol)) {
         throw new Error('Telegram API 基础地址必须使用 http 或 https 协议')
       }
@@ -452,6 +470,7 @@ class WebhookService {
       return parsed.href.replace(/\/$/, '')
     } catch (error) {
       logger.warn(`⚠️ Telegram API 基础地址无效，将使用默认值: ${error.message}`)
+
       return defaultBase
     }
   }
@@ -469,11 +488,13 @@ class WebhookService {
 
         if (protocol.startsWith('socks')) {
           const agent = new SocksProxyAgent(proxyUrl.toString())
+
           options.httpAgent = agent
           options.httpsAgent = agent
           options.proxy = false
         } else if (protocol === 'http:' || protocol === 'https:') {
           const agent = new HttpsProxyAgent(proxyUrl.toString())
+
           options.httpAgent = agent
           options.httpsAgent = agent
           options.proxy = false
@@ -707,6 +728,7 @@ class WebhookService {
     const details = this.buildNotificationDetails(data)
 
     let content = `${title}\n`
+
     content += `=====================================\n\n`
 
     // 使用统一的详情数据渲染
@@ -734,6 +756,7 @@ class WebhookService {
       active: '#28a745',
       warning: '#ffc107'
     }
+
     return colors[status] || '#007bff'
   }
 

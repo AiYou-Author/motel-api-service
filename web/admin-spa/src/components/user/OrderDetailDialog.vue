@@ -273,12 +273,14 @@ watch(
       confirmingDelete.value = false
       activeTab.value = 'order'
       keyVisible.value = false
+
       return
     }
     if (props.order?.apiKeyId) {
       loadingKey.value = true
       try {
         const keys = await userStore.getUserApiKeys(true)
+
         keyInfo.value = (keys || []).find((k) => k.id === props.order.apiKeyId) || null
       } catch (_e) {
         keyInfo.value = null
@@ -302,6 +304,7 @@ const HeroMetric = (props) => {
   const c = 2 * Math.PI * r
   const offset = c * (1 - ratio)
   const value = Number(props.value) || 0
+
   return h(
     'div',
     {
@@ -341,6 +344,7 @@ const HeroMetric = (props) => {
     ]
   )
 }
+
 HeroMetric.props = ['label', 'value', 'ratio', 'unit', 'accent', 'hint']
 
 // 信息行
@@ -360,6 +364,7 @@ const Row = (_, { slots, attrs }) =>
       )
     ]
   )
+
 Row.props = ['label']
 
 // computed: 用量数据
@@ -369,6 +374,7 @@ const dailyCost = computed(() => Number(keyInfo.value?.dailyCost) || 0)
 const dailyCostLimit = computed(() => Number(keyInfo.value?.dailyCostLimit) || 0)
 const totalTokens = computed(() => {
   const t = keyInfo.value?.usage?.total
+
   return (Number(t?.inputTokens) || 0) + (Number(t?.outputTokens) || 0)
 })
 const tokenLimit = computed(() => Number(keyInfo.value?.tokenLimit) || 0)
@@ -384,45 +390,56 @@ const dailyRatio = computed(() =>
 
 const maskedKey = computed(() => {
   const v = props.order?.apiKeyValue
+
   if (!v) return ''
+
   return v.length > 16 ? `${v.slice(0, 8)}…${v.slice(-6)}` : v
 })
 
 const availableTabs = computed(() => {
   const list = [{ key: 'order', label: '订单信息' }]
+
   if (props.order?.apiKeyValue) list.push({ key: 'key', label: 'API Key' })
   if (props.order?.status === 'approved') list.push({ key: 'usage', label: '用量明细' })
   if (props.order?.status === 'approved' && props.order?.apiKeyValue) {
     list.push({ key: 'test', label: '自测' })
   }
+
   return list
 })
 
 const canDelete = computed(() => {
   const s = props.order?.status
+
   return s === 'pending' || s === 'rejected' || s === 'approved'
 })
 
 const deleteButtonText = computed(() => {
   const s = props.order?.status
+
   if (s === 'pending') return '撤销订单'
   if (s === 'rejected') return '删除记录'
   if (s === 'approved') return '放弃服务并删除'
+
   return '删除'
 })
 
 const deleteWarningText = computed(() => {
   const s = props.order?.status
+
   if (s === 'pending') return '撤销后订单作废且不可恢复，是否继续？'
   if (s === 'rejected') return '该记录将从你的列表中隐藏，操作不可逆。'
+
   return '订单删除后无法恢复，已生成的 API Key 将立即停用。若已完成线下支付，款项不予退还。请确认后操作。'
 })
 
 const statusHeroHint = computed(() => {
   const s = props.order?.status
+
   if (s === 'pending') return '订单审批中，审批通过后将在此显示用量与额度'
   if (s === 'rejected') return '订单已被拒绝，未生成 API Key'
   if (s === 'cancelled') return '订单已撤销'
+
   return '暂无可用数据'
 })
 
@@ -447,6 +464,7 @@ function statusBadge(s) {
     rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
     cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
   }
+
   return base + (map[s] || 'bg-gray-100 text-gray-600')
 }
 
@@ -487,6 +505,7 @@ async function doDelete() {
     emit('close')
   } catch (e) {
     const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || '删除失败'
+
     showToast(msg, 'error')
   } finally {
     deleting.value = false

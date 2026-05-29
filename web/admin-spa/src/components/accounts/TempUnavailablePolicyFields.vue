@@ -75,6 +75,7 @@ const emit = defineEmits([
 
 const resolvedContainerClass = computed(() => {
   const baseClass = 'rounded-lg border border-amber-200/60 p-3 dark:border-amber-700/40'
+
   return props.containerClass ? `${baseClass} ${props.containerClass}` : baseClass
 })
 
@@ -84,6 +85,7 @@ const normalizeNumericInput = (value) => {
   }
 
   const parsed = Number(value)
+
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : ''
 }
 

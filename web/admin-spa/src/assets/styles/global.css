@@ -133,6 +133,8 @@ textarea {
 
 html {
   scrollbar-gutter: stable;
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -151,8 +153,10 @@ body {
   );
   background-attachment: fixed;
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   overflow-x: hidden;
+  overflow-x: clip;
   color: var(--text-primary);
   transition:
     background 0.3s ease,

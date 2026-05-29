@@ -341,13 +341,16 @@ const apiKeyDisplayName = computed(() => apiKeyInfo.name || apiKeyInfo.id || key
 
 const dateRangeHint = computed(() => {
   if (!filters.dateRange || filters.dateRange.length !== 2) return ''
+
   return `${formatDate(filters.dateRange[0])} ~ ${formatDate(filters.dateRange[1])}`
 })
 
 const formatCost = (value) => {
   const num = typeof value === 'number' ? value : 0
+
   if (num >= 1) return `$${num.toFixed(2)}`
   if (num >= 0.001) return `$${num.toFixed(4)}`
+
   return `$${num.toFixed(6)}`
 }
 
@@ -372,23 +375,27 @@ const syncResponseState = (data) => {
   records.value = data.records || []
 
   const pageInfo = data.pagination || {}
+
   pagination.currentPage = pageInfo.currentPage || 1
   pagination.pageSize = pageInfo.pageSize || pagination.pageSize
   pagination.totalRecords = pageInfo.totalRecords || 0
 
   const filterEcho = data.filters || {}
+
   if (filterEcho.model !== undefined) filters.model = filterEcho.model || ''
   if (filterEcho.accountId !== undefined) filters.accountId = filterEcho.accountId || ''
   if (filterEcho.sortOrder) filters.sortOrder = filterEcho.sortOrder
   if (filterEcho.startDate && filterEcho.endDate) {
     const nextRange = [filterEcho.startDate, filterEcho.endDate]
     const currentRange = filters.dateRange || []
+
     if (currentRange[0] !== nextRange[0] || currentRange[1] !== nextRange[1]) {
       filters.dateRange = nextRange
     }
   }
 
   const summaryData = data.summary || {}
+
   summary.totalRequests = summaryData.totalRequests || 0
   summary.totalTokens = summaryData.totalTokens || 0
   summary.totalCost = summaryData.totalCost || 0
@@ -405,6 +412,7 @@ const fetchRecords = async (page = pagination.currentPage) => {
   loading.value = true
   try {
     const response = await getApiKeyUsageRecordsApi(keyId.value, buildParams(page))
+
     syncResponseState(response.data || {})
   } catch (error) {
     showToast(`加载请求记录失败：${error.message || '未知错误'}`, 'error')
@@ -462,6 +470,7 @@ const exportCsv = async () => {
         pageSize: 200
       })
       const payload = response.data || {}
+
       aggregated.push(...(payload.records || []))
       totalPages = payload.pagination?.totalPages || 1
       page += 1
@@ -469,6 +478,7 @@ const exportCsv = async () => {
 
     if (aggregated.length === 0) {
       showToast('没有可导出的记录', 'info')
+
       return
     }
 
@@ -486,6 +496,7 @@ const exportCsv = async () => {
     ]
 
     const csvRows = [headers.join(',')]
+
     aggregated.forEach((record) => {
       const row = [
         formatDate(record.timestamp),
@@ -499,6 +510,7 @@ const exportCsv = async () => {
         record.totalTokens || 0,
         record.costFormatted || formatCost(record.cost)
       ]
+
       csvRows.push(row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     })
 
@@ -507,6 +519,7 @@ const exportCsv = async () => {
     })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = `api-key-${keyId.value}-usage-records.csv`
     link.click()

@@ -67,6 +67,7 @@ const sortedStats = computed(() => {
 const getColor = (index) => {
   const { colorSchemes } = useChartConfig()
   const colors = colorSchemes.primary
+
   return colors[index % colors.length]
 }
 
@@ -108,6 +109,7 @@ const createChart = () => {
                   dashboardStore.dashboardModelStats.reduce((sum, s) => sum + s.requests, 0)) *
                 100
               ).toFixed(1)
+
               return [
                 `${stat.model}: ${percentage}%`,
                 `请求: ${formatNumber(stat.requests)}`,

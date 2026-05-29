@@ -14,7 +14,10 @@ const FX_USD_PER_CNY = 1 / 7.2
 
 // 把 CNY/MTok 转换为 USD/token
 function cnyPerMTokToUsdPerToken(cnyPerMTok) {
-  if (cnyPerMTok == null) return 0
+  if (cnyPerMTok === null || cnyPerMTok === undefined) {
+    return 0
+  }
+
   return (cnyPerMTok * FX_USD_PER_CNY) / 1e6
 }
 
@@ -38,6 +41,7 @@ async function main() {
 
   let created = 0
   let updated = 0
+
   for (const m of MODELS) {
     const exists = !!pricingService.customPricing[m.model]
     const payload = {
@@ -48,6 +52,7 @@ async function main() {
       litellm_provider: 'minimax',
       mode: 'chat'
     }
+
     try {
       await pricingService.setCustomPricing(m.model, payload, 'seed-script')
       if (exists) {

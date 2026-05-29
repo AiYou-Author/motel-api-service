@@ -42,6 +42,7 @@ function convertGeminiResponse(geminiResponse, model, stream = false) {
   if (stream) {
     // 流式响应
     const candidate = geminiResponse.candidates?.[0]
+
     if (!candidate) {
       return null
     }
@@ -67,6 +68,7 @@ function convertGeminiResponse(geminiResponse, model, stream = false) {
   } else {
     // 非流式响应
     const candidate = geminiResponse.candidates?.[0]
+
     if (!candidate) {
       throw new Error('No response from Gemini')
     }
@@ -126,6 +128,7 @@ async function* handleStreamResponse(
 
       // 处理 SSE 格式的数据
       const lines = buffer.split('\n')
+
       buffer = lines.pop() || '' // 保留最后一个不完整的行
 
       for (const line of lines) {
@@ -135,6 +138,7 @@ async function* handleStreamResponse(
 
         // 处理 SSE 格式: "data: {...}"
         let jsonData = line
+
         if (line.startsWith('data: ')) {
           jsonData = line.substring(6).trim()
         }
@@ -153,6 +157,7 @@ async function* handleStreamResponse(
 
           // 转换并发送响应
           const openaiResponse = convertGeminiResponse(data, model, true)
+
           if (openaiResponse) {
             yield `data: ${JSON.stringify(openaiResponse)}\n\n`
           }
@@ -180,6 +185,7 @@ async function* handleStreamResponse(
             }
 
             yield 'data: [DONE]\n\n'
+
             return
           }
         } catch (e) {
@@ -192,6 +198,7 @@ async function* handleStreamResponse(
     if (buffer.trim()) {
       try {
         let jsonData = buffer.trim()
+
         if (jsonData.startsWith('data: ')) {
           jsonData = jsonData.substring(6).trim()
         }
@@ -199,6 +206,7 @@ async function* handleStreamResponse(
         if (jsonData && jsonData !== '[DONE]') {
           const data = JSON.parse(jsonData)
           const openaiResponse = convertGeminiResponse(data, model, true)
+
           if (openaiResponse) {
             yield `data: ${JSON.stringify(openaiResponse)}\n\n`
           }
@@ -265,6 +273,7 @@ async function sendGeminiRequest({
 
   // 配置请求选项
   let apiUrl
+
   if (projectId) {
     // 使用项目特定的 URL 格式（Google Cloud/Workspace 账号）
     apiUrl = `${GEMINI_API_BASE}/projects/${projectId}/locations/${location}/${model}:${stream ? 'streamGenerateContent' : 'generateContent'}?alt=sse`
@@ -288,6 +297,7 @@ async function sendGeminiRequest({
 
   // 添加代理配置
   const proxyAgent = createProxyAgent(proxy)
+
   if (proxyAgent) {
     // 只设置 httpsAgent，因为目标 URL 是 HTTPS (cloudcode.googleapis.com)
     axiosConfig.httpsAgent = proxyAgent
@@ -344,6 +354,7 @@ async function sendGeminiRequest({
     if (error.name === 'CanceledError' || error.code === 'ECONNABORTED') {
       logger.info('Gemini request was aborted by client')
       const err = new Error('Request canceled by client')
+
       err.status = 499
       err.error = {
         message: 'Request canceled by client',
@@ -359,6 +370,7 @@ async function sendGeminiRequest({
     if (error.response) {
       const geminiError = error.response.data?.error
       const err = new Error(geminiError?.message || 'Gemini API request failed')
+
       err.status = error.response.status
       err.error = {
         message: geminiError?.message || 'Gemini API request failed',
@@ -369,6 +381,7 @@ async function sendGeminiRequest({
     }
 
     const err = new Error(error.message)
+
     err.status = 500
     err.error = {
       message: error.message,
@@ -381,6 +394,7 @@ async function sendGeminiRequest({
 // 获取可用模型列表
 async function getAvailableModels(accessToken, proxy, projectId, location = 'us-central1') {
   let apiUrl
+
   if (projectId) {
     // 使用项目特定的 URL 格式
     apiUrl = `${GEMINI_API_BASE}/projects/${projectId}/locations/${location}/models`
@@ -401,6 +415,7 @@ async function getAvailableModels(accessToken, proxy, projectId, location = 'us-
   }
 
   const proxyAgent = createProxyAgent(proxy)
+
   if (proxyAgent) {
     // 只设置 httpsAgent，因为目标 URL 是 HTTPS (cloudcode.googleapis.com)
     axiosConfig.httpsAgent = proxyAgent
@@ -427,6 +442,7 @@ async function getAvailableModels(accessToken, proxy, projectId, location = 'us-
       }))
   } catch (error) {
     logger.error('Failed to get Gemini models:', error)
+
     // 返回默认模型列表
     return [
       {
@@ -455,6 +471,7 @@ async function countTokens({
 
   // 转换内容格式 - 支持多种输入格式
   let requestBody
+
   if (Array.isArray(content)) {
     // 如果content是数组，直接使用
     requestBody = { contents: content }
@@ -478,6 +495,7 @@ async function countTokens({
   // 构建API URL - countTokens需要使用generativelanguage API
   const GENERATIVE_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
   let apiUrl
+
   if (projectId) {
     // 使用项目特定的 URL 格式（Google Cloud/Workspace 账号）
     apiUrl = `${GENERATIVE_API_BASE}/projects/${projectId}/locations/${location}/${model}:countTokens`
@@ -504,6 +522,7 @@ async function countTokens({
 
   // 添加代理配置
   const proxyAgent = createProxyAgent(proxy)
+
   if (proxyAgent) {
     // 只设置 httpsAgent，因为目标 URL 是 HTTPS (cloudcode.googleapis.com)
     axiosConfig.httpsAgent = proxyAgent
@@ -549,6 +568,7 @@ async function countTokens({
         geminiError?.message ||
           `Gemini countTokens API request failed (Status: ${error.response.status})`
       )
+
       errorObj.status = error.response.status
       errorObj.error = {
         message:
@@ -561,6 +581,7 @@ async function countTokens({
     }
 
     const errorObj = new Error(error.message)
+
     errorObj.status = 500
     errorObj.error = {
       message: error.message,

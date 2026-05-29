@@ -15,9 +15,11 @@ router.get(
       const offset = parseInt(req.query.offset) || 0
       const limit = parseInt(req.query.limit) || 50
       const data = await upstreamErrorHelper.getErrorHistory(accountType, accountId, offset, limit)
+
       return res.json({ success: true, data })
     } catch (error) {
       logger.error('Failed to get error history:', error)
+
       return res.status(500).json({ error: 'Failed to get error history', message: error.message })
     }
   }
@@ -30,10 +32,13 @@ router.delete(
   async (req, res) => {
     try {
       const { accountType, accountId } = req.params
+
       await upstreamErrorHelper.clearErrorHistory(accountType, accountId)
+
       return res.json({ success: true })
     } catch (error) {
       logger.error('Failed to clear error history:', error)
+
       return res
         .status(500)
         .json({ error: 'Failed to clear error history', message: error.message })

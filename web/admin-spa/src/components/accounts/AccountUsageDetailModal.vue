@@ -376,6 +376,7 @@ const accountTypeLabel = computed(() => {
   if (!props.account?.accountType) return '共享'
   if (props.account.accountType === 'dedicated') return '专属'
   if (props.account.accountType === 'group') return '分组'
+
   return '共享'
 })
 
@@ -393,9 +394,11 @@ const overviewOutputTokens = computed(() => props.overview?.total?.outputTokens 
 
 const formatCost = (value) => {
   const num = Number(value || 0)
+
   if (Number.isNaN(num)) return '$0.000000'
   if (num >= 1) return `$${num.toFixed(2)}`
   if (num >= 0.01) return `$${num.toFixed(3)}`
+
   return `$${num.toFixed(6)}`
 }
 
@@ -404,26 +407,33 @@ const roundToTwo = (value) => Math.round((Number(value) || 0) * 100) / 100
 const formatDate = (value) => {
   if (!value) return '-'
   const date = new Date(value)
+
   if (Number.isNaN(date.getTime())) {
     const parts = value.split('-')
+
     if (parts.length === 3) return `${parts[1]}-${parts[2]}`
+
     return value
   }
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
+
   return `${month}-${day}`
 }
 
 const formatDateTime = (value) => {
   if (!value) return '暂无'
   const date = new Date(value)
+
   if (Number.isNaN(date.getTime())) return value
+
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 const findHistoryValue = (date, field) => {
   if (!date) return 0
   const target = props.history.find((item) => item.date === date)
+
   return target ? target[field] || 0 : 0
 }
 
@@ -482,6 +492,7 @@ const renderChart = async () => {
 
   if (!props.history || props.history.length === 0) {
     chartInstance = null
+
     return
   }
 
@@ -532,6 +543,7 @@ const renderChart = async () => {
               if (context.dataset.label === '费用 (USD)') {
                 return `${context.dataset.label}: ${formatCost(context.parsed.y)}`
               }
+
               return `${context.dataset.label}: ${formatNumber(context.parsed.y)} 次`
             }
           }

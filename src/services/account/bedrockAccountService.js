@@ -81,6 +81,7 @@ class BedrockAccountService {
     }
 
     const client = redis.getClientSafe()
+
     await client.set(`bedrock_account:${accountId}`, JSON.stringify(accountData))
     await redis.addToIndex('bedrock_account:index', accountId)
 
@@ -110,6 +111,7 @@ class BedrockAccountService {
     try {
       const client = redis.getClientSafe()
       const accountData = await client.get(`bedrock_account:${accountId}`)
+
       if (!accountData) {
         return { success: false, error: 'Account not found' }
       }
@@ -133,6 +135,7 @@ class BedrockAccountService {
         } else if (account.credentialType === 'bearer_token' && account.bearerToken) {
           // Bearer Token 模式：解密 Bearer Token
           const decrypted = this._decryptAwsCredentials(account.bearerToken)
+
           account.bearerToken = decrypted.token
           bearerTokenDecrypted = true
           logger.debug(
@@ -146,6 +149,7 @@ class BedrockAccountService {
           }
           if (account.bearerToken) {
             const decrypted = this._decryptAwsCredentials(account.bearerToken)
+
             account.bearerToken = decrypted.token
             bearerTokenDecrypted = true
           }
@@ -168,6 +172,7 @@ class BedrockAccountService {
           }
           if (account.bearerToken) {
             const decrypted = this._decryptAwsCredentials(account.bearerToken)
+
             account.bearerToken = decrypted.token
             bearerTokenDecrypted = true
             logger.warn(
@@ -181,6 +186,7 @@ class BedrockAccountService {
           logger.error(
             `❌ 未找到任何凭证可解密 - ID: ${accountId}, credentialType: ${account.credentialType}, hasAwsCredentials: ${!!account.awsCredentials}, hasBearerToken: ${!!account.bearerToken}`
           )
+
           return {
             success: false,
             error: 'No valid credentials found in account data'
@@ -191,6 +197,7 @@ class BedrockAccountService {
           `❌ 解密Bedrock凭证失败 - ID: ${accountId}, 类型: ${account.credentialType}`,
           decryptError
         )
+
         return {
           success: false,
           error: `Credentials decryption failed: ${decryptError.message}`
@@ -205,6 +212,7 @@ class BedrockAccountService {
       }
     } catch (error) {
       logger.error(`❌ 获取Bedrock账户失败 - ID: ${accountId}`, error)
+
       return { success: false, error: error.message }
     }
   }
@@ -224,6 +232,7 @@ class BedrockAccountService {
 
       for (let i = 0; i < keys.length; i++) {
         const accountData = dataList[i]
+
         if (accountData) {
           const account = JSON.parse(accountData)
 
@@ -261,6 +270,7 @@ class BedrockAccountService {
         if (a.priority !== b.priority) {
           return a.priority - b.priority
         }
+
         return a.name.localeCompare(b.name)
       })
 
@@ -272,6 +282,7 @@ class BedrockAccountService {
       }
     } catch (error) {
       logger.error('❌ 获取Bedrock账户列表失败', error)
+
       return { success: false, error: error.message }
     }
   }
@@ -282,6 +293,7 @@ class BedrockAccountService {
       // 获取原始账户数据（不解密凭证）
       const client = redis.getClientSafe()
       const accountData = await client.get(`bedrock_account:${accountId}`)
+
       if (!accountData) {
         return { success: false, error: 'Account not found' }
       }
@@ -327,6 +339,7 @@ class BedrockAccountService {
       } else if (account.awsCredentials && account.awsCredentials.accessKeyId) {
         // 如果没有提供新凭证但现有凭证是明文格式，重新加密
         const plainCredentials = account.awsCredentials
+
         account.awsCredentials = this._encryptAwsCredentials(plainCredentials)
         logger.info(`🔐 重新加密Bedrock账户凭证 - ID: ${accountId}`)
       }
@@ -376,6 +389,7 @@ class BedrockAccountService {
       }
     } catch (error) {
       logger.error(`❌ 更新Bedrock账户失败 - ID: ${accountId}`, error)
+
       return { success: false, error: error.message }
     }
   }
@@ -384,11 +398,13 @@ class BedrockAccountService {
   async deleteAccount(accountId) {
     try {
       const accountResult = await this.getAccount(accountId)
+
       if (!accountResult.success) {
         return accountResult
       }
 
       const client = redis.getClientSafe()
+
       await client.del(`bedrock_account:${accountId}`)
       await redis.removeFromIndex('bedrock_account:index', accountId)
 
@@ -397,6 +413,7 @@ class BedrockAccountService {
       return { success: true }
     } catch (error) {
       logger.error(`❌ 删除Bedrock账户失败 - ID: ${accountId}`, error)
+
       return { success: false, error: error.message }
     }
   }
@@ -405,6 +422,7 @@ class BedrockAccountService {
   async selectAvailableAccount() {
     try {
       const accountsResult = await this.getAllAccounts()
+
       if (!accountsResult.success) {
         return { success: false, error: 'Failed to get accounts' }
       }
@@ -415,6 +433,7 @@ class BedrockAccountService {
           logger.debug(
             `⏰ Skipping expired Bedrock account: ${account.name}, expired at ${account.subscriptionExpiresAt || account.expiresAt}`
           )
+
           return false
         }
 
@@ -430,6 +449,7 @@ class BedrockAccountService {
 
       // 获取完整账户信息（包含解密的凭证）
       const fullAccountResult = await this.getAccount(selectedAccount.id)
+
       if (!fullAccountResult.success) {
         return { success: false, error: 'Failed to get selected account details' }
       }
@@ -442,6 +462,7 @@ class BedrockAccountService {
       }
     } catch (error) {
       logger.error('❌ 选择Bedrock账户失败', error)
+
       return { success: false, error: error.message }
     }
   }
@@ -450,6 +471,7 @@ class BedrockAccountService {
   async testAccount(accountId) {
     try {
       const accountResult = await this.getAccount(accountId)
+
       if (!accountResult.success) {
         return accountResult
       }
@@ -470,6 +492,7 @@ class BedrockAccountService {
         logger.error(
           `❌ 测试失败：账户没有有效凭证 - ID: ${accountId}, credentialType: ${account.credentialType}`
         )
+
         return {
           success: false,
           error: 'No valid credentials found after decryption'
@@ -482,6 +505,7 @@ class BedrockAccountService {
         logger.debug(`✅ Bedrock客户端创建成功 - ID: ${accountId}`)
       } catch (clientError) {
         logger.error(`❌ 创建Bedrock客户端失败 - ID: ${accountId}`, clientError)
+
         return {
           success: false,
           error: `Failed to create Bedrock client: ${clientError.message}`
@@ -495,6 +519,7 @@ class BedrockAccountService {
         logger.info(
           `✅ Bedrock账户测试成功 - ID: ${accountId}, 发现 ${models.length} 个模型, 凭证类型: ${account.credentialType}`
         )
+
         return {
           success: true,
           data: {
@@ -512,6 +537,7 @@ class BedrockAccountService {
       }
     } catch (error) {
       logger.error(`❌ 测试Bedrock账户失败 - ID: ${accountId}`, error)
+
       return {
         success: false,
         error: error.message
@@ -531,6 +557,7 @@ class BedrockAccountService {
     try {
       // 获取账户信息
       const accountResult = await this.getAccount(accountId)
+
       if (!accountResult.success) {
         throw new Error(accountResult.error || 'Account not found')
       }
@@ -610,6 +637,7 @@ class BedrockAccountService {
       }
 
       const duration = Date.now() - startTime
+
       logger.info(`✅ Bedrock test completed - model: ${model}, duration: ${duration}ms`)
 
       // 发送 message_stop 事件（前端兼容）
@@ -636,6 +664,7 @@ class BedrockAccountService {
             res.status(200)
           }
           const errorMsg = error.message || '测试失败'
+
           res.write(`data: ${JSON.stringify({ type: 'error', error: errorMsg })}\n\n`)
           res.end()
         }
@@ -658,6 +687,7 @@ class BedrockAccountService {
       return false // 未设置视为永不过期
     }
     const expiryDate = new Date(account.subscriptionExpiresAt)
+
     return expiryDate <= new Date()
   }
 
@@ -670,6 +700,7 @@ class BedrockAccountService {
         .digest()
       logger.info('🔑 Bedrock encryption key derived and cached for performance optimization')
     }
+
     return this._encryptionKeyCache
   }
 
@@ -682,6 +713,7 @@ class BedrockAccountService {
 
       const credentialsString = JSON.stringify(credentials)
       let encrypted = cipher.update(credentialsString, 'utf8', 'hex')
+
       encrypted += cipher.final('hex')
 
       return {
@@ -711,6 +743,7 @@ class BedrockAccountService {
           .update(JSON.stringify(encryptedData))
           .digest('hex')
         const cached = this._decryptCache.get(cacheKey)
+
         if (cached !== undefined) {
           return cached
         }
@@ -721,6 +754,7 @@ class BedrockAccountService {
         const decipher = crypto.createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv)
 
         let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8')
+
         decrypted += decipher.final('utf8')
 
         const result = JSON.parse(decrypted)
@@ -737,6 +771,7 @@ class BedrockAccountService {
       } else if (encryptedData.accessKeyId) {
         // 纯文本数据 - 直接返回 (向后兼容)
         logger.warn('⚠️ 发现未加密的AWS凭证，建议更新账户以启用加密')
+
         return encryptedData
       } else {
         // 既不是加密格式也不是有效的凭证格式
@@ -757,6 +792,7 @@ class BedrockAccountService {
   async getAccountStats() {
     try {
       const accountsResult = await this.getAllAccounts()
+
       if (!accountsResult.success) {
         return { success: false, error: accountsResult.error }
       }
@@ -781,6 +817,7 @@ class BedrockAccountService {
       return { success: true, data: stats }
     } catch (error) {
       logger.error('❌ 获取Bedrock账户统计失败', error)
+
       return { success: false, error: error.message }
     }
   }
@@ -789,6 +826,7 @@ class BedrockAccountService {
   async resetAccountStatus(accountId) {
     try {
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         throw new Error('Account not found')
       }
@@ -825,6 +863,7 @@ class BedrockAccountService {
       // 异步发送 Webhook 通知（忽略错误）
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name || accountId,

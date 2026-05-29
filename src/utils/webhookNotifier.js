@@ -52,6 +52,7 @@ class WebhookNotifier {
       }
 
       const result = await webhookService.testWebhook(platform)
+
       return result
     } catch (error) {
       return { success: false, error: error.message }

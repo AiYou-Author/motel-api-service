@@ -270,6 +270,7 @@ watch(showAuth, (newVal) => {
 
 // 防抖的更新函数
 let updateTimer = null
+
 function emitUpdate() {
   // 清除之前的定时器
   if (updateTimer) {
@@ -331,10 +332,12 @@ function parseProxyUrl() {
         setTimeout(() => {
           parseSuccess.value = false
         }, 3000)
+
         return
       }
 
       parseError.value = '无效的代理URL格式，请检查输入'
+
       return
     }
 

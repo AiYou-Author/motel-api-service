@@ -100,6 +100,7 @@ describe('requestDetailService', () => {
       21600
     )
     const storedPayload = JSON.parse(multi.set.mock.calls[0][1])
+
     expect(storedPayload.requestBodySnapshot.apiKey).toContain('***')
     expect(storedPayload.endpoint).toBe('/openai/v1/responses')
     expect(storedPayload.reasoningDisplay).toBe('medium')
@@ -343,6 +344,7 @@ describe('requestDetailService', () => {
       get: jest.fn().mockResolvedValue(storedRecord),
       set: jest.fn().mockResolvedValue('OK')
     }
+
     redis.getClient.mockReturnValue(client)
 
     const result = await requestDetailService.listRequestDetails({
@@ -505,6 +507,7 @@ describe('requestDetailService', () => {
     })
 
     const storedPayload = JSON.parse(multi.set.mock.calls[0][1])
+
     expect(storedPayload.requestBodySnapshot).toBeUndefined()
     expect(storedPayload.reasoningDisplay).toBe('high')
     expect(storedPayload.reasoningSource).toBe('reasoning.effort')
@@ -786,8 +789,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 5; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -840,8 +845,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 4; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -866,11 +873,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     const firstPage = await requestDetailService.listRequestDetails({
@@ -958,11 +967,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     const firstQuery = await requestDetailService.listRequestDetails({
@@ -997,8 +1008,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 2; i++) {
       const ts = Date.now() - (1 - i) * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1023,11 +1036,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     const now = Date.now()
@@ -1068,8 +1083,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 2; i++) {
       const ts = Date.now() - (1 - i) * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1094,11 +1111,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     // Only startDate, no endDate — the start is clipped to retentionStart
@@ -1109,6 +1128,7 @@ describe('requestDetailService', () => {
     }
 
     const firstQuery = await requestDetailService.listRequestDetails(startOnly)
+
     expect(firstQuery.snapshotId).toBeTruthy()
 
     jest.advanceTimersByTime(10000)
@@ -1137,8 +1157,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 2; i++) {
       const ts = Date.now() - (1 - i) * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1163,11 +1185,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     const endOnly = {
@@ -1176,6 +1200,7 @@ describe('requestDetailService', () => {
     }
 
     const firstQuery = await requestDetailService.listRequestDetails(endOnly)
+
     expect(firstQuery.snapshotId).toBeTruthy()
 
     jest.advanceTimersByTime(10000)
@@ -1204,8 +1229,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 4; i++) {
       const ts = Date.now() - (3 - i) * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1230,11 +1257,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     // Page 1 with retentionHours=6
@@ -1242,6 +1271,7 @@ describe('requestDetailService', () => {
       pageSize: 2,
       page: 1
     })
+
     expect(firstQuery.snapshotId).toBeTruthy()
 
     // Admin changes retention from 6 to 2 while snapshot is alive
@@ -1295,6 +1325,7 @@ describe('requestDetailService', () => {
       get: jest.fn().mockResolvedValue(null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     // Filter with leading/trailing whitespace must still match records
@@ -1317,6 +1348,7 @@ describe('requestDetailService', () => {
     const client = {
       set: jest.fn()
     }
+
     redis.getClient.mockReturnValue(client)
 
     const buildQuerySpy = jest
@@ -1375,6 +1407,7 @@ describe('requestDetailService', () => {
     const client = {
       set: jest.fn()
     }
+
     redis.getClient.mockReturnValue(client)
 
     const buildQuerySpy = jest
@@ -1452,6 +1485,7 @@ describe('requestDetailService', () => {
       ]),
       set: jest.fn().mockRejectedValue(new Error('READONLY'))
     }
+
     redis.getClient.mockReturnValue(client)
 
     const result = await requestDetailService.listRequestDetails({
@@ -1476,8 +1510,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 3; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1502,6 +1538,7 @@ describe('requestDetailService', () => {
       get: jest.fn().mockRejectedValue(new Error('ETIMEDOUT')),
       set: jest.fn().mockResolvedValue('OK')
     }
+
     redis.getClient.mockReturnValue(client)
 
     const result = await requestDetailService.listRequestDetails({
@@ -1528,8 +1565,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 4; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1554,11 +1593,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockRejectedValue(new Error('NOPERM'))
     }
+
     redis.getClient.mockReturnValue(client)
 
     const firstPage = await requestDetailService.listRequestDetails({
@@ -1596,8 +1637,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 4; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1622,11 +1665,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     // First request with startDate far before retention window — will be trimmed
@@ -1669,8 +1714,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 4; i++) {
       const ts = Date.now() - (3 - i) * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1695,11 +1742,13 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn(async (key, value) => {
         snapshots.set(key, value)
+
         return 'OK'
       }),
       get: jest.fn(async (key) => snapshots.get(key) || null),
       expire: jest.fn().mockResolvedValue(1)
     }
+
     redis.getClient.mockReturnValue(client)
 
     // First page — no startDate / endDate (default rolling window)
@@ -1737,8 +1786,10 @@ describe('requestDetailService', () => {
 
     const recordsByKey = {}
     const pointerEntries = []
+
     for (let i = 0; i < 3; i++) {
       const ts = 1775563200000 + i * 3600000
+
       pointerEntries.push(`req_${i}`, String(ts))
       recordsByKey[`request_detail:item:req_${i}`] = JSON.stringify({
         requestId: `req_${i}`,
@@ -1762,6 +1813,7 @@ describe('requestDetailService', () => {
       mget: jest.fn(async (keys) => keys.map((key) => recordsByKey[key] || null)),
       set: jest.fn().mockResolvedValue('OK')
     }
+
     redis.getClient.mockReturnValue(client)
 
     const result = await requestDetailService.listRequestDetails({
@@ -1836,6 +1888,7 @@ describe('requestDetailService', () => {
       ]),
       pipeline: jest.fn(() => pipeline)
     }
+
     redis.getClient.mockReturnValue(client)
 
     const result = await requestDetailService.purgeRequestBodySnapshots()

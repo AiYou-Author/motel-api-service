@@ -34,8 +34,10 @@ router.get('/openai-responses-accounts', authenticateAdmin, async (req, res) => 
     // 根据分组ID筛选
     if (groupId) {
       const group = await accountGroupService.getGroup(groupId)
+
       if (group && group.platform === 'openai') {
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       } else {
         accounts = []
@@ -55,13 +57,16 @@ router.get('/openai-responses-accounts', authenticateAdmin, async (req, res) => 
 
     // 单次遍历构建绑定数映射（只算直连，不算 group）
     const bindingCountMap = new Map()
+
     for (const key of allApiKeys) {
       const binding = key.openaiAccountId
+
       if (!binding) {
         continue
       }
       // 处理 responses: 前缀
       const accountId = binding.startsWith('responses:') ? binding.substring(10) : binding
+
       bindingCountMap.set(accountId, (bindingCountMap.get(accountId) || 0) + 1)
     }
 
@@ -72,6 +77,7 @@ router.get('/openai-responses-accounts', authenticateAdmin, async (req, res) => 
     const currentMonth = `${tzDate.getUTCFullYear()}-${String(tzDate.getUTCMonth() + 1).padStart(2, '0')}`
 
     const statsPipeline = client.pipeline()
+
     for (const accountId of accountIds) {
       statsPipeline.hgetall(`account_usage:${accountId}`)
       statsPipeline.hgetall(`account_usage:daily:${accountId}:${today}`)
@@ -81,6 +87,7 @@ router.get('/openai-responses-accounts', authenticateAdmin, async (req, res) => 
 
     // 处理统计数据
     const allUsageStatsMap = new Map()
+
     for (let i = 0; i < accountIds.length; i++) {
       const accountId = accountIds[i]
       const [errTotal, total] = statsResults[i * 3]
@@ -122,6 +129,7 @@ router.get('/openai-responses-accounts', authenticateAdmin, async (req, res) => 
       const dailyCost = dailyCostMap.get(account.id) || 0
 
       const formattedAccount = formatAccountExpiry(account)
+
       return {
         ...formattedAccount,
         groupInfos,
@@ -178,6 +186,7 @@ router.post('/openai-responses-accounts', authenticateAdmin, async (req, res) =>
     }
 
     const formattedAccount = formatAccountExpiry(account)
+
     res.json({ success: true, data: formattedAccount })
   } catch (error) {
     logger.error('Failed to create OpenAI-Responses account:', error)
@@ -196,6 +205,7 @@ router.put('/openai-responses-accounts/:id', authenticateAdmin, async (req, res)
 
     // 获取当前账户信息
     const currentAccount = await openaiResponsesAccountService.getAccount(id)
+
     if (!currentAccount) {
       return res.status(404).json({
         success: false,
@@ -209,6 +219,7 @@ router.put('/openai-responses-accounts/:id', authenticateAdmin, async (req, res)
     // 验证priority的有效性（1-100）
     if (mappedUpdates.priority !== undefined) {
       const priority = parseInt(mappedUpdates.priority)
+
       if (isNaN(priority) || priority < 1 || priority > 100) {
         return res.status(400).json({
           success: false,
@@ -223,6 +234,7 @@ router.put('/openai-responses-accounts/:id', authenticateAdmin, async (req, res)
       // 如果之前是分组类型，需要从所有分组中移除
       if (currentAccount.accountType === 'group') {
         const oldGroups = await accountGroupService.getAccountGroups(id)
+
         for (const oldGroup of oldGroups) {
           await accountGroupService.removeAccountFromGroup(id, oldGroup.id)
         }
@@ -276,6 +288,7 @@ router.delete('/openai-responses-accounts/:id', authenticateAdmin, async (req, r
     const { id } = req.params
 
     const account = await openaiResponsesAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -295,6 +308,7 @@ router.delete('/openai-responses-accounts/:id', authenticateAdmin, async (req, r
     const result = await openaiResponsesAccountService.deleteAccount(id)
 
     let message = 'OpenAI-Responses账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
@@ -358,6 +372,7 @@ router.put('/openai-responses-accounts/:id/toggle', authenticateAdmin, async (re
     const { id } = req.params
 
     const account = await openaiResponsesAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -366,6 +381,7 @@ router.put('/openai-responses-accounts/:id/toggle', authenticateAdmin, async (re
     }
 
     const newActiveStatus = account.isActive === 'true' ? 'false' : 'true'
+
     await openaiResponsesAccountService.updateAccount(id, {
       isActive: newActiveStatus
     })
@@ -422,9 +438,11 @@ router.post('/openai-responses-accounts/:id/reset-status', authenticateAdmin, as
     const result = await openaiResponsesAccountService.resetAccountStatus(id)
 
     logger.success(`Admin reset status for OpenAI-Responses account: ${id}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset OpenAI-Responses account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })
@@ -464,6 +482,7 @@ router.post('/openai-responses-accounts/:accountId/test', authenticateAdmin, asy
   try {
     // 获取账户信息（apiKey 已自动解密）
     const account = await openaiResponsesAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -476,6 +495,7 @@ router.post('/openai-responses-accounts/:accountId/test', authenticateAdmin, asy
     const baseUrl = account.baseApi || 'https://api.openai.com'
     const providerEndpoint = account.providerEndpoint || 'responses'
     let endpointPath = '/responses'
+
     if (providerEndpoint === 'auto') {
       endpointPath = '/responses' // 测试时默认用 responses
     }
@@ -497,6 +517,7 @@ router.post('/openai-responses-accounts/:accountId/test', authenticateAdmin, asy
     // 配置代理
     if (account.proxy) {
       const agent = getProxyAgent(account.proxy)
+
       if (agent) {
         requestConfig.httpsAgent = agent
         requestConfig.httpAgent = agent
@@ -509,6 +530,7 @@ router.post('/openai-responses-accounts/:accountId/test', authenticateAdmin, asy
     // 提取响应文本（Responses API 格式）
     let responseText = ''
     const output = response.data?.output
+
     if (Array.isArray(output)) {
       for (const item of output) {
         if (item.type === 'message' && Array.isArray(item.content)) {
@@ -537,6 +559,7 @@ router.post('/openai-responses-accounts/:accountId/test', authenticateAdmin, asy
     })
   } catch (error) {
     const latency = Date.now() - startTime
+
     logger.error(`❌ OpenAI-Responses account test failed: ${accountId}`, error.message)
 
     return res.status(500).json({

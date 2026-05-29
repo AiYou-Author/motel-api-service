@@ -242,6 +242,7 @@ const presetScript = `({
 
 const loadConfig = async () => {
   const res = await getDefaultBalanceScriptApi()
+
   if (res?.success && res.data) {
     Object.assign(form, res.data)
   }
@@ -250,6 +251,7 @@ const loadConfig = async () => {
 const saveConfig = async () => {
   saving.value = true
   const res = await updateDefaultBalanceScriptApi({ ...form })
+
   if (res?.success) {
     showToast('配置已保存', 'success')
   } else {
@@ -263,6 +265,7 @@ const testScript = async () => {
   testResult.value = null
   const payload = { ...form, ...testForm, scriptBody: form.scriptBody }
   const res = await testDefaultBalanceScriptApi(payload)
+
   if (res?.success) {
     testResult.value = res.data
     showToast('测试完成', 'success')
@@ -278,6 +281,7 @@ const applyPreset = () => {
 
 const displayAmount = (val) => {
   if (val === null || val === undefined || Number.isNaN(Number(val))) return '—'
+
   return Number(val).toFixed(2)
 }
 

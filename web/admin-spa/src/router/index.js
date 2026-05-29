@@ -33,13 +33,13 @@ const routes = [
       const currentPath = window.location.pathname
       const basePath = APP_CONFIG.basePath.replace(/\/$/, '') // 移除末尾斜杠
 
-      // 如果当前路径已经是 basePath 或 basePath/，重定向到 api-stats
+      // 如果当前路径已经是 basePath 或 basePath/，重定向到 user store
       if (currentPath === basePath || currentPath === basePath + '/') {
-        return '/api-stats'
+        return '/user/store'
       }
 
       // 否则保持默认重定向
-      return '/api-stats'
+      return '/user/store'
     }
   },
   {
@@ -258,7 +258,7 @@ const routes = [
   // 捕获所有未匹配的路由
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/api-stats'
+    redirect: '/user/store'
   }
 ]
 
@@ -293,6 +293,7 @@ router.beforeEach(async (to, from, next) => {
       // 尝试检查本地存储的认证信息
       try {
         const isUserLoggedIn = await userStore.checkAuth()
+
         if (!isUserLoggedIn) {
           return next('/user/login')
         }
@@ -301,9 +302,11 @@ router.beforeEach(async (to, from, next) => {
         if (error.message && error.message.includes('disabled')) {
           showToast(error.message, 'error')
         }
+
         return next('/user/login')
       }
     }
+
     return next()
   }
 
@@ -330,6 +333,7 @@ router.beforeEach(async (to, from, next) => {
 router.afterEach((to) => {
   const baseTitle = 'Motel API Service'
   const pageTitle = to.meta.title
+
   document.title = pageTitle ? `${pageTitle} - ${baseTitle}` : baseTitle
 })
 

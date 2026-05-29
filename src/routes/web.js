@@ -14,7 +14,7 @@ router.use('/assets', express.static(path.join(__dirname, '../../web/assets')))
 
 // 🌐 页面路由重定向到新版 admin-spa
 router.get('/', (req, res) => {
-  res.redirect(301, '/admin-next/api-stats')
+  res.redirect(301, '/user/store')
 })
 
 // 🔐 管理员登录
@@ -56,6 +56,7 @@ router.post('/auth/login', async (req, res) => {
           logger.info('✅ Admin credentials reloaded from init.json')
         } catch (error) {
           logger.error('❌ Failed to reload admin credentials:', error)
+
           return res.status(401).json({
             error: 'Invalid credentials',
             message: 'Invalid username or password'
@@ -75,6 +76,7 @@ router.post('/auth/login', async (req, res) => {
 
     if (!isValidUsername || !isValidPassword) {
       logger.security(`Failed login attempt for username: ${username}`)
+
       return res.status(401).json({
         error: 'Invalid credentials',
         message: 'Invalid username or password'
@@ -106,6 +108,7 @@ router.post('/auth/login', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Login error:', error)
+
     return res.status(500).json({
       error: 'Login failed',
       message: 'Internal server error'
@@ -126,6 +129,7 @@ router.post('/auth/logout', async (req, res) => {
     return res.json({ success: true, message: 'Logout successful' })
   } catch (error) {
     logger.error('❌ Logout error:', error)
+
     return res.status(500).json({
       error: 'Logout failed',
       message: 'Internal server error'
@@ -179,6 +183,7 @@ router.post('/auth/change-password', async (req, res) => {
         `🔒 Invalid session structure in /auth/change-password from ${req.ip || 'unknown'}`
       )
       await redis.deleteSession(token)
+
       return res.status(401).json({
         error: 'Invalid session',
         message: 'Session data corrupted or incomplete'
@@ -187,6 +192,7 @@ router.post('/auth/change-password', async (req, res) => {
 
     // 获取当前管理员信息
     const adminData = await redis.getSession('admin_credentials')
+
     if (!adminData) {
       return res.status(500).json({
         error: 'Admin data not found',
@@ -196,8 +202,10 @@ router.post('/auth/change-password', async (req, res) => {
 
     // 验证当前密码
     const isValidPassword = await bcrypt.compare(currentPassword, adminData.passwordHash)
+
     if (!isValidPassword) {
       logger.security(`Invalid current password attempt for user: ${sessionData.username}`)
+
       return res.status(401).json({
         error: 'Invalid current password',
         message: 'Current password is incorrect'
@@ -210,6 +218,7 @@ router.post('/auth/change-password', async (req, res) => {
 
     // 先更新 init.json（唯一真实数据源）
     const initFilePath = path.join(__dirname, '../../data/init.json')
+
     if (!fs.existsSync(initFilePath)) {
       return res.status(500).json({
         error: 'Configuration file not found',
@@ -244,6 +253,7 @@ router.post('/auth/change-password', async (req, res) => {
       await redis.setSession('admin_credentials', updatedAdminData)
     } catch (fileError) {
       logger.error('❌ Failed to update init.json:', fileError)
+
       return res.status(500).json({
         error: 'Update failed',
         message: 'Failed to update configuration file'
@@ -262,6 +272,7 @@ router.post('/auth/change-password', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Change password error:', error)
+
     return res.status(500).json({
       error: 'Change password failed',
       message: 'Internal server error'
@@ -296,6 +307,7 @@ router.get('/auth/user', async (req, res) => {
     if (!sessionData.username || !sessionData.loginTime) {
       logger.security(`Invalid session structure in /auth/user from ${req.ip || 'unknown'}`)
       await redis.deleteSession(token)
+
       return res.status(401).json({
         error: 'Invalid session',
         message: 'Session data corrupted or incomplete'
@@ -304,6 +316,7 @@ router.get('/auth/user', async (req, res) => {
 
     // 获取管理员信息
     const adminData = await redis.getSession('admin_credentials')
+
     if (!adminData) {
       return res.status(500).json({
         error: 'Admin data not found',
@@ -321,6 +334,7 @@ router.get('/auth/user', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Get user info error:', error)
+
     return res.status(500).json({
       error: 'Get user info failed',
       message: 'Internal server error'
@@ -354,6 +368,7 @@ router.post('/auth/refresh', async (req, res) => {
     if (!sessionData.username || !sessionData.loginTime) {
       logger.security(`Invalid session structure detected from ${req.ip || 'unknown'}`)
       await redis.deleteSession(token) // 清理无效/伪造的会话
+
       return res.status(401).json({
         error: 'Invalid session',
         message: 'Session data corrupted or incomplete'
@@ -371,6 +386,7 @@ router.post('/auth/refresh', async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Token refresh error:', error)
+
     return res.status(500).json({
       error: 'Token refresh failed',
       message: 'Internal server error'

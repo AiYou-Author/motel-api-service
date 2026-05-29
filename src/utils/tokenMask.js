@@ -28,6 +28,7 @@ function maskToken(token, visiblePercent = 70) {
   if (length <= 10) {
     const visibleLength = Math.min(5, length - 2)
     const front = token.slice(0, visibleLength)
+
     return front + '*'.repeat(length - visibleLength)
   }
 

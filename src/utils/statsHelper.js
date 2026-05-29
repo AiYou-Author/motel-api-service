@@ -21,6 +21,7 @@
  */
 function getPercentile(sortedArray, percentile) {
   const len = sortedArray.length
+
   if (len === 0) {
     return 0
   }
@@ -38,6 +39,7 @@ function getPercentile(sortedArray, percentile) {
   }
 
   const index = Math.ceil((percentile / 100) * len) - 1
+
   return sortedArray[index]
 }
 

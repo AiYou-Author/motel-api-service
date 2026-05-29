@@ -16,6 +16,7 @@ async function debugRedisKeys() {
 
     // 获取所有键
     const allKeys = await redis.client.keys('*')
+
     logger.info(`\n📊 Total keys in Redis: ${allKeys.length}\n`)
 
     // 按类型分组
@@ -107,8 +108,10 @@ async function debugRedisKeys() {
 
     // 随机检查几个键的类型
     const sampleKeys = allKeys.slice(0, Math.min(10, allKeys.length))
+
     for (const key of sampleKeys) {
       const type = await redis.client.type(key)
+
       console.log(`${key} => ${type}`)
     }
   } catch (error) {

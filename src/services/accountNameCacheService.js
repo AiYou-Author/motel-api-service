@@ -26,10 +26,12 @@ class AccountNameCacheService {
     if (this.isRefreshing) {
       // 等待正在进行的刷新完成
       let waitCount = 0
+
       while (this.isRefreshing && waitCount < 50) {
         await new Promise((resolve) => setTimeout(resolve, 100))
         waitCount++
       }
+
       return
     }
     await this.refresh()
@@ -62,6 +64,7 @@ class AccountNameCacheService {
       // 可选服务（可能不存在）
       let geminiApiAccountService = null
       let openaiResponsesAccountService = null
+
       try {
         geminiApiAccountService = require('./account/geminiApiAccountService')
       } catch (e) {
@@ -114,6 +117,7 @@ class AccountNameCacheService {
         for (const acc of accounts) {
           if (acc && acc.id && acc.name) {
             const key = prefix ? `${prefix}${acc.id}` : acc.id
+
             newAccountCache.set(key, { name: acc.name, platform })
             // 同时存储不带前缀的版本，方便查找
             if (prefix) {
@@ -172,20 +176,24 @@ class AccountNameCacheService {
     if (accountId.startsWith('group:')) {
       const groupId = accountId.substring(6)
       const group = this.groupCache.get(groupId)
+
       if (group) {
         return `分组-${group.name}`
       }
+
       return `分组-${groupId.substring(0, 8)}`
     }
 
     // 直接查找（包括带前缀的 api:xxx, responses:xxx）
     const cached = this.accountCache.get(accountId)
+
     if (cached) {
       return cached.name
     }
 
     // 尝试去掉前缀查找
     let realId = accountId
+
     if (accountId.startsWith('api:')) {
       realId = accountId.substring(4)
     } else if (accountId.startsWith('responses:')) {
@@ -194,6 +202,7 @@ class AccountNameCacheService {
 
     if (realId !== accountId) {
       const cached2 = this.accountCache.get(realId)
+
       if (cached2) {
         return cached2.name
       }
@@ -224,8 +233,10 @@ class AccountNameCacheService {
 
     for (const { field, platform } of bindingFields) {
       const accountId = apiKey[field]
+
       if (accountId) {
         const name = this.getAccountDisplayName(accountId, field)
+
         bindings.push({ field, platform, name, accountId })
       }
     }
@@ -241,6 +252,7 @@ class AccountNameCacheService {
    */
   searchByBindingAccount(apiKeys, keyword) {
     const lowerKeyword = keyword.toLowerCase().trim()
+
     if (!lowerKeyword) {
       return apiKeys
     }
@@ -267,6 +279,7 @@ class AccountNameCacheService {
         if (binding.accountId.toLowerCase().includes(lowerKeyword)) {
           return true
         }
+
         return false
       })
     })

@@ -16,8 +16,10 @@ function normalizeNullableDate(value) {
   }
   if (typeof value === 'string') {
     const trimmed = value.trim()
+
     return trimmed === '' ? null : trimmed
   }
+
   return value
 }
 
@@ -30,6 +32,7 @@ function normalizeNullableDate(value) {
  */
 function mapExpiryField(updates, accountType, accountId) {
   const mappedUpdates = { ...updates }
+
   if ('expiresAt' in mappedUpdates) {
     mappedUpdates.subscriptionExpiresAt = mappedUpdates.expiresAt
     delete mappedUpdates.expiresAt
@@ -37,6 +40,7 @@ function mapExpiryField(updates, accountType, accountId) {
       `Mapping expiresAt to subscriptionExpiresAt for ${accountType} account ${accountId}`
     )
   }
+
   return mappedUpdates
 }
 

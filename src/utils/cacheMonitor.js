@@ -66,6 +66,7 @@ class CacheMonitor {
 
     for (const [name, monitor] of this.monitors) {
       const cacheStats = monitor.cache.getStats()
+
       stats.totalSize += cacheStats.size
       stats.totalHits += cacheStats.hits
       stats.totalMisses += cacheStats.misses
@@ -80,6 +81,7 @@ class CacheMonitor {
     }
 
     const totalRequests = stats.totalHits + stats.totalMisses
+
     stats.averageHitRate =
       totalRequests > 0 ? `${((stats.totalHits / totalRequests) * 100).toFixed(2)}%` : '0%'
 
@@ -103,6 +105,7 @@ class CacheMonitor {
 
         // 检查缓存年龄，如果太老则完全清空
         const cacheAge = Date.now() - monitor.registeredAt
+
         if (cacheAge > this.securityConfig.maxCacheAge * 2) {
           logger.warn(
             `⚠️ Cache ${name} is too old (${Math.floor(cacheAge / 60000)}min), performing full clear`
@@ -114,6 +117,7 @@ class CacheMonitor {
         monitor.totalCleanups++
 
         const afterSize = cache.cache.size
+
         if (beforeSize !== afterSize) {
           logger.info(`🧹 Cache ${name}: Cleaned ${beforeSize - afterSize} items`)
         }
@@ -187,6 +191,7 @@ class CacheMonitor {
     setInterval(
       () => {
         const stats = this.getGlobalStats()
+
         logger.info(
           `📊 Quick Stats - Caches: ${stats.cacheCount}, Size: ${stats.totalSize}, Hit Rate: ${stats.averageHitRate}`
         )
@@ -238,6 +243,7 @@ class CacheMonitor {
     for (const pattern of this.securityConfig.sensitiveDataPatterns) {
       if (pattern.test(dataStr)) {
         logger.warn('⚠️ Potential sensitive data detected in cache')
+
         return false
       }
     }
@@ -253,6 +259,7 @@ class CacheMonitor {
 
     for (const [, monitor] of this.monitors) {
       const { cache } = monitor.cache
+
       for (const [key, item] of cache) {
         // 粗略估算：key 长度 + value 序列化长度
         totalBytes += key.length * 2 // UTF-16
@@ -280,8 +287,10 @@ class CacheMonitor {
 
       // 清理一半的缓存项（LRU 会保留最近使用的）
       const targetSize = Math.floor(cache.maxSize / 2)
+
       while (cache.cache.size > targetSize) {
         const firstKey = cache.cache.keys().next().value
+
         cache.cache.delete(firstKey)
       }
 

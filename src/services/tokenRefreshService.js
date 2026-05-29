@@ -25,11 +25,14 @@ class TokenRefreshService {
       if (result === 'OK') {
         this.lockValue.set(lockKey, lockId)
         logger.debug(`🔒 Acquired lock ${lockKey} with ID ${lockId}, TTL: ${this.lockTTL}s`)
+
         return true
       }
+
       return false
     } catch (error) {
       logger.error(`Failed to acquire lock ${lockKey}:`, error)
+
       return false
     }
   }
@@ -45,6 +48,7 @@ class TokenRefreshService {
 
       if (!lockId) {
         logger.warn(`⚠️ No lock ID found for ${lockKey}, skipping release`)
+
         return
       }
 
@@ -78,6 +82,7 @@ class TokenRefreshService {
    */
   async acquireRefreshLock(accountId, platform = 'claude') {
     const lockKey = `token_refresh_lock:${platform}:${accountId}`
+
     return await this.acquireLock(lockKey)
   }
 
@@ -88,6 +93,7 @@ class TokenRefreshService {
    */
   async releaseRefreshLock(accountId, platform = 'claude') {
     const lockKey = `token_refresh_lock:${platform}:${accountId}`
+
     await this.releaseLock(lockKey)
   }
 
@@ -99,12 +105,15 @@ class TokenRefreshService {
    */
   async isRefreshLocked(accountId, platform = 'claude') {
     const lockKey = `token_refresh_lock:${platform}:${accountId}`
+
     try {
       const client = redis.getClientSafe()
       const exists = await client.exists(lockKey)
+
       return exists === 1
     } catch (error) {
       logger.error(`Failed to check lock status ${lockKey}:`, error)
+
       return false
     }
   }
@@ -117,12 +126,15 @@ class TokenRefreshService {
    */
   async getLockTTL(accountId, platform = 'claude') {
     const lockKey = `token_refresh_lock:${platform}:${accountId}`
+
     try {
       const client = redis.getClientSafe()
       const ttl = await client.ttl(lockKey)
+
       return ttl
     } catch (error) {
       logger.error(`Failed to get lock TTL ${lockKey}:`, error)
+
       return -1
     }
   }

@@ -14,6 +14,7 @@ function clamp01(value) {
   if (value > 1) {
     return 1
   }
+
   return value
 }
 
@@ -21,6 +22,7 @@ function round2(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return null
   }
+
   return Math.round(value * 100) / 100
 }
 
@@ -77,6 +79,7 @@ function buildAntigravityQuota(modelsResponse) {
       undefined
 
     const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+
     if (!Number.isFinite(num)) {
       return null
     }
@@ -98,6 +101,7 @@ function buildAntigravityQuota(modelsResponse) {
     const quotaInfo = modelDataRaw.quotaInfo || modelDataRaw.quota_info || null
 
     const remainingFraction = parseRemainingFraction(quotaInfo)
+
     if (remainingFraction === null) {
       continue
     }
@@ -107,6 +111,7 @@ function buildAntigravityQuota(modelsResponse) {
     const resetAt = quotaInfo?.resetTime || quotaInfo?.reset_time || null
 
     const category = normalizeQuotaCategory(displayName, modelId)
+
     if (!allowedCategories.has(category)) {
       continue
     }
@@ -120,6 +125,7 @@ function buildAntigravityQuota(modelsResponse) {
     }
 
     const existing = categoryMap.get(category)
+
     if (!existing || entry.remainingPercent < existing.remainingPercent) {
       categoryMap.set(category, entry)
     }
@@ -127,9 +133,11 @@ function buildAntigravityQuota(modelsResponse) {
 
   const buckets = fixedOrder.map((category) => {
     const existing = categoryMap.get(category) || null
+
     if (existing) {
       return existing
     }
+
     return {
       category,
       modelId: '',
@@ -150,6 +158,7 @@ function buildAntigravityQuota(modelsResponse) {
       if (!min) {
         return item
       }
+
       return (item.remainingPercent ?? 0) < (min.remainingPercent ?? 0) ? item : min
     }, null)
 
@@ -190,10 +199,12 @@ class GeminiBalanceProvider extends BaseBalanceProvider {
 
   async queryBalance(account) {
     const oauthProvider = account?.oauthProvider
+
     if (oauthProvider !== OAUTH_PROVIDER_ANTIGRAVITY) {
       if (account && Object.prototype.hasOwnProperty.call(account, 'dailyQuota')) {
         return this.readQuotaFromFields(account)
       }
+
       return { balance: null, currency: 'USD', queryMethod: 'local' }
     }
 
@@ -212,10 +223,12 @@ class GeminiBalanceProvider extends BaseBalanceProvider {
       })
 
     let data
+
     try {
       data = await fetch(accessToken)
     } catch (error) {
       const status = error?.response?.status
+
       if ((status === 401 || status === 403) && refreshToken) {
         const refreshed = await geminiAccountService.refreshAccessToken(
           refreshToken,
@@ -223,6 +236,7 @@ class GeminiBalanceProvider extends BaseBalanceProvider {
           OAUTH_PROVIDER_ANTIGRAVITY
         )
         const nextToken = String(refreshed?.access_token || '').trim()
+
         if (!nextToken) {
           throw error
         }
@@ -233,6 +247,7 @@ class GeminiBalanceProvider extends BaseBalanceProvider {
     }
 
     const mapped = buildAntigravityQuota(data)
+
     if (!mapped) {
       return {
         balance: null,

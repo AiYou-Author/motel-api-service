@@ -10,6 +10,7 @@ function validatePath(path) {
   }
 
   const segments = path.split('.')
+
   if (segments.some((segment) => !segment.trim())) {
     return 'Rule path cannot contain empty segments'
   }
@@ -23,6 +24,7 @@ function normalizeRule(rawRule = {}) {
   }
 
   const path = typeof rawRule.path === 'string' ? rawRule.path.trim() : ''
+
   if (!path) {
     return null
   }
@@ -48,16 +50,20 @@ function coerceRuleValue(rule) {
       return rule.value
     case 'number': {
       const parsed = Number(rule.value)
+
       if (!Number.isFinite(parsed)) {
         throw new Error(`Rule path "${rule.path}" expects a valid number`)
       }
+
       return parsed
     }
     case 'boolean': {
       const normalized = rule.value.trim().toLowerCase()
+
       if (normalized !== 'true' && normalized !== 'false') {
         throw new Error(`Rule path "${rule.path}" expects "true" or "false"`)
       }
+
       return normalized === 'true'
     }
     case 'json':
@@ -84,6 +90,7 @@ function validateAndNormalizeRules(rules) {
 
   for (let i = 0; i < rules.length; i++) {
     const rawRule = rules[i]
+
     if (!rawRule || typeof rawRule !== 'object' || Array.isArray(rawRule)) {
       return {
         valid: false,
@@ -92,11 +99,13 @@ function validateAndNormalizeRules(rules) {
     }
 
     const normalizedRule = normalizeRule(rawRule)
+
     if (!normalizedRule) {
       continue
     }
 
     const pathError = validatePath(normalizedRule.path)
+
     if (pathError) {
       return {
         valid: false,
@@ -143,10 +152,12 @@ function setValueAtPath(node, segments, value) {
 
     if (rest.length === 0) {
       nextNode[index] = value
+
       return nextNode
     }
 
     nextNode[index] = setValueAtPath(nextNode[index], rest, value)
+
     return nextNode
   }
 
@@ -154,10 +165,12 @@ function setValueAtPath(node, segments, value) {
 
   if (rest.length === 0) {
     nextNode[segment] = value
+
     return nextNode
   }
 
   nextNode[segment] = setValueAtPath(nextNode[segment], rest, value)
+
   return nextNode
 }
 
@@ -167,8 +180,10 @@ function applyRules(body, rules) {
   }
 
   const validation = validateAndNormalizeRules(rules)
+
   if (!validation.valid) {
     const error = new Error(validation.error)
+
     error.statusCode = 500
     throw error
   }

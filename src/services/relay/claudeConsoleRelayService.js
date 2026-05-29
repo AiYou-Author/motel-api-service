@@ -45,6 +45,7 @@ class ClaudeConsoleRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -69,6 +70,7 @@ class ClaudeConsoleRelayService {
             `📬 User message queue ${errorType} for console account ${accountId}, key: ${apiKeyData.name}`,
             isBackendError ? { backendError: queueResult.errorMessage } : {}
           )
+
           return {
             statusCode,
             headers: {
@@ -113,6 +115,7 @@ class ClaudeConsoleRelayService {
         const newConcurrency = Number(
           await redis.incrConsoleAccountConcurrency(accountId, requestId, 600)
         )
+
         concurrencyAcquired = true
 
         // 检查是否超过限制
@@ -126,6 +129,7 @@ class ClaudeConsoleRelayService {
           )
 
           const error = new Error('Console account concurrency limit reached')
+
           error.code = 'CONSOLE_ACCOUNT_CONCURRENCY_FULL'
           error.accountId = accountId
           throw error
@@ -142,6 +146,7 @@ class ClaudeConsoleRelayService {
 
       // 处理模型映射
       let mappedModel = requestBody.model
+
       if (
         account.supportedModels &&
         typeof account.supportedModels === 'object' &&
@@ -151,6 +156,7 @@ class ClaudeConsoleRelayService {
           account.supportedModels,
           requestBody.model
         )
+
         if (newModel !== requestBody.model) {
           logger.info(`🔄 Mapping model from ${requestBody.model} to ${newModel}`)
           mappedModel = newModel
@@ -194,6 +200,7 @@ class ClaudeConsoleRelayService {
       if (options.customPath) {
         // 如果指定了自定义路径（如 count_tokens），使用它
         const baseUrl = cleanUrl.replace(/\/v1\/messages$/, '') // 移除已有的 /v1/messages
+
         apiEndpoint = `${baseUrl}${options.customPath}`
       } else {
         // 默认使用 messages 端点
@@ -206,6 +213,7 @@ class ClaudeConsoleRelayService {
 
       // 过滤客户端请求头
       const filteredHeaders = this._filterClientHeaders(clientHeaders)
+
       logger.debug(`[DEBUG] Filtered client headers: ${JSON.stringify(filteredHeaders)}`)
 
       // 决定使用的 User-Agent：优先使用账户自定义的，否则透传客户端的，最后才使用默认值
@@ -304,6 +312,7 @@ class ClaudeConsoleRelayService {
         // 记录原始错误响应（包含供应商信息，用于调试）
         const rawData =
           typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+
         logger.error(
           `📝 Upstream error response from ${account?.name || accountId}: ${rawData.substring(0, 500)}`
         )
@@ -313,11 +322,13 @@ class ClaudeConsoleRelayService {
           const responseData =
             typeof response.data === 'string' ? JSON.parse(response.data) : response.data
           const sanitizedData = sanitizeUpstreamError(responseData)
+
           logger.error(`🧹 [SANITIZED] Error response to client: ${JSON.stringify(sanitizedData)}`)
         } catch (e) {
           const rawText =
             typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
           const sanitizedText = sanitizeErrorMessage(rawText)
+
           logger.error(`🧹 [SANITIZED] Error response to client: ${sanitizedText}`)
         }
       } else {
@@ -346,6 +357,7 @@ class ClaudeConsoleRelayService {
         // 传入完整的错误详情到 webhook
         const errorDetails =
           typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+
         if (!autoProtectionDisabled) {
           await claudeConsoleAccountService.markConsoleAccountBlocked(accountId, errorDetails)
         }
@@ -391,10 +403,12 @@ class ClaudeConsoleRelayService {
       } else if (response.status === 200 || response.status === 201) {
         // 如果请求成功，检查并移除错误状态
         const isRateLimited = await claudeConsoleAccountService.isAccountRateLimited(accountId)
+
         if (isRateLimited) {
           await claudeConsoleAccountService.removeAccountRateLimit(accountId)
         }
         const isOverloaded = await claudeConsoleAccountService.isAccountOverloaded(accountId)
+
         if (isOverloaded) {
           await claudeConsoleAccountService.removeAccountOverload(accountId)
         }
@@ -405,18 +419,21 @@ class ClaudeConsoleRelayService {
 
       // 准备响应体并清理错误信息（如果是错误响应）
       let responseBody
+
       if (response.status < 200 || response.status >= 300) {
         // 错误响应，清理供应商信息
         try {
           const responseData =
             typeof response.data === 'string' ? JSON.parse(response.data) : response.data
           const sanitizedData = sanitizeUpstreamError(responseData)
+
           responseBody = JSON.stringify(sanitizedData)
           logger.debug(`🧹 Sanitized error response`)
         } catch (parseError) {
           // 如果无法解析为JSON，尝试清理文本
           const rawText =
             typeof response.data === 'string' ? response.data : JSON.stringify(response.data)
+
           responseBody = sanitizeErrorMessage(rawText)
           logger.debug(`🧹 Sanitized error text`)
         }
@@ -516,6 +533,7 @@ class ClaudeConsoleRelayService {
           throw new Error('accountId missing for queue lock')
         }
         const queueResult = await userMessageQueueService.acquireQueueLock(accountId)
+
         if (!queueResult.acquired && !queueResult.skipped) {
           // 区分 Redis 后端错误和队列超时
           const isBackendError = queueResult.error === 'queue_backend_error'
@@ -545,6 +563,7 @@ class ClaudeConsoleRelayService {
             const existingConnection = responseStream.getHeader
               ? responseStream.getHeader('Connection')
               : null
+
             responseStream.writeHead(statusCode, {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -553,9 +572,11 @@ class ClaudeConsoleRelayService {
             })
           }
           const errorEvent = `event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: errorType, code: errorCode, message: errorMessage } })}\n\n`
+
           responseStream.write(errorEvent)
           responseStream.write('data: [DONE]\n\n')
           responseStream.end()
+
           return
         }
         if (queueResult.acquired && !queueResult.skipped) {
@@ -583,6 +604,7 @@ class ClaudeConsoleRelayService {
         const newConcurrency = Number(
           await redis.incrConsoleAccountConcurrency(accountId, requestId, 600)
         )
+
         concurrencyAcquired = true
 
         // 检查是否超过限制
@@ -596,6 +618,7 @@ class ClaudeConsoleRelayService {
           )
 
           const error = new Error('Console account concurrency limit reached')
+
           error.code = 'CONSOLE_ACCOUNT_CONCURRENCY_FULL'
           error.accountId = accountId
           throw error
@@ -628,6 +651,7 @@ class ClaudeConsoleRelayService {
 
       // 处理模型映射
       let mappedModel = requestBody.model
+
       if (
         account.supportedModels &&
         typeof account.supportedModels === 'object' &&
@@ -637,6 +661,7 @@ class ClaudeConsoleRelayService {
           account.supportedModels,
           requestBody.model
         )
+
         if (newModel !== requestBody.model) {
           logger.info(`🔄 [Stream] Mapping model from ${requestBody.model} to ${newModel}`)
           mappedModel = newModel
@@ -764,6 +789,7 @@ class ClaudeConsoleRelayService {
 
       // 过滤客户端请求头
       const filteredHeaders = this._filterClientHeaders(clientHeaders)
+
       logger.debug(`[DEBUG] Filtered client headers: ${JSON.stringify(filteredHeaders)}`)
 
       // 决定使用的 User-Agent：优先使用账户自定义的，否则透传客户端的，最后才使用默认值
@@ -838,6 +864,7 @@ class ClaudeConsoleRelayService {
 
             response.data.on('end', async () => {
               const autoProtectionDisabled = account.disableAutoProtection === true
+
               // 记录原始错误消息到日志（方便调试，包含供应商信息）
               logger.error(
                 `📝 [Stream] Upstream error response from ${account?.name || accountId}: ${errorDataForCheck.substring(0, 500)}`
@@ -934,6 +961,7 @@ class ClaudeConsoleRelayService {
                 }
               } catch (parseError) {
                 const sanitizedText = sanitizeErrorMessage(errorDataForCheck)
+
                 logger.error(`🧹 [Stream] [SANITIZED] Error response to client: ${sanitizedText}`)
 
                 if (isStreamWritable(responseStream)) {
@@ -980,6 +1008,7 @@ class ClaudeConsoleRelayService {
               ? responseStream.getHeader('Connection')
               : null
             const connectionHeader = existingConnection || 'keep-alive'
+
             if (existingConnection) {
               logger.debug(
                 `🔌 [Console Stream] Preserving existing Connection header: ${existingConnection}`
@@ -1007,10 +1036,12 @@ class ClaudeConsoleRelayService {
               }
 
               const chunkStr = chunk.toString()
+
               buffer += chunkStr
 
               // 处理完整的SSE行
               const lines = buffer.split('\n')
+
               buffer = lines.pop() || ''
 
               // 转发数据并解析usage
@@ -1021,8 +1052,10 @@ class ClaudeConsoleRelayService {
 
                   // 应用流转换器如果有
                   let dataToWrite = linesToForward
+
                   if (streamTransformer) {
                     const transformed = streamTransformer(linesToForward)
+
                     if (transformed) {
                       dataToWrite = transformed
                     } else {
@@ -1044,6 +1077,7 @@ class ClaudeConsoleRelayService {
                 for (const line of lines) {
                   if (line.startsWith('data:')) {
                     const jsonStr = line.slice(5).trimStart()
+
                     if (!jsonStr || jsonStr === '[DONE]') {
                       continue
                     }
@@ -1174,6 +1208,7 @@ class ClaudeConsoleRelayService {
               if (buffer.trim() && isStreamWritable(responseStream)) {
                 if (streamTransformer) {
                   const transformed = streamTransformer(buffer)
+
                   if (transformed) {
                     responseStream.write(transformed)
                   }
@@ -1293,6 +1328,7 @@ class ClaudeConsoleRelayService {
           if (error.response) {
             const catchAutoProtectionDisabled =
               account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
             if (error.response.status === 401) {
               if (!catchAutoProtectionDisabled) {
                 upstreamErrorHelper
@@ -1330,6 +1366,7 @@ class ClaudeConsoleRelayService {
             const existingConnection = responseStream.getHeader
               ? responseStream.getHeader('Connection')
               : null
+
             responseStream.writeHead(error.response?.status || 500, {
               'Content-Type': 'text/event-stream',
               'Cache-Control': 'no-cache',
@@ -1383,6 +1420,7 @@ class ClaudeConsoleRelayService {
 
       if (!exists) {
         logger.debug(`🔎 跳过更新已删除的Claude Console账号最近使用时间: ${accountId}`)
+
         return
       }
 
@@ -1413,6 +1451,7 @@ class ClaudeConsoleRelayService {
         }
 
         const jsonStr = line.substring(6).trim()
+
         if (!jsonStr || jsonStr === '[DONE]') {
           continue
         }
@@ -1442,6 +1481,7 @@ class ClaudeConsoleRelayService {
           // 处理错误事件
           if (data.type === 'error') {
             const errorMsg = data.error?.message || data.message || '未知错误'
+
             outputLines.push(`data: ${JSON.stringify({ type: 'error', error: errorMsg })}`)
             outputLines.push('')
           }
@@ -1463,6 +1503,7 @@ class ClaudeConsoleRelayService {
 
     try {
       const account = await claudeConsoleAccountService.getAccount(accountId)
+
       if (!account) {
         throw new Error('Account not found')
       }
@@ -1522,6 +1563,7 @@ class ClaudeConsoleRelayService {
       }
     } catch (error) {
       logger.error('❌ Claude Console Claude health check failed:', error)
+
       return {
         healthy: false,
         error: error.message,

@@ -160,6 +160,7 @@ async function cleanTestData() {
 
     for (const pattern of patterns) {
       const keys = await client.keys(pattern)
+
       if (keys.length > 0) {
         await client.del(...keys)
         logger.info(`🗑️ Deleted ${keys.length} keys matching pattern: ${pattern}`)
@@ -176,6 +177,7 @@ async function cleanTestData() {
 
   for (const pattern of modelPatterns) {
     const keys = await client.keys(pattern)
+
     if (keys.length > 0) {
       await client.del(...keys)
       logger.info(`🗑️ Deleted ${keys.length} keys matching pattern: ${pattern}`)
@@ -216,6 +218,7 @@ async function main() {
     if (shouldClean) {
       await cleanTestData()
       logger.success('✅ Test data cleaned successfully')
+
       return
     }
 
@@ -228,6 +231,7 @@ async function main() {
       // 生成过去30天的数据
       for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
         const date = new Date(now)
+
         date.setDate(date.getDate() - dayOffset)
 
         await generateDataForDate(apiKeyId, date, dayOffset)

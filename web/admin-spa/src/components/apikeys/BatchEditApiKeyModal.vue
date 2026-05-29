@@ -590,6 +590,7 @@ const isServiceSelectable = (service) => {
   if (form.permissions === 'all') return true
   if (Array.isArray(form.permissions) && form.permissions.length === 0) return true
   if (Array.isArray(form.permissions)) return form.permissions.includes(service)
+
   return form.permissions === service
 }
 
@@ -597,6 +598,7 @@ const isServiceSelectable = (service) => {
 const addTag = () => {
   if (newTag.value && newTag.value.trim()) {
     const tag = newTag.value.trim()
+
     if (!form.tags.includes(tag)) {
       form.tags.push(tag)
     }
@@ -732,6 +734,7 @@ const refreshAccounts = async () => {
     // 处理分组数据
     if (groupsData.success) {
       const allGroups = groupsData.data || []
+
       localAccounts.value.claudeGroups = allGroups.filter((g) => g.platform === 'claude')
       localAccounts.value.geminiGroups = allGroups.filter((g) => g.platform === 'gemini')
       localAccounts.value.openaiGroups = allGroups.filter((g) => g.platform === 'openai')
@@ -861,6 +864,7 @@ const batchUpdateApiKeys = async () => {
 
         if (failedCount > 0) {
           const errorMessages = errors.map((e) => `${e.keyId}: ${e.error}`).join('\n')
+
           showToast(`${failedCount} 个编辑失败:\n${errorMessages}`, 'warning')
         }
       } else {
@@ -895,6 +899,7 @@ onMounted(async () => {
 
     // props.accounts.openai 只包含 openai 类型，openaiResponses 需要单独处理
     const openaiAccounts = []
+
     if (props.accounts.openai) {
       props.accounts.openai.forEach((account) => {
         openaiAccounts.push({

@@ -36,6 +36,7 @@ class OpenAIToClaudeConverter {
 
     // 如果 OpenAI 请求中包含系统消息,提取并检查
     const systemMessage = this._extractSystemMessage(openaiRequest.messages)
+
     if (systemMessage && systemMessage.includes('You are currently in Xcode')) {
       // Xcode 系统提示词
       claudeRequest.system = systemMessage
@@ -132,6 +133,7 @@ class OpenAIToClaudeConverter {
     for (const line of lines) {
       if (line.startsWith('data: ')) {
         const data = line.substring(6)
+
         if (data === '[DONE]') {
           convertedChunks.push('data: [DONE]\n\n')
           continue
@@ -146,6 +148,7 @@ class OpenAIToClaudeConverter {
           }
 
           const openaiChunk = this._convertStreamEvent(claudeEvent, requestModel, sessionId)
+
           if (openaiChunk) {
             convertedChunks.push(`data: ${JSON.stringify(openaiChunk)}\n\n`)
           }
@@ -170,6 +173,7 @@ class OpenAIToClaudeConverter {
    */
   _extractSystemMessage(messages) {
     const systemMessages = messages.filter((msg) => msg.role === 'system')
+
     if (systemMessages.length === 0) {
       return null
     }
@@ -251,6 +255,7 @@ class OpenAIToClaudeConverter {
         if (imageUrl.startsWith('data:')) {
           // 解析 data URL: data:image/jpeg;base64,/9j/4AAQ...
           const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/)
+
           if (matches) {
             const mediaType = matches[1] // e.g., 'image/jpeg', 'image/png'
             const base64Data = matches[2]
@@ -266,6 +271,7 @@ class OpenAIToClaudeConverter {
           } else {
             // 如果格式不正确，尝试使用默认处理
             logger.warn('⚠️ Invalid base64 image format, using default parsing')
+
             return {
               type: 'image',
               source: {
@@ -285,6 +291,7 @@ class OpenAIToClaudeConverter {
           )
         }
       }
+
       return item
     })
   }
@@ -301,6 +308,7 @@ class OpenAIToClaudeConverter {
           input_schema: tool.function.parameters
         }
       }
+
       return tool
     })
   }
@@ -324,6 +332,7 @@ class OpenAIToClaudeConverter {
         name: toolChoice.function.name
       }
     }
+
     return { type: 'auto' }
   }
 
@@ -427,6 +436,7 @@ class OpenAIToClaudeConverter {
     if (event.type === 'message_start') {
       // 处理消息开始事件，发送角色信息
       baseChunk.choices[0].delta.role = 'assistant'
+
       return baseChunk
     } else if (event.type === 'content_block_start' && event.content_block) {
       if (event.content_block.type === 'text') {

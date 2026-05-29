@@ -40,12 +40,14 @@ function normalizeHeaders(headers = {}) {
     return {}
   }
   const normalized = {}
+
   for (const [key, value] of Object.entries(headers)) {
     if (!key) {
       continue
     }
     normalized[key.toLowerCase()] = Array.isArray(value) ? value[0] : value
   }
+
   return normalized
 }
 
@@ -54,11 +56,13 @@ function toNumberSafe(value) {
     return null
   }
   const num = Number(value)
+
   return Number.isFinite(num) ? num : null
 }
 
 function extractCodexUsageHeaders(headers) {
   const normalized = normalizeHeaders(headers)
+
   if (!normalized || Object.keys(normalized).length === 0) {
     return null
   }
@@ -76,6 +80,7 @@ function extractCodexUsageHeaders(headers) {
   }
 
   const hasData = Object.values(snapshot).some((value) => value !== null)
+
   return hasData ? snapshot : null
 }
 
@@ -200,6 +205,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
 
     if (!result || !result.accountId) {
       const error = new Error('No available OpenAI account found')
+
       error.statusCode = 402 // Payment Required - 资源耗尽
       throw error
     }
@@ -214,6 +220,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
       account = await openaiResponsesAccountService.getAccount(result.accountId)
       if (!account || !account.apiKey) {
         const error = new Error(`OpenAI-Responses account ${result.accountId} has no valid apiKey`)
+
         error.statusCode = 403 // Forbidden - 账户配置错误
         throw error
       }
@@ -236,6 +243,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
       account = await openaiAccountService.getAccount(result.accountId)
       if (!account || !account.accessToken) {
         const error = new Error(`OpenAI account ${result.accountId} has no valid accessToken`)
+
         error.statusCode = 403 // Forbidden - 账户配置错误
         throw error
       }
@@ -252,6 +260,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
           } catch (refreshError) {
             logger.error(`Failed to refresh token for ${account.name}:`, refreshError)
             const error = new Error(`Token expired and refresh failed: ${refreshError.message}`)
+
             error.statusCode = 403 // Forbidden - 认证失败
             throw error
           }
@@ -259,6 +268,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
           const error = new Error(
             `Token expired and no refresh token available for account ${account.name}`
           )
+
           error.statusCode = 403 // Forbidden - 认证失败
           throw error
         }
@@ -268,6 +278,7 @@ async function getOpenAIAuthToken(apiKeyData, sessionId = null, requestedModel =
       accessToken = openaiAccountService.decrypt(account.accessToken)
       if (!accessToken) {
         const error = new Error('Failed to decrypt OpenAI accessToken')
+
         error.statusCode = 403 // Forbidden - 配置/权限错误
         throw error
       }
@@ -316,6 +327,7 @@ const handleResponses = async (req, res) => {
       logger.security(
         `🚫 API Key ${apiKeyData.id || 'unknown'} 缺少 OpenAI 权限，拒绝访问 ${req.originalUrl}`
       )
+
       return res.status(403).json({
         error: {
           message: 'This API key does not have permission to access OpenAI',
@@ -403,6 +415,7 @@ const handleResponses = async (req, res) => {
     // 如果是 OpenAI-Responses 账户，使用专门的中继服务处理
     if (accountType === 'openai-responses') {
       logger.info(`🔀 Using OpenAI-Responses relay service for account: ${account.name}`)
+
       return await openaiResponsesRelayService.handleRequest(req, res, account, apiKeyData)
     }
 
@@ -421,6 +434,7 @@ const handleResponses = async (req, res) => {
     const allowedKeys = ['version', 'openai-beta', 'session_id']
 
     const headers = {}
+
     for (const key of allowedKeys) {
       if (incoming[key] !== undefined) {
         headers[key] = incoming[key]
@@ -476,6 +490,7 @@ const handleResponses = async (req, res) => {
     }
 
     const codexUsageSnapshot = extractCodexUsageHeaders(upstream.headers)
+
     if (codexUsageSnapshot) {
       try {
         await openaiAccountService.updateCodexUsageSnapshot(accountId, codexUsageSnapshot)
@@ -497,6 +512,7 @@ const handleResponses = async (req, res) => {
         if (isStream && upstream.data) {
           // 流式响应需要先收集数据
           const chunks = []
+
           await new Promise((resolve, reject) => {
             upstream.data.on('data', (chunk) => chunks.push(chunk))
             upstream.data.on('end', resolve)
@@ -506,6 +522,7 @@ const handleResponses = async (req, res) => {
           })
 
           const fullResponse = Buffer.concat(chunks).toString()
+
           try {
             errorData = JSON.parse(fullResponse)
           } catch (e) {
@@ -565,6 +582,7 @@ const handleResponses = async (req, res) => {
     } else if (upstream.status === 401 || upstream.status === 402) {
       const unauthorizedStatus = upstream.status
       const statusDescription = unauthorizedStatus === 401 ? 'Unauthorized' : 'Payment required'
+
       logger.warn(
         `🔐 ${statusDescription} error detected for OpenAI account ${accountId} (Codex API)`
       )
@@ -574,6 +592,7 @@ const handleResponses = async (req, res) => {
       try {
         if (isStream && upstream.data && typeof upstream.data.on === 'function') {
           const chunks = []
+
           await new Promise((resolve, reject) => {
             upstream.data.on('data', (chunk) => chunks.push(chunk))
             upstream.data.on('end', resolve)
@@ -582,6 +601,7 @@ const handleResponses = async (req, res) => {
           })
 
           const fullResponse = Buffer.concat(chunks).toString()
+
           try {
             errorData = JSON.parse(fullResponse)
           } catch (parseError) {
@@ -599,6 +619,7 @@ const handleResponses = async (req, res) => {
       const statusLabel = unauthorizedStatus === 401 ? '401错误' : '402错误'
       const extraHint = unauthorizedStatus === 402 ? '，可能欠费' : ''
       let reason = `OpenAI账号认证失败（${statusLabel}${extraHint}）`
+
       if (errorData) {
         const messageCandidate =
           errorData.error &&
@@ -608,6 +629,7 @@ const handleResponses = async (req, res) => {
             : typeof errorData.message === 'string' && errorData.message.trim()
               ? errorData.message.trim()
               : null
+
         if (messageCandidate) {
           reason = `OpenAI账号认证失败（${statusLabel}${extraHint}）：${messageCandidate}`
         }
@@ -628,9 +650,11 @@ const handleResponses = async (req, res) => {
       }
 
       let errorResponse = errorData
+
       if (!errorResponse || typeof errorResponse !== 'object' || Buffer.isBuffer(errorResponse)) {
         const fallbackMessage =
           typeof errorData === 'string' && errorData.trim() ? errorData.trim() : 'Unauthorized'
+
         errorResponse = {
           error: {
             message: fallbackMessage,
@@ -641,10 +665,12 @@ const handleResponses = async (req, res) => {
       }
 
       res.status(unauthorizedStatus).json(errorResponse)
+
       return
     } else if (upstream.status === 200 || upstream.status === 201) {
       // 请求成功，检查并移除限流状态
       const isRateLimited = await unifiedOpenAIScheduler.isAccountRateLimited(accountId)
+
       if (isRateLimited) {
         logger.info(
           `✅ Removing rate limit for OpenAI account ${accountId} after successful request`
@@ -668,8 +694,10 @@ const handleResponses = async (req, res) => {
 
     // 透传关键诊断头，避免传递不安全或与传输相关的头
     const passThroughHeaderKeys = ['openai-version', 'x-request-id', 'openai-processing-ms']
+
     for (const key of passThroughHeaderKeys) {
       const val = upstream.headers?.[key]
+
       if (val !== undefined) {
         res.setHeader(key, val)
       }
@@ -749,12 +777,14 @@ const handleResponses = async (req, res) => {
 
         // 返回响应
         res.json(responseData)
+
         return
       } catch (error) {
         logger.error('Failed to process non-stream response:', error)
         if (!res.headersSent) {
           res.status(500).json({ error: { message: 'Failed to process response' } })
         }
+
         return
       }
     }
@@ -800,6 +830,7 @@ const handleResponses = async (req, res) => {
 
         // 使用增量解析器处理数据
         const events = sseParser.feed(chunk.toString())
+
         for (const event of events) {
           if (event.type === 'data' && event.data) {
             processSSEEvent(event.data)
@@ -813,8 +844,10 @@ const handleResponses = async (req, res) => {
     upstream.data.on('end', async () => {
       // 处理剩余的 buffer
       const remaining = sseParser.getRemaining()
+
       if (remaining.trim()) {
         const events = sseParser.feed('\n\n') // 强制刷新剩余内容
+
         for (const event of events) {
           if (event.type === 'data' && event.data) {
             processSSEEvent(event.data)
@@ -886,6 +919,7 @@ const handleResponses = async (req, res) => {
       } else if (upstream.status === 200) {
         // 流式请求成功，检查并移除限流状态
         const isRateLimited = await unifiedOpenAIScheduler.isAccountRateLimited(accountId)
+
         if (isRateLimited) {
           logger.info(
             `✅ Removing rate limit for OpenAI account ${accountId} after successful stream`
@@ -915,6 +949,7 @@ const handleResponses = async (req, res) => {
         //
       }
     }
+
     req.on('close', cleanup)
     req.on('aborted', cleanup)
   } catch (error) {
@@ -927,6 +962,7 @@ const handleResponses = async (req, res) => {
       const extraHint = status === 402 ? '，可能欠费' : ''
       let reason = `OpenAI账号认证失败（${statusLabel}${extraHint}）`
       const errorData = error.response?.data
+
       if (errorData) {
         if (typeof errorData === 'string' && errorData.trim()) {
           reason = `OpenAI账号认证失败（${statusLabel}${extraHint}）：${errorData.trim()}`
@@ -956,6 +992,7 @@ const handleResponses = async (req, res) => {
     }
 
     let responsePayload = error.response?.data
+
     if (!responsePayload) {
       responsePayload = { error: { message: getSafeMessage(error) } }
     } else if (typeof responsePayload === 'string') {
@@ -1014,6 +1051,7 @@ router.get('/key-info', authenticateApiKey, async (req, res) => {
     // 按需查询 usage 数据（仅 key-info 端点需要）
     const usage = await redis.getUsageStats(keyData.id)
     const tokensUsed = usage?.total?.tokens || 0
+
     res.json({
       id: keyData.id,
       name: keyData.name,

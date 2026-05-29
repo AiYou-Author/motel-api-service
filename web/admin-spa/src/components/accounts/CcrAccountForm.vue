@@ -297,11 +297,14 @@ const modelMappings = ref([]) // [{from,to}]
 
 const buildSupportedModels = () => {
   const map = {}
+
   for (const m of modelMappings.value) {
     const from = (m.from || '').trim()
     const to = (m.to || '').trim()
+
     if (from && to) map[from] = to
   }
+
   return map
 }
 
@@ -315,11 +318,13 @@ const removeModelMapping = (index) => {
 
 const validate = () => {
   const e = {}
+
   if (!form.value.name || form.value.name.trim().length === 0) e.name = '名称不能为空'
   if (!form.value.apiUrl || form.value.apiUrl.trim().length === 0) e.apiUrl = 'API URL 不能为空'
   if (!isEdit.value && (!form.value.apiKey || form.value.apiKey.trim().length === 0))
     e.apiKey = 'API Key 不能为空'
   errors.value = e
+
   return Object.keys(e).length === 0
 }
 
@@ -341,10 +346,12 @@ const submit = async () => {
         proxy: form.value.proxy || null,
         supportedModels: buildSupportedModels()
       }
+
       if (form.value.apiKey && form.value.apiKey.trim().length > 0) {
         updates.apiKey = form.value.apiKey
       }
       const res = await updateCcrAccountApi(props.account.id, updates)
+
       if (res.success) {
         // 不在这里显示 toast，由父组件统一处理
         emit('success')
@@ -368,6 +375,7 @@ const submit = async () => {
         quotaResetTime: form.value.quotaResetTime || '00:00'
       }
       const res = await createCcrAccountApi(payload)
+
       if (res.success) {
         // 不在这里显示 toast，由父组件统一处理
         emit('success')
@@ -385,6 +393,7 @@ const submit = async () => {
 const populateFromAccount = () => {
   if (!props.account) return
   const a = props.account
+
   form.value.name = a.name || ''
   form.value.description = a.description || ''
   form.value.apiUrl = a.apiUrl || ''
@@ -399,6 +408,7 @@ const populateFromAccount = () => {
   // supportedModels 对象转为数组
   modelMappings.value = []
   const mapping = a.supportedModels || {}
+
   if (mapping && typeof mapping === 'object') {
     for (const k of Object.keys(mapping)) {
       modelMappings.value.push({ from: k, to: mapping[k] })

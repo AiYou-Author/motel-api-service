@@ -123,8 +123,8 @@ jobs:
     
     - name: Install dependencies
       run: |
-        npm ci --only=production
-        cd web/admin-spa && npm ci --only=production
+        npm ci
+        cd web/admin-spa && npm ci
     
     - name: Build frontend
       run: cd web/admin-spa && npm run build

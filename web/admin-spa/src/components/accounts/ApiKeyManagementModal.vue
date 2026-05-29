@@ -466,6 +466,7 @@ const maskApiKey = (key) => {
   if (!key || key.length < 12) {
     return key
   }
+
   return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`
 }
 
@@ -481,8 +482,10 @@ const filteredApiKeys = computed(() => {
   // 搜索筛选（使用完整的 key 进行搜索）
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.trim()
+
     filtered = filtered.filter((key) => {
       const fullKey = key.key // 使用完整的 key
+
       if (searchMode.value === 'exact') {
         // 精确搜索：完全匹配完整的 key
         return fullKey === query
@@ -502,6 +505,7 @@ const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value))
 const paginatedApiKeys = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
+
   return filteredApiKeys.value.slice(start, end)
 })
 
@@ -523,6 +527,7 @@ const loadApiKeys = async () => {
 
     // 解析 apiKeys
     let parsedKeys = []
+
     if (Array.isArray(account.apiKeys)) {
       parsedKeys = account.apiKeys
     } else if (typeof account.apiKeys === 'string') {
@@ -554,6 +559,7 @@ const loadApiKeys = async () => {
           errorMessage: item.errorMessage || '' // 保留后端返回的错误信息
         }
       }
+
       // 其他情况，默认为active状态
       return {
         key: String(item),
@@ -578,6 +584,7 @@ const loadApiKeys = async () => {
       if (!a.lastUsedAt && b.lastUsedAt) {
         return 1
       }
+
       // 如果都没有时间，按使用次数降序排序
       return (b.usageCount || 0) - (a.usageCount || 0)
     })
@@ -670,8 +677,10 @@ const resetApiKeyStatus = async (apiKey) => {
 // 批量删除所有异常状态的 Key
 const deleteAllErrorKeys = async () => {
   const errorKeys = apiKeys.value.filter((key) => key.status === 'error')
+
   if (errorKeys.length === 0) {
     showToast('没有异常状态的 API Key', 'warning')
+
     return
   }
 
@@ -712,6 +721,7 @@ const deleteAllErrorKeys = async () => {
 const deleteAllKeys = async () => {
   if (apiKeys.value.length === 0) {
     showToast('没有可删除的 API Key', 'warning')
+
     return
   }
 
@@ -770,6 +780,7 @@ const exportKeys = (type) => {
 
   if (keysToExport.length === 0) {
     showToast('没有可导出的 API Key', 'warning')
+
     return
   }
 
@@ -780,6 +791,7 @@ const exportKeys = (type) => {
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
+
   link.href = url
   link.download = filename
   document.body.appendChild(link)
@@ -800,6 +812,7 @@ const writeToClipboard = async (text) => {
 
   if (canUseClipboardApi) {
     await navigator.clipboard.writeText(text)
+
     return
   }
 
@@ -808,6 +821,7 @@ const writeToClipboard = async (text) => {
   }
 
   const textarea = document.createElement('textarea')
+
   textarea.value = text
   textarea.setAttribute('readonly', '')
   textarea.style.position = 'fixed'
@@ -818,6 +832,7 @@ const writeToClipboard = async (text) => {
 
   try {
     const success = document.execCommand('copy')
+
     document.body.removeChild(textarea)
     if (!success) {
       throw new Error('execCommand failed')
@@ -848,6 +863,7 @@ const copyAllApiKeys = async () => {
   copyingAll.value = true
   try {
     const allKeysText = apiKeys.value.map((item) => item.key).join('\n')
+
     await writeToClipboard(allKeysText)
     showToast(`已复制 ${apiKeys.value.length} 条 API Key`, 'success')
   } catch (error) {
@@ -863,6 +879,7 @@ const formatTime = (timestamp) => {
   if (!timestamp) return '-'
   try {
     const date = new Date(timestamp)
+
     return date.toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',

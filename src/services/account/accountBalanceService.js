@@ -55,6 +55,7 @@ class AccountBalanceService {
 
   registerProvider(platform, provider) {
     const normalized = this.normalizePlatform(platform)
+
     if (!normalized) {
       throw new Error('registerProvider: 缺少 platform')
     }
@@ -67,15 +68,18 @@ class AccountBalanceService {
   async getAccountBalance(accountId, platform, options = {}) {
     const normalizedPlatform = this.normalizePlatform(platform)
     const account = await this.getAccount(accountId, normalizedPlatform)
+
     if (!account) {
       return null
     }
+
     return await this._getAccountBalanceForAccount(account, normalizedPlatform, options)
   }
 
   async refreshAccountBalance(accountId, platform) {
     const normalizedPlatform = this.normalizePlatform(platform)
     const account = await this.getAccount(accountId, normalizedPlatform)
+
     if (!account) {
       return null
     }
@@ -101,9 +105,11 @@ class AccountBalanceService {
             queryApi,
             useCache
           })
+
           return { ...balance, name: acc.name || '' }
         } catch (error) {
           this.logger.error(`批量获取余额失败: ${normalizedPlatform}:${acc?.id}`, error)
+
           return {
             success: true,
             data: {
@@ -155,6 +161,7 @@ class AccountBalanceService {
             queryApi: false,
             useCache: true
           })
+
           return { ...balance, name: acc.name || '' }
         }
       )
@@ -195,6 +202,7 @@ class AccountBalanceService {
 
   async clearCache(accountId, platform) {
     const normalizedPlatform = this.normalizePlatform(platform)
+
     if (!normalizedPlatform) {
       throw new Error('缺少 platform 参数')
     }
@@ -222,6 +230,7 @@ class AccountBalanceService {
     }
 
     const service = serviceMap[platform]
+
     if (!service || typeof service.getAccount !== 'function') {
       return null
     }
@@ -256,6 +265,7 @@ class AccountBalanceService {
     }
 
     const service = serviceMap[platform]
+
     if (!service) {
       return []
     }
@@ -263,6 +273,7 @@ class AccountBalanceService {
     // Bedrock 特殊：返回 { success, data }
     if (platform === 'bedrock' && typeof service.getAllAccounts === 'function') {
       const result = await service.getAllAccounts()
+
       return result?.success ? result.data || [] : []
     }
 
@@ -282,9 +293,11 @@ class AccountBalanceService {
     const useCache = options.useCache !== false
 
     const accountId = account?.id
+
     if (!accountId) {
       // 如果账户缺少 id，返回空响应而不是抛出错误，避免接口报错和UI错误
       this.logger.warn('账户缺少 id，返回空余额数据', { account, platform })
+
       return this._buildResponse(
         {
           status: 'error',
@@ -306,6 +319,7 @@ class AccountBalanceService {
     // 余额脚本配置状态（用于前端控制"刷新余额"按钮）
     let scriptConfig = null
     let scriptConfigured = false
+
     if (typeof this.redis?.getBalanceScriptConfig === 'function') {
       scriptConfig = await this.redis.getBalanceScriptConfig(platform, accountId)
       scriptConfigured = !!(
@@ -332,6 +346,7 @@ class AccountBalanceService {
     if (effectiveQueryMode !== 'api') {
       if (useCache) {
         const cached = await this.redis.getAccountBalance(platform, accountId)
+
         if (cached && cached.status === 'success') {
           return this._buildResponse(
             {
@@ -379,6 +394,7 @@ class AccountBalanceService {
       providerResult = await this._getBalanceFromScript(scriptConfig, accountId, platform)
     } else {
       const provider = this.providers.get(platform)
+
       if (!provider) {
         return this._buildResponse(
           {
@@ -449,6 +465,7 @@ class AccountBalanceService {
       })
 
       const mapped = result?.mapped || {}
+
       return {
         status: mapped.status || 'error',
         balance: typeof mapped.balance === 'number' ? mapped.balance : null,
@@ -476,6 +493,7 @@ class AccountBalanceService {
   async _getBalanceFromProvider(provider, account) {
     try {
       const result = await provider.queryBalance(account)
+
       return {
         status: 'success',
         balance: typeof result?.balance === 'number' ? result.balance : null,
@@ -502,6 +520,7 @@ class AccountBalanceService {
 
   async _getBalanceFromLocal(accountId, platform) {
     const cached = await this.redis.getLocalBalance(platform, accountId)
+
     if (cached && cached.statistics) {
       return cached
     }
@@ -517,12 +536,14 @@ class AccountBalanceService {
     }
 
     await this.redis.setLocalBalance(platform, accountId, localBalance, this.LOCAL_TTL_SECONDS)
+
     return localBalance
   }
 
   async _computeLocalStatistics(accountId) {
     const safeNumber = (value) => {
       const num = Number(value)
+
       return Number.isFinite(num) ? num : 0
     }
 
@@ -542,6 +563,7 @@ class AccountBalanceService {
       }
     } catch (error) {
       this.logger.debug(`本地统计计算失败: ${accountId}`, error)
+
       return {
         totalCost: 0,
         dailyCost: 0,
@@ -561,11 +583,13 @@ class AccountBalanceService {
     )}`
 
     const pattern = `account_usage:model:monthly:${accountId}:*:${currentMonth}`
+
     return await this._sumModelCostsByKeysPattern(pattern)
   }
 
   async _computeTotalCost(accountId) {
     const pattern = `account_usage:model:monthly:${accountId}:*:*`
+
     return await this._sumModelCostsByKeysPattern(pattern)
   }
 
@@ -580,6 +604,7 @@ class AccountBalanceService {
 
       do {
         const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', scanCount)
+
         cursor = nextCursor
         iterations += 1
 
@@ -588,11 +613,13 @@ class AccountBalanceService {
         }
 
         const pipeline = client.pipeline()
+
         keys.forEach((key) => pipeline.hgetall(key))
         const results = await pipeline.exec()
 
         for (let i = 0; i < results.length; i += 1) {
           const [, data] = results[i] || []
+
           if (!data || Object.keys(data).length === 0) {
             continue
           }
@@ -610,6 +637,7 @@ class AccountBalanceService {
           // 如果有 ephemeral 5m/1h 拆分数据，添加 cache_creation 子对象以实现精确计费
           const eph5m = parseInt(data.ephemeral5mTokens || 0)
           const eph1h = parseInt(data.ephemeral1hTokens || 0)
+
           if (eph5m > 0 || eph1h > 0) {
             usage.cache_creation = {
               ephemeral_5m_input_tokens: eph5m,
@@ -618,6 +646,7 @@ class AccountBalanceService {
           }
 
           const costResult = CostCalculator.calculateCost(usage, model)
+
           totalCost += costResult.costs.total || 0
         }
 
@@ -630,6 +659,7 @@ class AccountBalanceService {
       return totalCost
     } catch (error) {
       this.logger.debug(`汇总模型费用失败: ${pattern}`, error)
+
       return 0
     }
   }
@@ -693,6 +723,7 @@ class AccountBalanceService {
     const day = tzNow.getUTCDate()
 
     let resetAtMs = Date.UTC(year, month, day, resetHour, resetMinute, 0, 0) - offsetMs
+
     if (resetAtMs <= now.getTime()) {
       resetAtMs += 24 * 60 * 60 * 1000
     }
@@ -707,9 +738,11 @@ class AccountBalanceService {
     const currency = balanceData.currency || 'USD'
 
     let cacheExpiresAt = null
+
     if (source === 'cache') {
       const ttl =
         typeof ttlSeconds === 'number' && ttlSeconds > 0 ? ttlSeconds : this.CACHE_TTL_SECONDS
+
       cacheExpiresAt = new Date(Date.now() + ttl * 1000).toISOString()
     }
 
@@ -743,6 +776,7 @@ class AccountBalanceService {
       if (typeof amount !== 'number' || !Number.isFinite(amount)) {
         return 'N/A'
       }
+
       return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
     } catch (error) {
       return `$${amount.toFixed(2)}`
@@ -757,12 +791,14 @@ class AccountBalanceService {
       return null
     }
     const normalized = value.trim().toLowerCase()
+
     if (normalized === 'true' || normalized === '1' || normalized === 'yes') {
       return true
     }
     if (normalized === 'false' || normalized === '0' || normalized === 'no') {
       return false
     }
+
     return null
   }
 
@@ -771,6 +807,7 @@ class AccountBalanceService {
       return 'auto'
     }
     const parsed = this._parseBoolean(value)
+
     return parsed ? 'api' : 'local'
   }
 
@@ -784,16 +821,19 @@ class AccountBalanceService {
     const workers = new Array(Math.min(concurrency, list.length)).fill(null).map(async () => {
       while (nextIndex < list.length) {
         const currentIndex = nextIndex
+
         nextIndex += 1
         results[currentIndex] = await mapper(list[currentIndex], currentIndex)
       }
     })
 
     await Promise.all(workers)
+
     return results
   }
 }
 
 const accountBalanceService = new AccountBalanceService()
+
 module.exports = accountBalanceService
 module.exports.AccountBalanceService = AccountBalanceService

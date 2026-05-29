@@ -40,6 +40,7 @@ class UserService {
 
       if (isNewUser) {
         const userId = this.generateUserId()
+
         user = {
           id: userId,
           username,
@@ -83,6 +84,7 @@ class UserService {
       }
 
       logger.info(`📝 ${isNewUser ? 'Created' : 'Updated'} user: ${username} (${user.id})`)
+
       return user
     } catch (error) {
       logger.error('❌ Error creating/updating user:', error)
@@ -94,6 +96,7 @@ class UserService {
   async registerNativeUser({ username, password, email, displayName, referralCode }) {
     try {
       const existing = await this.getUserByUsername(username)
+
       if (existing) {
         throw new Error('USERNAME_TAKEN')
       }
@@ -114,6 +117,7 @@ class UserService {
         apiKeyCount: 0,
         totalUsage: { requests: 0, inputTokens: 0, outputTokens: 0, totalCost: 0 }
       }
+
       await redis.set(`${this.userPrefix}${userId}`, JSON.stringify(user))
       await redis.set(`${this.usernamePrefix}${username}`, userId)
       await redis.addToIndex('user:index', userId)
@@ -124,6 +128,7 @@ class UserService {
         try {
           const referralService = require('./referralService')
           const referrerId = await referralService.getReferrerByCode(referralCode)
+
           if (referrerId && referrerId !== userId) {
             await referralService.bindReferral(userId, referrerId)
           }
@@ -133,6 +138,7 @@ class UserService {
       }
 
       logger.info(`📝 Native user registered: ${username} (${userId})`)
+
       return user
     } catch (error) {
       logger.error('❌ Error registering native user:', error)
@@ -144,6 +150,7 @@ class UserService {
   async authenticateNative(username, password) {
     try {
       const user = await this.getUserByUsername(username)
+
       if (!user || user.authType !== 'native' || !user.passwordHash) {
         return null
       }
@@ -151,12 +158,14 @@ class UserService {
         return null
       }
       const valid = await bcrypt.compare(password, user.passwordHash)
+
       if (!valid) {
         return null
       }
       // 更新最后登录时间
       user.lastLoginAt = new Date().toISOString()
       await redis.set(`${this.userPrefix}${user.id}`, JSON.stringify(user))
+
       return user
     } catch (error) {
       logger.error('❌ Error authenticating native user:', error)
@@ -168,11 +177,13 @@ class UserService {
   async getUserByUsername(username) {
     try {
       const userId = await redis.get(`${this.usernamePrefix}${username}`)
+
       if (!userId) {
         return null
       }
 
       const userData = await redis.get(`${this.userPrefix}${userId}`)
+
       return userData ? JSON.parse(userData) : null
     } catch (error) {
       logger.error('❌ Error getting user by username:', error)
@@ -184,6 +195,7 @@ class UserService {
   async getUserById(userId, calculateUsage = true) {
     try {
       const userData = await redis.get(`${this.userPrefix}${userId}`)
+
       if (!userData) {
         return null
       }
@@ -194,6 +206,7 @@ class UserService {
       if (calculateUsage) {
         try {
           const usageStats = await this.calculateUserUsageStats(userId)
+
           user.totalUsage = usageStats.totalUsage
           user.apiKeyCount = usageStats.apiKeyCount
         } catch (error) {
@@ -252,6 +265,7 @@ class UserService {
       }
     } catch (error) {
       logger.error('❌ Error calculating user usage stats:', error)
+
       return {
         totalUsage: {
           requests: 0,
@@ -277,8 +291,10 @@ class UserService {
       const dataList = await redis.batchGetChunked(keys)
 
       const users = []
+
       for (let i = 0; i < keys.length; i++) {
         const userData = dataList[i]
+
         if (userData) {
           const user = JSON.parse(userData)
 
@@ -293,6 +309,7 @@ class UserService {
           // Calculate dynamic usage stats for each user
           try {
             const usageStats = await this.calculateUserUsageStats(user.id)
+
             user.totalUsage = usageStats.totalUsage
             user.apiKeyCount = usageStats.apiKeyCount
           } catch (error) {
@@ -334,6 +351,7 @@ class UserService {
   async updateUserStatus(userId, isActive) {
     try {
       const user = await this.getUserById(userId, false) // Skip usage calculation
+
       if (!user) {
         throw new Error('User not found')
       }
@@ -352,6 +370,7 @@ class UserService {
         try {
           const apiKeyService = require('./apiKeyService')
           const result = await apiKeyService.disableUserApiKeys(userId)
+
           logger.info(`🔑 Disabled ${result.count} API keys for disabled user: ${user.username}`)
         } catch (error) {
           logger.error('❌ Error disabling user API keys during user disable:', error)
@@ -369,6 +388,7 @@ class UserService {
   async updateUserRole(userId, role) {
     try {
       const user = await this.getUserById(userId, false) // Skip usage calculation
+
       if (!user) {
         throw new Error('User not found')
       }
@@ -399,6 +419,7 @@ class UserService {
   async recordUserLogin(userId) {
     try {
       const user = await this.getUserById(userId, false) // Skip usage calculation
+
       if (!user) {
         return
       }
@@ -423,9 +444,11 @@ class UserService {
       }
 
       const ttl = Math.floor(config.userManagement.userSessionTimeout / 1000)
+
       await redis.setex(`${this.userSessionPrefix}${sessionToken}`, ttl, JSON.stringify(session))
 
       logger.info(`🎫 Created session for user: ${userId}`)
+
       return sessionToken
     } catch (error) {
       logger.error('❌ Error creating user session:', error)
@@ -437,6 +460,7 @@ class UserService {
   async validateUserSession(sessionToken) {
     try {
       const sessionData = await redis.get(`${this.userSessionPrefix}${sessionToken}`)
+
       if (!sessionData) {
         return null
       }
@@ -446,19 +470,23 @@ class UserService {
       // 检查会话是否过期
       if (new Date() > new Date(session.expiresAt)) {
         await this.invalidateUserSession(sessionToken)
+
         return null
       }
 
       // 获取用户信息
       const user = await this.getUserById(session.userId, false) // Skip usage calculation for validation
+
       if (!user || !user.isActive) {
         await this.invalidateUserSession(sessionToken)
+
         return null
       }
 
       return { session, user }
     } catch (error) {
       logger.error('❌ Error validating user session:', error)
+
       return null
     }
   }
@@ -483,8 +511,10 @@ class UserService {
 
       for (let i = 0; i < keys.length; i++) {
         const sessionData = dataList[i]
+
         if (sessionData) {
           const session = JSON.parse(sessionData)
+
           if (session.userId === userId) {
             await client.del(keys[i])
           }
@@ -501,6 +531,7 @@ class UserService {
   async deleteUser(userId) {
     try {
       const user = await this.getUserById(userId, false) // Skip usage calculation
+
       if (!user) {
         throw new Error('User not found')
       }
@@ -519,12 +550,14 @@ class UserService {
       try {
         const apiKeyService = require('./apiKeyService')
         const result = await apiKeyService.disableUserApiKeys(userId)
+
         logger.info(`🔑 Disabled ${result.count} API keys for deleted user: ${user.username}`)
       } catch (error) {
         logger.error('❌ Error disabling user API keys during user deletion:', error)
       }
 
       logger.info(`🗑️ Soft deleted user: ${user.username} (${userId})`)
+
       return user
     } catch (error) {
       logger.error('❌ Error deleting user:', error)
@@ -559,8 +592,10 @@ class UserService {
 
       for (let i = 0; i < keys.length; i++) {
         const userData = dataList[i]
+
         if (userData) {
           const user = JSON.parse(userData)
+
           stats.totalUsers++
 
           if (user.isActive) {
@@ -576,6 +611,7 @@ class UserService {
           // Calculate dynamic usage stats for each user
           try {
             const usageStats = await this.calculateUserUsageStats(user.id)
+
             stats.totalApiKeys += usageStats.apiKeyCount
             stats.totalUsage.requests += usageStats.totalUsage.requests
             stats.totalUsage.inputTokens += usageStats.totalUsage.inputTokens
@@ -614,11 +650,13 @@ class UserService {
 
       if (unownedApiKeys.length === 0) {
         logger.debug(`📝 No unowned API keys found for potential transfer to user: ${username}`)
+
         return
       }
 
       // 构建匹配字符串数组（只考虑displayName、username、email，去除空值和重复值）
       const matchStrings = new Set()
+
       if (displayName) {
         matchStrings.add(displayName.toLowerCase().trim())
       }
@@ -646,6 +684,7 @@ class UserService {
 
       // 转移匹配的API Keys
       let transferredCount = 0
+
       for (const apiKey of matchingKeys) {
         try {
           await apiKeyService.updateApiKey(apiKey.id, {

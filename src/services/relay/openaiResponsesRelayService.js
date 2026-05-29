@@ -35,6 +35,7 @@ function extractCacheCreationTokens(usageData) {
   for (const value of candidates) {
     if (value !== undefined && value !== null && value !== '') {
       const parsed = Number(value)
+
       if (!Number.isNaN(parsed)) {
         return parsed
       }
@@ -76,6 +77,7 @@ class OpenAIResponsesRelayService {
     try {
       // 获取完整的账户信息（包含解密的 API Key）
       const fullAccount = await openaiResponsesAccountService.getAccount(account.id)
+
       if (!fullAccount) {
         throw new Error('Account not found')
       }
@@ -108,6 +110,7 @@ class OpenAIResponsesRelayService {
         (targetPath === '/v1/chat/completions' || targetPath === '/chat/completions')
       ) {
         const newPath = targetPath.startsWith('/v1') ? '/v1/responses' : '/responses'
+
         logger.info(`📝 Normalized path (${req.path}) → ${newPath} (providerEndpoint=responses)`)
         targetPath = newPath
       }
@@ -115,10 +118,12 @@ class OpenAIResponsesRelayService {
 
       // 防止 baseApi 已含 /v1 时路径重复（如 baseApi=http://host/v1 + targetPath=/v1/responses → /v1/v1/responses）
       const baseApi = fullAccount.baseApi || ''
+
       if (baseApi.endsWith('/v1') && targetPath.startsWith('/v1/')) {
         targetPath = targetPath.slice(3) // '/v1/responses' → '/responses'
       }
       const targetUrl = `${baseApi}${targetPath}`
+
       logger.info(`🎯 Forwarding to: ${targetUrl}`)
 
       // 构建请求头 - 使用统一的 headerFilter 移除 CDN headers
@@ -154,6 +159,7 @@ class OpenAIResponsesRelayService {
       // 配置代理（如果有）
       if (fullAccount.proxy) {
         const proxyAgent = ProxyHelper.createProxyAgent(fullAccount.proxy)
+
         if (proxyAgent) {
           requestOptions.httpAgent = proxyAgent
           requestOptions.httpsAgent = proxyAgent
@@ -189,6 +195,7 @@ class OpenAIResponsesRelayService {
 
         const oaiAutoProtectionDisabled =
           account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
         if (!oaiAutoProtectionDisabled) {
           await upstreamErrorHelper
             .markTempUnavailable(
@@ -209,6 +216,7 @@ class OpenAIResponsesRelayService {
             resets_in_seconds: resetsInSeconds
           }
         }
+
         return res.status(429).json(errorResponse)
       }
 
@@ -216,9 +224,11 @@ class OpenAIResponsesRelayService {
       if (response.status >= 400) {
         // 处理流式错误响应
         let errorData = response.data
+
         if (response.data && typeof response.data.pipe === 'function') {
           // 流式响应需要先读取内容
           const chunks = []
+
           await new Promise((resolve) => {
             response.data.on('data', (chunk) => chunks.push(chunk))
             response.data.on('end', resolve)
@@ -232,9 +242,11 @@ class OpenAIResponsesRelayService {
             if (fullResponse.includes('data: ')) {
               // SSE格式
               const lines = fullResponse.split('\n')
+
               for (const line of lines) {
                 if (line.startsWith('data: ')) {
                   const jsonStr = line.slice(6).trim()
+
                   if (jsonStr && jsonStr !== '[DONE]') {
                     errorData = JSON.parse(jsonStr)
                     break
@@ -264,6 +276,7 @@ class OpenAIResponsesRelayService {
             // 仅临时暂停，不永久禁用
             const oaiAutoProtectionDisabled =
               account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
             if (!oaiAutoProtectionDisabled) {
               await upstreamErrorHelper
                 .markTempUnavailable(account.id, 'openai-responses', 401)
@@ -280,6 +293,7 @@ class OpenAIResponsesRelayService {
           }
 
           let unauthorizedResponse = errorData
+
           if (
             !unauthorizedResponse ||
             typeof unauthorizedResponse !== 'object' ||
@@ -288,6 +302,7 @@ class OpenAIResponsesRelayService {
           ) {
             const fallbackMessage =
               typeof errorData === 'string' && errorData.trim() ? errorData.trim() : 'Unauthorized'
+
             unauthorizedResponse = {
               error: {
                 message: fallbackMessage,
@@ -309,6 +324,7 @@ class OpenAIResponsesRelayService {
           try {
             const oaiAutoProtectionDisabled =
               account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
             if (!oaiAutoProtectionDisabled) {
               await upstreamErrorHelper.markTempUnavailable(
                 account.id,
@@ -367,6 +383,7 @@ class OpenAIResponsesRelayService {
         status: error.response?.status,
         statusText: error.response?.statusText
       }
+
       logger.error('OpenAI-Responses relay error:', errorInfo)
 
       // 检查是否是网络错误
@@ -374,6 +391,7 @@ class OpenAIResponsesRelayService {
         if (account?.id) {
           const oaiAutoProtectionDisabled =
             account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
           if (!oaiAutoProtectionDisabled) {
             await upstreamErrorHelper
               .markTempUnavailable(account.id, 'openai-responses', 503)
@@ -422,6 +440,7 @@ class OpenAIResponsesRelayService {
             // 仅临时暂停，不永久禁用
             const oaiAutoProtectionDisabled =
               account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
             if (!oaiAutoProtectionDisabled) {
               await upstreamErrorHelper
                 .markTempUnavailable(account.id, 'openai-responses', 401)
@@ -438,6 +457,7 @@ class OpenAIResponsesRelayService {
           }
 
           let unauthorizedResponse = errorData
+
           if (
             !unauthorizedResponse ||
             typeof unauthorizedResponse !== 'object' ||
@@ -446,6 +466,7 @@ class OpenAIResponsesRelayService {
           ) {
             const fallbackMessage =
               typeof errorData === 'string' && errorData.trim() ? errorData.trim() : 'Unauthorized'
+
             unauthorizedResponse = {
               error: {
                 message: fallbackMessage,
@@ -503,6 +524,7 @@ class OpenAIResponsesRelayService {
         if (line.startsWith('data:')) {
           try {
             const jsonStr = line.slice(5).trim()
+
             if (jsonStr === '[DONE]') {
               continue
             }
@@ -568,6 +590,7 @@ class OpenAIResponsesRelayService {
         // 处理完整的 SSE 事件
         if (buffer.includes('\n\n')) {
           const events = buffer.split('\n\n')
+
           buffer = events.pop() || ''
 
           for (const event of events) {
@@ -607,6 +630,7 @@ class OpenAIResponsesRelayService {
           const modelToRecord = actualModel || requestedModel || 'gpt-4'
 
           const serviceTier = req._serviceTier || null
+
           await apiKeyService.recordUsage(
             apiKeyData.id,
             actualInputTokens, // 传递实际输入（不含缓存）
@@ -645,6 +669,7 @@ class OpenAIResponsesRelayService {
               modelToRecord,
               serviceTier
             )
+
             await openaiResponsesAccountService.updateUsageQuota(account.id, costInfo.costs.total)
           }
         } catch (error) {
@@ -744,6 +769,7 @@ class OpenAIResponsesRelayService {
           usageData.total_tokens || totalInputTokens + outputTokens + cacheCreateTokens
 
         const serviceTier = req._serviceTier || null
+
         await apiKeyService.recordUsage(
           apiKeyData.id,
           actualInputTokens, // 传递实际输入（不含缓存）
@@ -782,6 +808,7 @@ class OpenAIResponsesRelayService {
             actualModel,
             serviceTier
           )
+
           await openaiResponsesAccountService.updateUsageQuota(account.id, costInfo.costs.total)
         }
       } catch (error) {
@@ -810,6 +837,7 @@ class OpenAIResponsesRelayService {
       if (isStream && response.data && typeof response.data.pipe === 'function') {
         // 流式响应需要先收集数据
         const chunks = []
+
         await new Promise((resolve, reject) => {
           response.data.on('data', (chunk) => chunks.push(chunk))
           response.data.on('end', resolve)
@@ -823,10 +851,12 @@ class OpenAIResponsesRelayService {
         // 尝试解析SSE格式的错误响应
         if (fullResponse.includes('data: ')) {
           const lines = fullResponse.split('\n')
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
                 const jsonStr = line.slice(6).trim()
+
                 if (jsonStr && jsonStr !== '[DONE]') {
                   errorData = JSON.parse(jsonStr)
                   break
@@ -923,6 +953,7 @@ class OpenAIResponsesRelayService {
 
     // 查找匹配的模型定价
     let rate = rates['gpt-3.5-turbo'] // 默认使用 GPT-3.5 的价格
+
     for (const [modelKey, modelRate] of Object.entries(rates)) {
       if (model.toLowerCase().includes(modelKey.toLowerCase())) {
         rate = modelRate
@@ -932,6 +963,7 @@ class OpenAIResponsesRelayService {
 
     const inputCost = (inputTokens / 1000) * rate.input
     const outputCost = (outputTokens / 1000) * rate.output
+
     return inputCost + outputCost
   }
 }

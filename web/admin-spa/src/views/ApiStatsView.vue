@@ -612,6 +612,7 @@ const handleRedeem = async () => {
   if (res.success) {
     const warnings = res.data?.warnings || []
     const hasWarnings = warnings.length > 0
+
     redeemResult.value = {
       success: true,
       message: hasWarnings ? warnings.join('；') : '额度卡兑换成功！',
@@ -640,6 +641,7 @@ const loadRedemptionHistory = async () => {
 
   historyLoading.value = true
   const res = await getRedemptionHistoryByApiIdApi(apiId.value)
+
   historyLoading.value = false
 
   if (res.success) {
@@ -670,32 +672,40 @@ const parsePermissions = (permissions) => {
     if (permissions === 'all') return []
     try {
       const parsed = JSON.parse(permissions)
+
       return Array.isArray(parsed) ? parsed : []
     } catch {
       return []
     }
   }
+
   return []
 }
 
 // 检查是否可以测试 Claude（权限包含 claude 或全部）
 const canTestClaude = computed(() => {
   const permissions = parsePermissions(statsData.value?.permissions)
+
   if (permissions.length === 0) return true
+
   return permissions.includes('claude')
 })
 
 // 检查是否可以测试 Gemini
 const canTestGemini = computed(() => {
   const permissions = parsePermissions(statsData.value?.permissions)
+
   if (permissions.length === 0) return true
+
   return permissions.includes('gemini')
 })
 
 // 检查是否可以测试 OpenAI
 const canTestOpenAI = computed(() => {
   const permissions = parsePermissions(statsData.value?.permissions)
+
   if (permissions.length === 0) return true
+
   return permissions.includes('openai')
 })
 
@@ -707,6 +717,7 @@ const hasAnyTestPermission = computed(() => {
 // 可用服务文本
 const availableServicesText = computed(() => {
   const permissions = parsePermissions(statsData.value?.permissions)
+
   if (permissions.length === 0) return '全部服务'
   const serviceNames = {
     claude: 'Claude',
@@ -714,6 +725,7 @@ const availableServicesText = computed(() => {
     openai: 'OpenAI',
     droid: 'Droid'
   }
+
   return permissions.map((s) => serviceNames[s] || s).join(', ')
 })
 
@@ -745,6 +757,7 @@ const dismissNotice = () => {
 // 检查是否显示通知
 const checkNotice = () => {
   const notice = oemSettings.value?.apiStatsNotice
+
   if (notice?.enabled && notice?.content && !sessionStorage.getItem(NOTICE_STORAGE_KEY)) {
     showNotice.value = true
   }
@@ -796,6 +809,7 @@ onMounted(async () => {
     apiId.value = urlApiId
     // 同时从 localStorage 填充 API Key 到输入框
     const savedApiKey = loadApiKeyFromStorage()
+
     if (savedApiKey) {
       apiKey.value = savedApiKey
     }
@@ -806,6 +820,7 @@ onMounted(async () => {
   } else {
     // 没有 URL 参数，检查 localStorage
     const savedApiKey = loadApiKeyFromStorage()
+
     if (savedApiKey && savedApiKey.length > 10) {
       apiKey.value = savedApiKey
       queryStats()

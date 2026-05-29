@@ -14,6 +14,7 @@ const parseBooleanLike = (value) => {
   const normalized = String(value || '')
     .trim()
     .toLowerCase()
+
   return normalized === 'true' || normalized === 'yes' || normalized === 'on'
 }
 
@@ -22,9 +23,11 @@ const normalizeOptionalNonNegativeInteger = (value) => {
     return null
   }
   const parsed = Number(value)
+
   if (!Number.isFinite(parsed) || parsed < 0) {
     return null
   }
+
   return Math.floor(parsed)
 }
 
@@ -40,6 +43,7 @@ const normalizeTempUnavailablePolicyInput = (value = {}) => ({
 
 const normalizeTempUnavailablePolicyFromAccountData = (accountData = {}) => {
   const normalized = normalizeTempUnavailablePolicyInput(accountData)
+
   return {
     disableTempUnavailable: normalized.disableTempUnavailable,
     ttl503Seconds: normalized.tempUnavailable503TtlSeconds,

@@ -21,22 +21,26 @@ export const useSettingsStore = defineStore('settings', () => {
   const loadOemSettings = async () => {
     loading.value = true
     const res = await getOemSettingsApi()
+
     if (res.success) {
       oemSettings.value = { ...oemSettings.value, ...res.data }
       applyOemSettings()
     }
     loading.value = false
+
     return res
   }
 
   const saveOemSettings = async (settings) => {
     saving.value = true
     const res = await updateOemSettingsApi(settings)
+
     if (res.success) {
       oemSettings.value = { ...oemSettings.value, ...res.data }
       applyOemSettings()
     }
     saving.value = false
+
     return res
   }
 
@@ -51,6 +55,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     oemSettings.value = { ...defaultSettings }
+
     return await saveOemSettings(defaultSettings)
   }
 
@@ -64,6 +69,7 @@ export const useSettingsStore = defineStore('settings', () => {
     // 更新favicon
     if (oemSettings.value.siteIconData || oemSettings.value.siteIcon) {
       const favicon = document.querySelector('link[rel="icon"]') || document.createElement('link')
+
       favicon.rel = 'icon'
       favicon.href = oemSettings.value.siteIconData || oemSettings.value.siteIcon
       if (!document.querySelector('link[rel="icon"]')) {
@@ -74,7 +80,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // 格式化日期时间
   const formatDateTime = (dateString) => {
-    if (!dateString) return ''
+    if (!dateString) {
+      return ''
+    }
+
     return new Date(dateString).toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -96,6 +105,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
     // 检查文件类型
     const allowedTypes = ['image/x-icon', 'image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml']
+
     if (!allowedTypes.includes(file.type)) {
       errors.push('不支持的文件类型，请选择 .ico, .png, .jpg 或 .svg 文件')
     }
@@ -110,6 +120,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
+
       reader.onload = (e) => resolve(e.target.result)
       reader.onerror = reject
       reader.readAsDataURL(file)

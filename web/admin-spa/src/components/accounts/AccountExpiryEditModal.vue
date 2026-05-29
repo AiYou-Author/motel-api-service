@@ -223,7 +223,9 @@ const quickOptions = [
 // 计算最小日期时间
 const minDateTime = computed(() => {
   const now = new Date()
+
   now.setMinutes(now.getMinutes() + 1)
+
   return now.toISOString().slice(0, 16)
 })
 
@@ -268,6 +270,7 @@ const selectQuickOption = (value) => {
 
   if (!value) {
     localForm.expiresAt = null
+
     return
   }
 
@@ -316,6 +319,7 @@ const updateCustomExpiryPreview = () => {
       // 验证日期有效性
       if (isNaN(localDate.getTime())) {
         console.error('Invalid date:', localForm.customExpireDate)
+
         return
       }
 
@@ -330,6 +334,7 @@ const updateCustomExpiryPreview = () => {
 const formatFullExpireDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
+
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -342,6 +347,7 @@ const formatFullExpireDate = (dateString) => {
 // 检查是否已过期
 const isExpired = (dateString) => {
   if (!dateString) return false
+
   return new Date(dateString) < new Date()
 }
 

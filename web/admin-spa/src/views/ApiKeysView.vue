@@ -2306,9 +2306,11 @@ const searchModeOptions = computed(() => [
 
 const tagOptions = computed(() => {
   const options = [{ value: '', label: '所有标签', icon: 'fa-asterisk' }]
+
   availableTags.value.forEach((tag) => {
     options.push({ value: tag, label: tag, icon: 'fa-tag' })
   })
+
   return options
 })
 
@@ -2322,6 +2324,7 @@ const modelOptions = computed(() => {
 
 const selectedTagCount = computed(() => {
   if (!selectedTagFilter.value) return 0
+
   return apiKeys.value.filter((key) => key.tags && key.tags.includes(selectedTagFilter.value))
     .length
 })
@@ -2331,13 +2334,16 @@ const currentPage = ref(1)
 // 从 localStorage 读取保存的每页显示条数，默认为 10
 const getInitialPageSize = () => {
   const saved = localStorage.getItem('apiKeysPageSize')
+
   if (saved) {
     const parsedSize = parseInt(saved, 10)
+
     // 验证保存的值是否在允许的选项中
     if ([10, 20, 50, 100].includes(parsedSize)) {
       return parsedSize
     }
   }
+
   return 10
 }
 const pageSize = ref(getInitialPageSize())
@@ -2433,25 +2439,33 @@ const pageNumbers = computed(() => {
 
 const shouldShowFirstPage = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return pages[0] > 1
 })
 
 const shouldShowLastPage = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return pages[pages.length - 1] < totalPages.value
 })
 
 const showLeadingEllipsis = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return shouldShowFirstPage.value && pages[0] > 2
 })
 
 const showTrailingEllipsis = computed(() => {
   const pages = pageNumbers.value
+
   if (pages.length === 0) return false
+
   return shouldShowLastPage.value && pages[pages.length - 1] < totalPages.value - 1
 })
 
@@ -2577,6 +2591,7 @@ const loadAccounts = async (forceRefresh = false) => {
     if (groupsData.success) {
       // 处理分组数据
       const allGroups = groupsData.data || []
+
       accounts.value.claudeGroups = allGroups.filter((g) => g.platform === 'claude')
       accounts.value.geminiGroups = allGroups.filter((g) => g.platform === 'gemini')
       accounts.value.openaiGroups = allGroups.filter((g) => g.platform === 'openai')
@@ -2596,6 +2611,7 @@ const loadAccounts = async (forceRefresh = false) => {
 const loadUsedModels = async () => {
   try {
     const data = await httpApis.getApiKeyUsedModelsApi()
+
     if (data.success) {
       availableModels.value = data.data || []
     }
@@ -2650,6 +2666,7 @@ const loadApiKeys = async (clearStatsCache = true) => {
     const effectiveSortBy = validSortFields.includes(apiKeysSortBy.value)
       ? apiKeysSortBy.value
       : 'createdAt'
+
     params.set('sortBy', effectiveSortBy)
     params.set('sortOrder', apiKeysSortOrder.value)
 
@@ -2685,6 +2702,7 @@ const loadApiKeys = async (clearStatsCache = true) => {
     }
 
     const data = await httpApis.getApiKeysWithParamsApi(params.toString())
+
     if (data.success) {
       // 更新数据
       apiKeys.value = data.data?.items || []
@@ -2721,6 +2739,7 @@ const loadApiKeys = async (clearStatsCache = true) => {
 // 异步加载当前页的统计数据
 const loadPageStats = async () => {
   const currentPageKeys = apiKeys.value
+
   if (!currentPageKeys || currentPageKeys.length === 0) return
 
   // 获取当前时间范围
@@ -2741,11 +2760,13 @@ const loadPageStats = async () => {
   // 筛选出需要加载的 keys（未缓存或时间范围变化）
   const keysNeedStats = currentPageKeys.filter((key) => {
     const cached = statsCache.value.get(key.id)
+
     if (!cached) return true
     if (cached.timeRange !== currentTimeRange) return true
     if (currentTimeRange === 'custom') {
       if (cached.startDate !== startDate || cached.endDate !== endDate) return true
     }
+
     return false
   })
 
@@ -2753,6 +2774,7 @@ const loadPageStats = async () => {
 
   // 标记为加载中
   const keyIds = keysNeedStats.map((k) => k.id)
+
   keyIds.forEach((id) => statsLoading.value.add(id))
 
   try {
@@ -2760,6 +2782,7 @@ const loadPageStats = async () => {
       keyIds,
       timeRange: currentTimeRange
     }
+
     if (currentTimeRange === 'custom') {
       requestBody.startDate = startDate
       requestBody.endDate = endDate
@@ -2790,6 +2813,7 @@ const loadPageStats = async () => {
 // 获取缓存的统计数据
 const getCachedStats = (keyId) => {
   const cached = statsCache.value.get(keyId)
+
   return cached?.stats || null
 }
 
@@ -2801,6 +2825,7 @@ const isStatsLoading = (keyId) => {
 // 异步加载当前页的最后使用账号数据
 const loadPageLastUsage = async () => {
   const currentPageKeys = apiKeys.value
+
   if (!currentPageKeys || currentPageKeys.length === 0) return
 
   // 筛选出需要加载的 keys（未缓存且有 lastUsedAt 的）
@@ -2809,6 +2834,7 @@ const loadPageLastUsage = async () => {
     if (!key.lastUsedAt) return false
     // 已经有缓存的不需要加载
     if (lastUsageCache.value.has(key.id)) return false
+
     return true
   })
 
@@ -2816,6 +2842,7 @@ const loadPageLastUsage = async () => {
 
   // 标记为加载中
   const keyIds = keysNeedLastUsage.map((k) => k.id)
+
   keyIds.forEach((id) => lastUsageLoading.value.add(id))
 
   try {
@@ -2851,6 +2878,7 @@ const loadDeletedApiKeys = async () => {
   deletedApiKeysLoading.value = true
   try {
     const data = await httpApis.getDeletedApiKeysApi()
+
     if (data.success) {
       deletedApiKeys.value = data.apiKeys || []
     }
@@ -2867,6 +2895,7 @@ const sortApiKeys = (field) => {
   if (field === 'cost') {
     if (!canSortByCost.value) {
       showToast('费用排序索引正在更新中，请稍后重试', 'warning')
+
       return
     }
 
@@ -2895,6 +2924,7 @@ const canSortByCost = computed(() => {
   // 检查对应时间范围的索引状态
   const timeRange = globalDateFilter.preset
   const status = costSortStatus.value[timeRange]
+
   return status?.status === 'ready'
 })
 
@@ -2917,6 +2947,7 @@ const costSortTooltip = computed(() => {
 
   if (status.status === 'ready') {
     const lastUpdate = status.lastUpdate ? new Date(status.lastUpdate).toLocaleString() : '未知'
+
     return `点击按费用排序（索引更新于: ${lastUpdate}）`
   }
 
@@ -2930,6 +2961,7 @@ let costSortStatusTimer = null
 const fetchCostSortStatus = async () => {
   try {
     const data = await httpApis.getApiKeysCostSortStatusApi()
+
     if (data.success) {
       costSortStatus.value = data.data || {}
 
@@ -2969,6 +3001,7 @@ const formatTokenCount = (count) => {
   } else if (count >= 1000) {
     return (count / 1000).toFixed(1) + 'K'
   }
+
   return count.toString()
 }
 
@@ -2982,23 +3015,27 @@ const getBoundAccountName = (accountId) => {
 
     // 从Claude分组中查找
     const claudeGroup = accounts.value.claudeGroups.find((g) => g.id === groupId)
+
     if (claudeGroup) {
       return `分组-${claudeGroup.name}`
     }
 
     // 从Gemini分组中查找
     const geminiGroup = accounts.value.geminiGroups.find((g) => g.id === groupId)
+
     if (geminiGroup) {
       return `分组-${geminiGroup.name}`
     }
 
     // 从OpenAI分组中查找
     const openaiGroup = accounts.value.openaiGroups.find((g) => g.id === groupId)
+
     if (openaiGroup) {
       return `分组-${openaiGroup.name}`
     }
 
     const droidGroup = accounts.value.droidGroups.find((g) => g.id === groupId)
+
     if (droidGroup) {
       return `分组-${droidGroup.name}`
     }
@@ -3009,6 +3046,7 @@ const getBoundAccountName = (accountId) => {
 
   // 从Claude账户列表中查找
   const claudeAccount = accounts.value.claude.find((acc) => acc.id === accountId)
+
   if (claudeAccount) {
     return `${claudeAccount.name}`
   }
@@ -3019,15 +3057,18 @@ const getBoundAccountName = (accountId) => {
     const geminiApiAccount = accounts.value.gemini.find(
       (acc) => acc.id === realAccountId && acc.platform === 'gemini-api'
     )
+
     if (geminiApiAccount) {
       return `${geminiApiAccount.name}`
     }
+
     // 如果找不到，返回ID的前8位
     return `${realAccountId.substring(0, 8)}`
   }
 
   // 从Gemini账户列表中查找
   const geminiAccount = accounts.value.gemini.find((acc) => acc.id === accountId)
+
   if (geminiAccount) {
     return `${geminiAccount.name}`
   }
@@ -3038,32 +3079,38 @@ const getBoundAccountName = (accountId) => {
     const openaiResponsesAccount = accounts.value.openaiResponses.find(
       (acc) => acc.id === realAccountId
     )
+
     if (openaiResponsesAccount) {
       return `${openaiResponsesAccount.name}`
     }
+
     // 如果找不到，返回ID的前8位
     return `${realAccountId.substring(0, 8)}`
   }
 
   // 从OpenAI账户列表中查找
   const openaiAccount = accounts.value.openai.find((acc) => acc.id === accountId)
+
   if (openaiAccount) {
     return `${openaiAccount.name}`
   }
 
   // 从 OpenAI-Responses 账户列表中查找（兼容没有前缀的情况）
   const openaiResponsesAccount = accounts.value.openaiResponses.find((acc) => acc.id === accountId)
+
   if (openaiResponsesAccount) {
     return `${openaiResponsesAccount.name}`
   }
 
   // 从Bedrock账户列表中查找
   const bedrockAccount = accounts.value.bedrock.find((acc) => acc.id === accountId)
+
   if (bedrockAccount) {
     return `${bedrockAccount.name}`
   }
 
   const droidAccount = accounts.value.droid.find((acc) => acc.id === accountId)
+
   if (droidAccount) {
     return `${droidAccount.name}`
   }
@@ -3088,28 +3135,34 @@ const hasAnyBinding = (key) => {
 const getClaudeBindingInfo = (key) => {
   if (key.claudeAccountId) {
     const info = getBoundAccountName(key.claudeAccountId)
+
     if (key.claudeAccountId.startsWith('group:')) {
       return info
     }
     // 检查账户是否存在
     const account = accounts.value.claude.find((acc) => acc.id === key.claudeAccountId)
+
     if (!account) {
       return `⚠️ ${info} (账户不存在)`
     }
     if (account.accountType === 'dedicated') {
       return `🔒 专属-${info}`
     }
+
     return info
   }
   if (key.claudeConsoleAccountId) {
     const account = accounts.value.claude.find(
       (acc) => acc.id === key.claudeConsoleAccountId && acc.platform === 'claude-console'
     )
+
     if (!account) {
       return `⚠️ Console账户不存在`
     }
+
     return `Console-${account.name}`
   }
+
   return ''
 }
 
@@ -3117,6 +3170,7 @@ const getClaudeBindingInfo = (key) => {
 const getGeminiBindingInfo = (key) => {
   if (key.geminiAccountId) {
     const info = getBoundAccountName(key.geminiAccountId)
+
     if (key.geminiAccountId.startsWith('group:')) {
       return info
     }
@@ -3127,25 +3181,30 @@ const getGeminiBindingInfo = (key) => {
       const account = accounts.value.gemini.find(
         (acc) => acc.id === realAccountId && acc.platform === 'gemini-api'
       )
+
       if (!account) {
         return `⚠️ ${info} (账户不存在)`
       }
       if (account.accountType === 'dedicated') {
         return `🔒 API专属-${info}`
       }
+
       return `API-${info}`
     }
 
     // 检查 Gemini OAuth 账户是否存在
     const account = accounts.value.gemini.find((acc) => acc.id === key.geminiAccountId)
+
     if (!account) {
       return `⚠️ ${info} (账户不存在)`
     }
     if (account.accountType === 'dedicated') {
       return `🔒 专属-${info}`
     }
+
     return info
   }
+
   return ''
 }
 
@@ -3153,14 +3212,17 @@ const getGeminiBindingInfo = (key) => {
 const getOpenAIBindingInfo = (key) => {
   if (key.openaiAccountId) {
     const info = getBoundAccountName(key.openaiAccountId)
+
     if (key.openaiAccountId.startsWith('group:')) {
       return info
     }
 
     // 处理 responses: 前缀的 OpenAI-Responses 账户
     let account = null
+
     if (key.openaiAccountId.startsWith('responses:')) {
       const realAccountId = key.openaiAccountId.replace('responses:', '')
+
       account = accounts.value.openaiResponses.find((acc) => acc.id === realAccountId)
     } else {
       // 查找普通 OpenAI 账户
@@ -3173,8 +3235,10 @@ const getOpenAIBindingInfo = (key) => {
     if (account.accountType === 'dedicated') {
       return `🔒 专属-${info}`
     }
+
     return info
   }
+
   return ''
 }
 
@@ -3182,43 +3246,52 @@ const getOpenAIBindingInfo = (key) => {
 const getBedrockBindingInfo = (key) => {
   if (key.bedrockAccountId) {
     const info = getBoundAccountName(key.bedrockAccountId)
+
     if (key.bedrockAccountId.startsWith('group:')) {
       return info
     }
     // 检查账户是否存在
     const account = accounts.value.bedrock.find((acc) => acc.id === key.bedrockAccountId)
+
     if (!account) {
       return `⚠️ ${info} (账户不存在)`
     }
     if (account.accountType === 'dedicated') {
       return `🔒 专属-${info}`
     }
+
     return info
   }
+
   return ''
 }
 
 const getDroidBindingInfo = (key) => {
   if (key.droidAccountId) {
     const info = getBoundAccountName(key.droidAccountId)
+
     if (key.droidAccountId.startsWith('group:')) {
       return info
     }
     const account = accounts.value.droid.find((acc) => acc.id === key.droidAccountId)
+
     if (!account) {
       return `⚠️ ${info} (账户不存在)`
     }
     if (account.accountType === 'dedicated') {
       return `🔒 专属-${info}`
     }
+
     return info
   }
+
   return ''
 }
 
 // 检查API Key是否过期
 const isApiKeyExpired = (expiresAt) => {
   if (!expiresAt) return false
+
   return new Date(expiresAt) < new Date()
 }
 
@@ -3226,12 +3299,14 @@ const isApiKeyExpired = (expiresAt) => {
 const isApiKeyExpiringSoon = (expiresAt) => {
   if (!expiresAt || isApiKeyExpired(expiresAt)) return false
   const daysUntilExpiry = (new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24)
+
   return daysUntilExpiry <= 7
 }
 
 // 格式化过期日期
 const formatExpireDate = (dateString) => {
   if (!dateString) return ''
+
   return new Date(dateString).toLocaleDateString('zh-CN')
 }
 
@@ -3271,6 +3346,7 @@ const loadApiKeyModelStats = async (keyId, forceReload = false) => {
     }
 
     const data = await httpApis.getApiKeyModelStatsApi(keyId, params)
+
     if (data.success) {
       apiKeyModelStats.value[keyId] = data.data || []
     }
@@ -3283,7 +3359,9 @@ const loadApiKeyModelStats = async (keyId, forceReload = false) => {
 // 计算API Key模型使用百分比
 const calculateApiKeyModelPercentage = (value, stats) => {
   const total = stats.reduce((sum, stat) => sum + (stat.allTokens || 0), 0)
+
   if (total === 0) return 0
+
   return Math.round((value / total) * 100)
 }
 
@@ -3316,6 +3394,7 @@ const getPeriodRequests = (key) => {
         return key.usage.total.requests
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'today') {
     return key.usage?.daily?.requests || 0
@@ -3324,6 +3403,7 @@ const getPeriodRequests = (key) => {
     if (key.usage && key.usage['7days'] && key.usage['7days'].requests !== undefined) {
       return key.usage['7days'].requests
     }
+
     return 0
   } else if (globalDateFilter.preset === '30days') {
     // 使用 usage['30days'].requests
@@ -3335,12 +3415,14 @@ const getPeriodRequests = (key) => {
         return key.usage.monthly.requests
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'all') {
     // 全部时间
     if (key.usage && key.usage['all'] && key.usage['all'].requests !== undefined) {
       return key.usage['all'].requests
     }
+
     return key.usage?.total?.requests || 0
   } else {
     // 默认返回
@@ -3361,6 +3443,7 @@ const getPeriodCost = (key) => {
         return key.usage.total.cost
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'today') {
     return key.dailyCost || 0
@@ -3369,6 +3452,7 @@ const getPeriodCost = (key) => {
     if (key.usage && key.usage['7days'] && key.usage['7days'].cost !== undefined) {
       return key.usage['7days'].cost
     }
+
     return key.weeklyCost || key.periodCost || 0
   } else if (globalDateFilter.preset === '30days') {
     // 使用 usage['30days'].cost 或 usage.monthly.cost
@@ -3383,12 +3467,14 @@ const getPeriodCost = (key) => {
         return key.usage.total.cost
       }
     }
+
     return key.monthlyCost || key.periodCost || 0
   } else if (globalDateFilter.preset === 'all') {
     // 全部时间，返回 usage['all'].cost 或 totalCost
     if (key.usage && key.usage['all'] && key.usage['all'].cost !== undefined) {
       return key.usage['all'].cost
     }
+
     return key.totalCost || 0
   } else {
     // 默认返回 usage.total.cost
@@ -3409,6 +3495,7 @@ const getPeriodTokens = (key) => {
         return key.usage.total.tokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'today') {
     return key.usage?.daily?.tokens || 0
@@ -3417,6 +3504,7 @@ const getPeriodTokens = (key) => {
     if (key.usage && key.usage['7days'] && key.usage['7days'].tokens !== undefined) {
       return key.usage['7days'].tokens
     }
+
     return 0
   } else if (globalDateFilter.preset === '30days') {
     // 使用 usage['30days'].tokens 或 usage.monthly.tokens
@@ -3431,12 +3519,14 @@ const getPeriodTokens = (key) => {
         return key.usage.total.tokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'all') {
     // 全部时间
     if (key.usage && key.usage['all'] && key.usage['all'].tokens !== undefined) {
       return key.usage['all'].tokens
     }
+
     return key.usage?.total?.tokens || 0
   } else {
     // 默认返回
@@ -3457,6 +3547,7 @@ const getPeriodInputTokens = (key) => {
         return key.usage.total.inputTokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'today') {
     return key.usage?.daily?.inputTokens || 0
@@ -3465,6 +3556,7 @@ const getPeriodInputTokens = (key) => {
     if (key.usage && key.usage['7days'] && key.usage['7days'].inputTokens !== undefined) {
       return key.usage['7days'].inputTokens
     }
+
     return 0
   } else if (globalDateFilter.preset === '30days') {
     // 使用 usage['30days'].inputTokens 或 usage.monthly.inputTokens
@@ -3479,12 +3571,14 @@ const getPeriodInputTokens = (key) => {
         return key.usage.total.inputTokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'all') {
     // 全部时间
     if (key.usage && key.usage['all'] && key.usage['all'].inputTokens !== undefined) {
       return key.usage['all'].inputTokens
     }
+
     return key.usage?.total?.inputTokens || 0
   } else {
     // 默认返回
@@ -3505,6 +3599,7 @@ const getPeriodOutputTokens = (key) => {
         return key.usage.total.outputTokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'today') {
     return key.usage?.daily?.outputTokens || 0
@@ -3513,6 +3608,7 @@ const getPeriodOutputTokens = (key) => {
     if (key.usage && key.usage['7days'] && key.usage['7days'].outputTokens !== undefined) {
       return key.usage['7days'].outputTokens
     }
+
     return 0
   } else if (globalDateFilter.preset === '30days') {
     // 使用 usage['30days'].outputTokens 或 usage.monthly.outputTokens
@@ -3527,12 +3623,14 @@ const getPeriodOutputTokens = (key) => {
         return key.usage.total.outputTokens
       }
     }
+
     return 0
   } else if (globalDateFilter.preset === 'all') {
     // 全部时间
     if (key.usage && key.usage['all'] && key.usage['all'].outputTokens !== undefined) {
       return key.usage['all'].outputTokens
     }
+
     return key.usage?.total?.outputTokens || 0
   } else {
     // 默认返回
@@ -3558,6 +3656,7 @@ const calculatePeriodCost = (key) => {
       // 尝试从格式化的字符串中提取数字
       const costStr = stat.formatted.total.replace('$', '').replace(',', '')
       const cost = parseFloat(costStr)
+
       if (!isNaN(cost)) {
         totalCost += cost
       }
@@ -3580,6 +3679,7 @@ const handleTimeRangeChange = (value) => {
 
     // 检查新时间范围的索引状态
     const status = costSortStatus.value[value]
+
     if (!status || status.status !== 'ready') {
       // 索引未就绪，回退到默认排序
       apiKeysSortBy.value = 'createdAt'
@@ -3600,6 +3700,7 @@ const setGlobalDateFilterPreset = (preset) => {
     if (!globalDateFilter.customRange) {
       const today = new Date()
       const startDate = new Date(today)
+
       startDate.setDate(today.getDate() - 6)
 
       const formatDate = (date) => {
@@ -3663,6 +3764,7 @@ const onGlobalCustomDateRangeChange = (value) => {
 const initApiKeyDateFilter = (keyId) => {
   const today = new Date()
   const startDate = new Date(today)
+
   startDate.setHours(0, 0, 0, 0) // 今日从0点开始
 
   apiKeyDateFilters.value[keyId] = {
@@ -3685,16 +3787,19 @@ const getApiKeyDateFilter = (keyId) => {
   if (!apiKeyDateFilters.value[keyId]) {
     initApiKeyDateFilter(keyId)
   }
+
   return apiKeyDateFilters.value[keyId]
 }
 
 // 设置 API Key 日期预设
 const setApiKeyDateFilterPreset = (preset, keyId) => {
   const filter = getApiKeyDateFilter(keyId)
+
   filter.type = 'preset'
   filter.preset = preset
 
   const option = filter.presetOptions.find((opt) => opt.value === preset)
+
   if (option) {
     if (preset === 'custom') {
       // 自定义选项，不自动设置日期，等待用户选择
@@ -3703,6 +3808,7 @@ const setApiKeyDateFilterPreset = (preset, keyId) => {
       if (!filter.customRange) {
         const today = new Date()
         const startDate = new Date(today)
+
         startDate.setDate(today.getDate() - 6)
 
         const formatDate = (date) => {
@@ -3724,6 +3830,7 @@ const setApiKeyDateFilterPreset = (preset, keyId) => {
       // 预设选项
       const today = new Date()
       const startDate = new Date(today)
+
       startDate.setDate(today.getDate() - (option.days - 1))
 
       filter.customStart = startDate.toISOString().split('T')[0]
@@ -3780,6 +3887,7 @@ const resetApiKeyDateFilter = (keyId) => {
 
   const today = new Date()
   const startDate = new Date(today)
+
   startDate.setHours(0, 0, 0, 0) // 今日从0点开始
 
   filter.customStart = today.toISOString().split('T')[0]
@@ -3838,6 +3946,7 @@ const handleBatchCreateSuccess = (data) => {
 const openBatchEditModal = () => {
   if (selectedApiKeys.value.length === 0) {
     showToast('请先选择要编辑的 API Keys', 'warning')
+
     return
   }
 
@@ -3940,6 +4049,7 @@ const toggleApiKeyStatus = async (key) => {
       showToast(`API Key 已${key.isActive ? '禁用' : '激活'}`, 'success')
       // 更新本地数据
       const localKey = apiKeys.value.find((k) => k.id === key.id)
+
       if (localKey) {
         localKey.isActive = !key.isActive
       }
@@ -3966,10 +4076,12 @@ const deleteApiKey = async (keyId) => {
 
   try {
     const data = await httpApis.deleteApiKeyApi(keyId)
+
     if (data.success) {
       showToast('API Key 已删除', 'success')
       // 从选中列表中移除
       const index = selectedApiKeys.value.indexOf(keyId)
+
       if (index > -1) {
         selectedApiKeys.value.splice(index, 1)
       }
@@ -3997,6 +4109,7 @@ const restoreApiKey = async (keyId) => {
 
   try {
     const data = await httpApis.restoreApiKeyApi(keyId)
+
     if (data.success) {
       showToast('API Key 已成功恢复', 'success')
       // 刷新已删除列表
@@ -4025,6 +4138,7 @@ const permanentDeleteApiKey = async (keyId) => {
 
   try {
     const data = await httpApis.permanentDeleteApiKeyApi(keyId)
+
     if (data.success) {
       showToast('API Key 已彻底删除', 'success')
       // 刷新已删除列表
@@ -4040,8 +4154,10 @@ const permanentDeleteApiKey = async (keyId) => {
 // 清空所有已删除的API Keys
 const clearAllDeletedApiKeys = async () => {
   const count = deletedApiKeys.value.length
+
   if (count === 0) {
     showToast('没有需要清空的 API Keys', 'info')
+
     return
   }
 
@@ -4057,6 +4173,7 @@ const clearAllDeletedApiKeys = async () => {
 
   try {
     const data = await httpApis.clearAllDeletedApiKeysApi()
+
     if (data.success) {
       showToast(data.message || '已清空所有已删除的 API Keys', 'success')
 
@@ -4080,8 +4197,10 @@ const clearAllDeletedApiKeys = async () => {
 // 批量删除API Keys
 const batchDeleteApiKeys = async () => {
   const selectedCount = selectedApiKeys.value.length
+
   if (selectedCount === 0) {
     showToast('请先选择要删除的 API Keys', 'warning')
+
     return
   }
 
@@ -4109,6 +4228,7 @@ const batchDeleteApiKeys = async () => {
         // 如果有失败的，显示详细信息
         if (failedCount > 0) {
           const errorMessages = errors.map((e) => `${e.keyId}: ${e.error}`).join('\n')
+
           showToast(`${failedCount} 个删除失败:\n${errorMessages}`, 'warning')
         }
       } else {
@@ -4140,6 +4260,7 @@ const handleSelectAll = () => {
   } else {
     // 取消全选：只移除当前页的选中项，保留其他页面的选中项
     const currentPageIds = new Set(paginatedApiKeys.value.map((key) => key.id))
+
     selectedApiKeys.value = selectedApiKeys.value.filter((id) => !currentPageIds.has(id))
   }
   updateSelectAllState()
@@ -4187,6 +4308,7 @@ const handleSaveExpiry = async ({ keyId, expiresAt, activateNow }) => {
       showToast(activateNow ? 'API Key已激活' : '过期时间已更新', 'success')
       // 更新本地数据
       const key = apiKeys.value.find((k) => k.id === keyId)
+
       if (key) {
         if (activateNow && data.updates) {
           key.isActivated = true
@@ -4306,6 +4428,7 @@ const showUsageDetails = (apiKey) => {
 
 const openTimeline = (keyId) => {
   const id = keyId || selectedApiKeyForDetail.value?.id
+
   if (!id) return
   showUsageDetailModal.value = false
   router.push(`/api-keys/${id}/usage-records`)
@@ -4334,10 +4457,12 @@ const formatLastUsed = (dateString) => {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now - date
+
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
   if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`
+
   return date.toLocaleDateString('zh-CN')
 }
 
@@ -4357,6 +4482,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const normalizeFrontendAccountCategory = (type) => {
   if (!type) return 'other'
   const lower = String(type).toLowerCase()
+
   if (lower === 'claude-console' || lower === 'claude_console' || lower === 'claude') {
     return 'claude'
   }
@@ -4375,6 +4501,7 @@ const normalizeFrontendAccountCategory = (type) => {
   if (lower === 'droid') {
     return 'droid'
   }
+
   return 'other'
 }
 
@@ -4383,7 +4510,9 @@ const getLastUsageInfo = (apiKey) => {
   if (!apiKey) return null
   // 优先从缓存获取
   const cached = getCachedLastUsage(apiKey.id)
+
   if (cached !== null) return cached
+
   // 兼容旧数据（如果后端直接返回了 lastUsage）
   return apiKey.lastUsage || null
 }
@@ -4392,6 +4521,7 @@ const hasLastUsageAccount = (apiKey) => {
   // 如果正在加载，返回 false（让 loading 状态显示）
   if (isLastUsageLoading(apiKey?.id)) return false
   const info = getLastUsageInfo(apiKey)
+
   return !!(info && (info.accountName || info.accountId || info.rawAccountId))
 }
 
@@ -4419,6 +4549,7 @@ const getLastUsageBaseName = (info) => {
   if (isLikelyDeletedUsage(info)) {
     return '已删除'
   }
+
   return info.accountName || info.accountId || info.rawAccountId || '未知账号'
 }
 
@@ -4426,6 +4557,7 @@ const getLastUsageFullName = (apiKey) => getLastUsageBaseName(getLastUsageInfo(a
 
 const getLastUsageDisplayName = (apiKey) => {
   const full = getLastUsageFullName(apiKey)
+
   return full.length > MAX_LAST_USAGE_NAME_LENGTH
     ? `${full.slice(0, MAX_LAST_USAGE_NAME_LENGTH)}...`
     : full
@@ -4433,15 +4565,18 @@ const getLastUsageDisplayName = (apiKey) => {
 
 const getLastUsageTypeLabel = (apiKey) => {
   const info = getLastUsageInfo(apiKey)
+
   if (isLikelyDeletedUsage(info)) {
     return ACCOUNT_TYPE_LABELS.deleted
   }
   const category = info?.accountCategory || normalizeFrontendAccountCategory(info?.accountType)
+
   return ACCOUNT_TYPE_LABELS[category] || ACCOUNT_TYPE_LABELS.other
 }
 
 const isLastUsageDeleted = (apiKey) => {
   const info = getLastUsageInfo(apiKey)
+
   return isLikelyDeletedUsage(info)
 }
 
@@ -4488,8 +4623,10 @@ const exportToExcel = () => {
         // 权限配置
         服务权限: (() => {
           const p = key.permissions
+
           if (!p || p === 'all') return '全部服务'
           if (Array.isArray(p)) return p.length === 0 ? '全部服务' : p.join(', ')
+
           return p
         })(),
 
@@ -4574,6 +4711,7 @@ const exportToExcel = () => {
         Object.entries(modelsData).forEach(([model, stats]) => {
           // 简化模型名称，去掉前缀
           let modelName = model
+
           if (model.includes(':')) {
             modelName = model.split(':').pop() // 取最后一部分
           }
@@ -4629,11 +4767,13 @@ const exportToExcel = () => {
       // 默认宽度
       return { wch: 15 }
     })
+
     ws['!cols'] = columnWidths
 
     // 应用样式到标题行
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C })
+
       if (!ws[cellAddress]) continue
 
       const header = headers[C]
@@ -4665,6 +4805,7 @@ const exportToExcel = () => {
     for (let R = 1; R <= range.e.r; ++R) {
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cellAddress = XLSX.utils.encode_cell({ r: R, c: C })
+
         if (!ws[cellAddress]) continue
 
         const header = headers[C]
@@ -4724,6 +4865,7 @@ const exportToExcel = () => {
       String(now.getSeconds()).padStart(2, '0')
 
     let timeRangeLabel = ''
+
     if (globalDateFilter.type === 'preset') {
       const presetLabels = {
         today: '今日',
@@ -4731,6 +4873,7 @@ const exportToExcel = () => {
         '30days': '最近30天',
         all: '全部时间'
       }
+
       timeRangeLabel = presetLabels[globalDateFilter.preset] || globalDateFilter.preset
     } else {
       timeRangeLabel = '自定义时间'

@@ -47,6 +47,7 @@ class DroidAccountService {
     }
 
     const normalized = String(endpointType).toLowerCase()
+
     if (normalized === 'openai') {
       return 'openai'
     }
@@ -89,9 +90,11 @@ class DroidAccountService {
     if (typeof rawEntries === 'string') {
       try {
         const parsed = JSON.parse(rawEntries)
+
         return Array.isArray(parsed) ? parsed : []
       } catch (error) {
         logger.warn('⚠️ Failed to parse Droid API Key entries:', error.message)
+
         return []
       }
     }
@@ -124,11 +127,13 @@ class DroidAccountService {
       }
 
       const trimmed = rawKey.trim()
+
       if (!trimmed) {
         continue
       }
 
       const hash = crypto.createHash('sha256').update(trimmed).digest('hex')
+
       if (hashSet.has(hash)) {
         continue
       }
@@ -171,6 +176,7 @@ class DroidAccountService {
     }
 
     const apiKey = this._decryptSensitiveData(entry.encryptedKey)
+
     if (!apiKey) {
       return null
     }
@@ -195,11 +201,13 @@ class DroidAccountService {
     }
 
     const accountData = await redis.getDroidAccount(accountId)
+
     if (!accountData) {
       return []
     }
 
     const entries = this._parseApiKeyEntries(accountData.apiKeys)
+
     return entries
       .map((entry) => this._decryptApiKeyEntry(entry))
       .filter((entry) => entry && entry.key)
@@ -212,6 +220,7 @@ class DroidAccountService {
 
     try {
       const accountData = await redis.getDroidAccount(accountId)
+
       if (!accountData) {
         return
       }
@@ -224,8 +233,10 @@ class DroidAccountService {
       }
 
       const updatedEntry = { ...entries[index] }
+
       updatedEntry.lastUsedAt = new Date().toISOString()
       const usageCount = Number(updatedEntry.usageCount)
+
       updatedEntry.usageCount = String(
         Number.isFinite(usageCount) && usageCount >= 0 ? usageCount + 1 : 1
       )
@@ -251,16 +262,19 @@ class DroidAccountService {
 
     try {
       const accountData = await redis.getDroidAccount(accountId)
+
       if (!accountData) {
         return { removed: false, remainingCount: 0 }
       }
 
       const entries = this._parseApiKeyEntries(accountData.apiKeys)
+
       if (!entries || entries.length === 0) {
         return { removed: false, remainingCount: 0 }
       }
 
       const filtered = entries.filter((entry) => entry && entry.id !== keyId)
+
       if (filtered.length === entries.length) {
         return { removed: false, remainingCount: entries.length }
       }
@@ -277,6 +291,7 @@ class DroidAccountService {
       return { removed: true, remainingCount: filtered.length }
     } catch (error) {
       logger.error(`❌ 删除 Droid API Key 失败：${keyId}（Account: ${accountId}）`, error)
+
       return { removed: false, remainingCount: 0, error }
     }
   }
@@ -291,11 +306,13 @@ class DroidAccountService {
 
     try {
       const accountData = await redis.getDroidAccount(accountId)
+
       if (!accountData) {
         return { marked: false, error: '账户不存在' }
       }
 
       const entries = this._parseApiKeyEntries(accountData.apiKeys)
+
       if (!entries || entries.length === 0) {
         return { marked: false, error: '无API Key条目' }
       }
@@ -304,12 +321,14 @@ class DroidAccountService {
       const updatedEntries = entries.map((entry) => {
         if (entry && entry.id === keyId) {
           marked = true
+
           return {
             ...entry,
             status: 'error',
             errorMessage: errorMessage || 'API Key异常'
           }
         }
+
         return entry
       })
 
@@ -327,6 +346,7 @@ class DroidAccountService {
       return { marked: true }
     } catch (error) {
       logger.error(`❌ 标记 Droid API Key 异常状态失败：${keyId}（Account: ${accountId}）`, error)
+
       return { marked: false, error: error.message }
     }
   }
@@ -340,6 +360,7 @@ class DroidAccountService {
     }
 
     const formData = new URLSearchParams()
+
     formData.append('grant_type', 'refresh_token')
     formData.append('refresh_token', refreshToken)
     formData.append('client_id', this.workosClientId)
@@ -359,6 +380,7 @@ class DroidAccountService {
 
     if (proxyConfig) {
       const proxyAgent = ProxyHelper.createProxyAgent(proxyConfig)
+
       if (proxyAgent) {
         requestOptions.httpAgent = proxyAgent
         requestOptions.httpsAgent = proxyAgent
@@ -370,6 +392,7 @@ class DroidAccountService {
     }
 
     const response = await axios(requestOptions)
+
     if (!response.data || !response.data.access_token) {
       throw new Error('WorkOS OAuth 返回数据无效')
     }
@@ -385,11 +408,13 @@ class DroidAccountService {
     } = response.data
 
     let expiresAt = response.data.expires_at || ''
+
     if (!expiresAt) {
       const expiresInSeconds =
         typeof expires_in === 'number' && Number.isFinite(expires_in)
           ? expires_in
           : this.tokenValidHours * 3600
+
       expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString()
     }
 
@@ -428,6 +453,7 @@ class DroidAccountService {
 
     if (proxyConfig) {
       const proxyAgent = ProxyHelper.createProxyAgent(proxyConfig)
+
       if (proxyAgent) {
         requestOptions.httpAgent = proxyAgent
         requestOptions.httpsAgent = proxyAgent
@@ -438,13 +464,16 @@ class DroidAccountService {
     try {
       const response = await axios(requestOptions)
       const data = response.data || {}
+
       if (Array.isArray(data.workosOrgIds) && data.workosOrgIds.length > 0) {
         return data.workosOrgIds
       }
       logger.warn('⚠️ 未从 Factory CLI 接口获取到 workosOrgIds')
+
       return []
     } catch (error) {
       logger.warn('⚠️ 获取 Factory 组织信息失败:', error.message)
+
       return []
     }
   }
@@ -535,6 +564,7 @@ class DroidAccountService {
     }
 
     let proxyConfig = null
+
     if (proxy && typeof proxy === 'object') {
       proxyConfig = proxy
     } else if (typeof proxy === 'string' && proxy.trim()) {
@@ -573,10 +603,12 @@ class DroidAccountService {
 
         if (refreshed.user) {
           const userInfo = refreshed.user
+
           if (typeof userInfo.email === 'string' && userInfo.email.trim()) {
             normalizedOwnerEmail = userInfo.email.trim()
           }
           const nameParts = []
+
           if (typeof userInfo.first_name === 'string' && userInfo.first_name.trim()) {
             nameParts.push(userInfo.first_name.trim())
           }
@@ -651,10 +683,12 @@ class DroidAccountService {
 
           if (refreshed.user) {
             const userInfo = refreshed.user
+
             if (typeof userInfo.email === 'string' && userInfo.email.trim()) {
               normalizedOwnerEmail = userInfo.email.trim()
             }
             const nameParts = []
+
             if (typeof userInfo.first_name === 'string' && userInfo.first_name.trim()) {
               nameParts.push(userInfo.first_name.trim())
             }
@@ -690,6 +724,7 @@ class DroidAccountService {
 
     if (!isApiKeyProvision && !normalizedExpiresAt) {
       let expiresInSeconds = null
+
       if (typeof normalizedExpiresIn === 'number' && Number.isFinite(normalizedExpiresIn)) {
         expiresInSeconds = normalizedExpiresIn
       } else if (
@@ -767,6 +802,7 @@ class DroidAccountService {
 
     try {
       const verifyAccount = await this.getAccount(accountId)
+
       logger.info(
         `🔍 [Droid ${provisioningMode}] Redis 写入后验证 - AccountName: ${name}, AccessToken: ${verifyAccount?.accessToken || '[empty]'}, RefreshToken: ${verifyAccount?.refreshToken || '[empty]'}, ExpiresAt: ${verifyAccount?.expiresAt || '[empty]'}`
       )
@@ -775,6 +811,7 @@ class DroidAccountService {
         `⚠️ [Droid ${provisioningMode}] 写入后验证失败: ${name} (${accountId}) - ${verifyError.message}`
       )
     }
+
     return { id: accountId, ...accountData }
   }
 
@@ -783,6 +820,7 @@ class DroidAccountService {
    */
   async getAccount(accountId) {
     const account = await redis.getDroidAccount(accountId)
+
     if (!account || Object.keys(account).length === 0) {
       return null
     }
@@ -806,6 +844,7 @@ class DroidAccountService {
    */
   async getAllAccounts() {
     const accounts = await redis.getAllDroidAccounts()
+
     return accounts.map((account) => ({
       ...account,
       endpointType: this._sanitizeEndpointType(account.endpointType),
@@ -821,10 +860,12 @@ class DroidAccountService {
 
       apiKeyCount: (() => {
         const parsedCount = this._parseApiKeyEntries(account.apiKeys).length
+
         if (account.apiKeyCount === undefined || account.apiKeyCount === null) {
           return parsedCount
         }
         const numeric = Number(account.apiKeyCount)
+
         return Number.isFinite(numeric) && numeric >= 0 ? numeric : parsedCount
       })()
     }))
@@ -835,6 +876,7 @@ class DroidAccountService {
    */
   async updateAccount(accountId, updates) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error(`Droid account not found: ${accountId}`)
     }
@@ -874,10 +916,12 @@ class DroidAccountService {
           logger.warn('⚠️ Failed to parse stored Droid proxy config:', error.message)
         }
       }
+
       return null
     }
 
     let proxyConfig = null
+
     if (updates.proxy !== undefined) {
       if (updates.proxy && typeof updates.proxy === 'object') {
         proxyConfig = updates.proxy
@@ -926,11 +970,13 @@ class DroidAccountService {
         if (refreshed.user) {
           const userInfo = refreshed.user
           const email = typeof userInfo.email === 'string' ? userInfo.email.trim() : ''
+
           if (email) {
             sanitizedUpdates.ownerEmail = email
           }
 
           const nameParts = []
+
           if (typeof userInfo.first_name === 'string' && userInfo.first_name.trim()) {
             nameParts.push(userInfo.first_name.trim())
           }
@@ -1028,10 +1074,12 @@ class DroidAccountService {
           continue
         }
         const trimmed = candidate.trim()
+
         if (!trimmed) {
           continue
         }
         const hash = crypto.createHash('sha256').update(trimmed).digest('hex')
+
         removalHashes.add(hash)
       }
 
@@ -1061,16 +1109,19 @@ class DroidAccountService {
         }
 
         const key = updateItem.key || updateItem.apiKey || ''
+
         if (!key || typeof key !== 'string') {
           continue
         }
 
         const trimmed = key.trim()
+
         if (!trimmed) {
           continue
         }
 
         const hash = crypto.createHash('sha256').update(trimmed).digest('hex')
+
         updatedHashes.add(hash)
 
         // 查找现有条目
@@ -1079,6 +1130,7 @@ class DroidAccountService {
         if (existingIndex !== -1) {
           // 更新现有条目的状态信息
           const existingEntry = mergedApiKeys[existingIndex]
+
           mergedApiKeys[existingIndex] = {
             ...existingEntry,
             status: updateItem.status || existingEntry.status || 'active',
@@ -1212,6 +1264,7 @@ class DroidAccountService {
    */
   async refreshAccessToken(accountId, proxyConfig = null) {
     const account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error(`Droid account not found: ${accountId}`)
     }
@@ -1251,6 +1304,7 @@ class DroidAccountService {
       if (refreshed.user) {
         const { user } = refreshed
         const updates = {}
+
         logger.info(
           `✅ Droid token refreshed for: ${user.email} (${user.first_name} ${user.last_name})`
         )
@@ -1260,6 +1314,7 @@ class DroidAccountService {
           updates.ownerEmail = user.email.trim()
         }
         const nameParts = []
+
         if (typeof user.first_name === 'string' && user.first_name.trim()) {
           nameParts.push(user.first_name.trim())
         }
@@ -1334,6 +1389,7 @@ class DroidAccountService {
       return false // 未设置视为永不过期
     }
     const expiryDate = new Date(account.subscriptionExpiresAt)
+
     return expiryDate <= new Date()
   }
 
@@ -1342,6 +1398,7 @@ class DroidAccountService {
    */
   async getValidAccessToken(accountId) {
     let account = await this.getAccount(accountId)
+
     if (!account) {
       throw new Error(`Droid account not found: ${accountId}`)
     }
@@ -1357,6 +1414,7 @@ class DroidAccountService {
     if (this.shouldRefreshToken(account)) {
       logger.info(`🔄 Droid account token needs refresh: ${accountId}`)
       const proxyConfig = account.proxy ? JSON.parse(account.proxy) : null
+
       await this.refreshAccessToken(accountId, proxyConfig)
       account = await this.getAccount(accountId)
     }
@@ -1387,6 +1445,7 @@ class DroidAccountService {
           logger.debug(
             `⏰ Skipping expired Droid account: ${account.name}, expired at ${account.subscriptionExpiresAt}`
           )
+
           return false
         }
 
@@ -1446,6 +1505,7 @@ class DroidAccountService {
 
     // 简单轮询：选择最高优先级且最久未使用的账户
     let selectedAccount = accounts[0]
+
     for (const account of accounts) {
       if (account.priority < selectedAccount.priority) {
         selectedAccount = account
@@ -1453,6 +1513,7 @@ class DroidAccountService {
         // 相同优先级，选择最久未使用的
         const selectedLastUsed = new Date(selectedAccount.lastUsedAt || 0).getTime()
         const accountLastUsed = new Date(account.lastUsedAt || 0).getTime()
+
         if (accountLastUsed < selectedLastUsed) {
           selectedAccount = account
         }
@@ -1492,6 +1553,7 @@ class DroidAccountService {
 
     try {
       const client = redis.getClientSafe()
+
       await client.hset(`droid:account:${accountId}`, 'lastUsedAt', new Date().toISOString())
     } catch (error) {
       logger.warn(`⚠️ Failed to update lastUsedAt for Droid account ${accountId}:`, error)
@@ -1502,6 +1564,7 @@ class DroidAccountService {
   async resetAccountStatus(accountId) {
     try {
       const accountData = await this.getAccount(accountId)
+
       if (!accountData) {
         throw new Error('Account not found')
       }
@@ -1538,6 +1601,7 @@ class DroidAccountService {
       // 异步发送 Webhook 通知（忽略错误）
       try {
         const webhookNotifier = require('../../utils/webhookNotifier')
+
         await webhookNotifier.sendAccountAnomalyNotification({
           accountId,
           accountName: accountData.name || accountId,

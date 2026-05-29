@@ -27,6 +27,7 @@ function validatePermissions(permissions) {
     if (permissions === 'all' || VALID_PERMISSIONS.includes(permissions)) {
       return null
     }
+
     return `Invalid permissions value. Must be an array of: ${VALID_PERMISSIONS.join(', ')}`
   }
   // 新格式数组
@@ -41,8 +42,10 @@ function validatePermissions(permissions) {
         return `Invalid permission value "${perm}". Valid values are: ${VALID_PERMISSIONS.join(', ')}`
       }
     }
+
     return null
   }
+
   return `Permissions must be an array. Valid values are: ${VALID_PERMISSIONS.join(', ')}`
 }
 
@@ -60,10 +63,12 @@ function validateServiceRates(serviceRates) {
   }
   for (const [service, rate] of Object.entries(serviceRates)) {
     const numRate = Number(rate)
+
     if (!Number.isFinite(numRate) || numRate < 0) {
       return `Invalid rate for service "${service}": must be a non-negative number`
     }
   }
+
   return null
 }
 
@@ -122,6 +127,7 @@ router.get('/users', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to get users list:', error)
+
     return res.status(500).json({
       error: 'Failed to get users list',
       message: error.message
@@ -158,6 +164,7 @@ router.get('/api-keys/:keyId/cost-debug', authenticateAdmin, async (req, res) =>
     })
   } catch (error) {
     logger.error('❌ Failed to get cost debug info:', error)
+
     return res.status(500).json({ error: 'Failed to get cost debug info', message: error.message })
   }
 })
@@ -166,9 +173,11 @@ router.get('/api-keys/:keyId/cost-debug', authenticateAdmin, async (req, res) =>
 router.get('/api-keys/used-models', authenticateAdmin, async (req, res) => {
   try {
     const models = await redis.getAllUsedModels()
+
     return res.json({ success: true, data: models })
   } catch (error) {
     logger.error('❌ Failed to get used models:', error)
+
     return res.status(500).json({ error: 'Failed to get used models', message: error.message })
   }
 })
@@ -224,6 +233,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
     // 如果是绑定账号搜索模式，先刷新账户名称缓存
     if (searchMode === 'bindingAccount' && search) {
       const accountNameCacheService = require('../../services/accountNameCacheService')
+
       await accountNameCacheService.refreshIfNeeded()
     }
 
@@ -253,6 +263,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
 
         const start = new Date(costStartDate)
         const end = new Date(costEndDate)
+
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
           return res.status(400).json({
             success: false,
@@ -271,6 +282,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
 
         // 限制最大范围为 365 天
         const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+
         if (daysDiff > 365) {
           return res.status(400).json({
             success: false,
@@ -302,6 +314,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
       } else {
         // 使用预计算索引
         const rankStatus = await costRankService.getRankStatus()
+
         costSortStatus = rankStatus[effectiveCostTimeRange]
 
         // 检查索引是否就绪
@@ -355,6 +368,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
       const users = await Promise.all(
         userIdsToFetch.map((id) => userService.getUserById(id, false).catch(() => null))
       )
+
       userIdsToFetch.forEach((id, i) => {
         if (users[i]) {
           userMap.set(id, users[i])
@@ -365,6 +379,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
     for (const apiKey of result.items) {
       if (apiKey.userId && userMap.has(apiKey.userId)) {
         const user = userMap.get(apiKey.userId)
+
         apiKey.ownerDisplayName = user.displayName || user.username || 'Unknown User'
       } else if (apiKey.userId) {
         apiKey.ownerDisplayName = 'Unknown User'
@@ -399,6 +414,7 @@ router.get('/api-keys', authenticateAdmin, async (req, res) => {
     return res.json(responseData)
   } catch (error) {
     logger.error('❌ Failed to get API keys:', error)
+
     return res.status(500).json({ error: 'Failed to get API keys', message: error.message })
   }
 })
@@ -442,6 +458,7 @@ async function getApiKeysSortedByCostPrecomputed(options) {
   // 状态筛选
   if (isActive !== '' && isActive !== undefined && isActive !== null) {
     const activeValue = isActive === 'true' || isActive === true
+
     orderedKeys = orderedKeys.filter((k) => k.isActive === activeValue)
   }
 
@@ -449,6 +466,7 @@ async function getApiKeysSortedByCostPrecomputed(options) {
   if (tag) {
     orderedKeys = orderedKeys.filter((k) => {
       const tags = Array.isArray(k.tags) ? k.tags : []
+
       return tags.includes(tag)
     })
   }
@@ -456,10 +474,12 @@ async function getApiKeysSortedByCostPrecomputed(options) {
   // 搜索筛选
   if (search) {
     const lowerSearch = search.toLowerCase().trim()
+
     if (searchMode === 'apiKey') {
       orderedKeys = orderedKeys.filter((k) => k.name && k.name.toLowerCase().includes(lowerSearch))
     } else if (searchMode === 'bindingAccount') {
       const accountNameCacheService = require('../../services/accountNameCacheService')
+
       orderedKeys = accountNameCacheService.searchByBindingAccount(orderedKeys, lowerSearch)
     }
   }
@@ -470,14 +490,17 @@ async function getApiKeysSortedByCostPrecomputed(options) {
       orderedKeys.map((k) => k.id),
       modelFilter
     )
+
     orderedKeys = orderedKeys.filter((k) => keyIdsWithModels.has(k.id))
   }
 
   // 5. 收集所有可用标签
   const allTags = new Set()
+
   for (const key of allKeys) {
     if (!key.isDeleted) {
       const tags = Array.isArray(key.tags) ? key.tags : []
+
       tags.forEach((t) => allTags.add(t))
     }
   }
@@ -495,6 +518,7 @@ async function getApiKeysSortedByCostPrecomputed(options) {
     costTimeRange,
     items.map((k) => k.id)
   )
+
   for (const key of items) {
     key._cost = keyCosts.get(key.id) || 0
   }
@@ -557,6 +581,7 @@ async function getApiKeysSortedByCostCustom(options) {
   // 状态筛选
   if (isActive !== '' && isActive !== undefined && isActive !== null) {
     const activeValue = isActive === 'true' || isActive === true
+
     orderedKeys = orderedKeys.filter((k) => k.isActive === activeValue)
   }
 
@@ -564,6 +589,7 @@ async function getApiKeysSortedByCostCustom(options) {
   if (tag) {
     orderedKeys = orderedKeys.filter((k) => {
       const tags = Array.isArray(k.tags) ? k.tags : []
+
       return tags.includes(tag)
     })
   }
@@ -571,10 +597,12 @@ async function getApiKeysSortedByCostCustom(options) {
   // 搜索筛选
   if (search) {
     const lowerSearch = search.toLowerCase().trim()
+
     if (searchMode === 'apiKey') {
       orderedKeys = orderedKeys.filter((k) => k.name && k.name.toLowerCase().includes(lowerSearch))
     } else if (searchMode === 'bindingAccount') {
       const accountNameCacheService = require('../../services/accountNameCacheService')
+
       orderedKeys = accountNameCacheService.searchByBindingAccount(orderedKeys, lowerSearch)
     }
   }
@@ -585,14 +613,17 @@ async function getApiKeysSortedByCostCustom(options) {
       orderedKeys.map((k) => k.id),
       modelFilter
     )
+
     orderedKeys = orderedKeys.filter((k) => keyIdsWithModels.has(k.id))
   }
 
   // 6. 收集所有可用标签
   const allTags = new Set()
+
   for (const key of allKeys) {
     if (!key.isDeleted) {
       const tags = Array.isArray(key.tags) ? key.tags : []
+
       tags.forEach((t) => allTags.add(t))
     }
   }
@@ -627,9 +658,11 @@ router.get('/api-keys/cost-sort-status', authenticateAdmin, async (req, res) => 
   try {
     const costRankService = require('../../services/costRankService')
     const status = await costRankService.getRankStatus()
+
     return res.json({ success: true, data: status })
   } catch (error) {
     logger.error('❌ Failed to get cost sort status:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to get cost sort status',
@@ -643,9 +676,11 @@ router.get('/api-keys/index-status', authenticateAdmin, async (req, res) => {
   try {
     const apiKeyIndexService = require('../../services/apiKeyIndexService')
     const status = await apiKeyIndexService.getStatus()
+
     return res.json({ success: true, data: status })
   } catch (error) {
     logger.error('❌ Failed to get API Key index status:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to get index status',
@@ -680,6 +715,7 @@ router.post('/api-keys/index-rebuild', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to trigger API Key index rebuild:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to trigger rebuild',
@@ -697,6 +733,7 @@ router.post('/api-keys/cost-sort-refresh', authenticateAdmin, async (req, res) =
     // 验证时间范围
     if (timeRange) {
       const validTimeRanges = ['today', '7days', '30days', 'all']
+
       if (!validTimeRanges.includes(timeRange)) {
         return res.status(400).json({
           success: false,
@@ -717,6 +754,7 @@ router.post('/api-keys/cost-sort-refresh', authenticateAdmin, async (req, res) =
     })
   } catch (error) {
     logger.error('❌ Failed to trigger cost sort refresh:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to trigger refresh',
@@ -741,9 +779,11 @@ router.get('/supported-clients', authenticateAdmin, async (req, res) => {
     }))
 
     logger.info(`📱 Returning ${clients.length} supported clients`)
+
     return res.json({ success: true, data: clients })
   } catch (error) {
     logger.error('❌ Failed to get supported clients:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to get supported clients', message: error.message })
@@ -756,9 +796,11 @@ router.get('/api-keys/tags', authenticateAdmin, async (req, res) => {
     const tags = await apiKeyService.getAllTags()
 
     logger.info(`📋 Retrieved ${tags.length} unique tags from API keys`)
+
     return res.json({ success: true, data: tags })
   } catch (error) {
     logger.error('❌ Failed to get API key tags:', error)
+
     return res.status(500).json({ error: 'Failed to get API key tags', message: error.message })
   }
 })
@@ -767,10 +809,13 @@ router.get('/api-keys/tags', authenticateAdmin, async (req, res) => {
 router.get('/api-keys/tags/details', authenticateAdmin, async (req, res) => {
   try {
     const tagDetails = await apiKeyService.getTagsWithCount()
+
     logger.info(`📋 Retrieved ${tagDetails.length} tags with usage counts`)
+
     return res.json({ success: true, data: tagDetails })
   } catch (error) {
     logger.error('❌ Failed to get tag details:', error)
+
     return res.status(500).json({ error: 'Failed to get tag details', message: error.message })
   }
 })
@@ -779,19 +824,23 @@ router.get('/api-keys/tags/details', authenticateAdmin, async (req, res) => {
 router.post('/api-keys/tags', authenticateAdmin, async (req, res) => {
   try {
     const { name } = req.body
+
     if (!name || !name.trim()) {
       return res.status(400).json({ error: '标签名称不能为空' })
     }
 
     const result = await apiKeyService.createTag(name.trim())
+
     if (!result.success) {
       return res.status(400).json({ error: result.error })
     }
 
     logger.info(`🏷️ Created new tag: ${name}`)
+
     return res.json({ success: true, message: '标签创建成功' })
   } catch (error) {
     logger.error('❌ Failed to create tag:', error)
+
     return res.status(500).json({ error: 'Failed to create tag', message: error.message })
   }
 })
@@ -800,6 +849,7 @@ router.post('/api-keys/tags', authenticateAdmin, async (req, res) => {
 router.delete('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => {
   try {
     const { tagName } = req.params
+
     if (!tagName) {
       return res.status(400).json({ error: 'Tag name is required' })
     }
@@ -808,6 +858,7 @@ router.delete('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => 
     const result = await apiKeyService.removeTagFromAllKeys(decodedTagName)
 
     logger.info(`🏷️ Removed tag "${decodedTagName}" from ${result.affectedCount} API keys`)
+
     return res.json({
       success: true,
       message: `Tag "${decodedTagName}" removed from ${result.affectedCount} API keys`,
@@ -815,6 +866,7 @@ router.delete('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => 
     })
   } catch (error) {
     logger.error('❌ Failed to delete tag:', error)
+
     return res.status(500).json({ error: 'Failed to delete tag', message: error.message })
   }
 })
@@ -824,6 +876,7 @@ router.put('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => {
   try {
     const { tagName } = req.params
     const { newName } = req.body
+
     if (!tagName || !newName || !newName.trim()) {
       return res.status(400).json({ error: 'Tag name and new name are required' })
     }
@@ -839,6 +892,7 @@ router.put('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => {
     logger.info(
       `🏷️ Renamed tag "${decodedTagName}" to "${trimmedNewName}" in ${result.affectedCount} API keys`
     )
+
     return res.json({
       success: true,
       message: `Tag renamed in ${result.affectedCount} API keys`,
@@ -846,6 +900,7 @@ router.put('/api-keys/tags/:tagName', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to rename tag:', error)
+
     return res.status(500).json({ error: 'Failed to rename tag', message: error.message })
   }
 })
@@ -885,12 +940,14 @@ router.get('/accounts/binding-counts', authenticateAdmin, async (req, res) => {
       // Claude 账户
       if (key.claudeAccountId) {
         const id = key.claudeAccountId
+
         bindingCounts.claudeAccountId[id] = (bindingCounts.claudeAccountId[id] || 0) + 1
       }
 
       // Claude Console 账户
       if (key.claudeConsoleAccountId) {
         const id = key.claudeConsoleAccountId
+
         bindingCounts.claudeConsoleAccountId[id] =
           (bindingCounts.claudeConsoleAccountId[id] || 0) + 1
       }
@@ -898,44 +955,52 @@ router.get('/accounts/binding-counts', authenticateAdmin, async (req, res) => {
       // Gemini 账户（包括 api: 前缀的 Gemini-API 账户）
       if (key.geminiAccountId) {
         const id = key.geminiAccountId
+
         bindingCounts.geminiAccountId[id] = (bindingCounts.geminiAccountId[id] || 0) + 1
       }
 
       // OpenAI 账户（包括 responses: 前缀的 OpenAI-Responses 账户）
       if (key.openaiAccountId) {
         const id = key.openaiAccountId
+
         bindingCounts.openaiAccountId[id] = (bindingCounts.openaiAccountId[id] || 0) + 1
       }
 
       // Azure OpenAI 账户
       if (key.azureOpenaiAccountId) {
         const id = key.azureOpenaiAccountId
+
         bindingCounts.azureOpenaiAccountId[id] = (bindingCounts.azureOpenaiAccountId[id] || 0) + 1
       }
 
       // Bedrock 账户
       if (key.bedrockAccountId) {
         const id = key.bedrockAccountId
+
         bindingCounts.bedrockAccountId[id] = (bindingCounts.bedrockAccountId[id] || 0) + 1
       }
 
       // Droid 账户
       if (key.droidAccountId) {
         const id = key.droidAccountId
+
         bindingCounts.droidAccountId[id] = (bindingCounts.droidAccountId[id] || 0) + 1
       }
 
       // CCR 账户
       if (key.ccrAccountId) {
         const id = key.ccrAccountId
+
         bindingCounts.ccrAccountId[id] = (bindingCounts.ccrAccountId[id] || 0) + 1
       }
     }
 
     logger.debug(`📊 Account binding counts calculated from ${apiKeys.length} API keys`)
+
     return res.json({ success: true, data: bindingCounts })
   } catch (error) {
     logger.error('❌ Failed to get account binding counts:', error)
+
     return res.status(500).json({
       error: 'Failed to get account binding counts',
       message: error.message
@@ -984,6 +1049,7 @@ router.post('/api-keys/batch-stats', authenticateAdmin, async (req, res) => {
       }
       const start = new Date(startDate)
       const end = new Date(endDate)
+
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           success: false,
@@ -998,6 +1064,7 @@ router.post('/api-keys/batch-stats', authenticateAdmin, async (req, res) => {
       }
       // 限制最大范围为 365 天
       const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+
       if (daysDiff > 365) {
         return res.status(400).json({
           success: false,
@@ -1047,6 +1114,7 @@ router.post('/api-keys/batch-stats', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: stats })
   } catch (error) {
     logger.error('❌ Failed to calculate batch stats:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to calculate stats',
@@ -1075,8 +1143,10 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
     // 自定义日期范围
     const start = new Date(startDate)
     const end = new Date(endDate)
+
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateStr = redis.getDateStringInTimezone(d)
+
       searchPatterns.push(`usage:${keyId}:model:daily:*:${dateStr}`)
     }
   } else if (timeRange === 'today') {
@@ -1085,13 +1155,16 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
     // 最近7天
     for (let i = 0; i < 7; i++) {
       const d = new Date(tzDate)
+
       d.setDate(d.getDate() - i)
       const dateStr = redis.getDateStringInTimezone(d)
+
       searchPatterns.push(`usage:${keyId}:model:daily:*:${dateStr}`)
     }
   } else if (timeRange === 'monthly') {
     // 当月
     const currentMonth = `${tzDate.getUTCFullYear()}-${String(tzDate.getUTCMonth() + 1).padStart(2, '0')}`
+
     searchPatterns.push(`usage:${keyId}:model:monthly:*:${currentMonth}`)
   } else {
     // all - 使用 alltime key（无 TTL，数据完整），避免 daily/monthly 键过期导致数据丢失
@@ -1100,10 +1173,13 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
 
   // 使用 SCAN 收集所有匹配的 keys
   const allKeys = []
+
   for (const pattern of searchPatterns) {
     let cursor = '0'
+
     do {
       const [newCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
+
       cursor = newCursor
       allKeys.push(...keys)
     } while (cursor !== '0')
@@ -1137,12 +1213,14 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
 
     // 始终查询 allTimeCost（用于展示和限额校验）
     const totalCostKey = `usage:cost:total:${keyId}`
+
     allTimeCost = parseFloat((await client.get(totalCostKey)) || '0')
 
     // 只在启用了 Claude 周费用限制时查询（字段名沿用 weeklyOpusCostLimit）
     if (weeklyOpusCostLimit > 0) {
       const resetDay = parseInt(apiKey?.weeklyResetDay || 1)
       const resetHour = parseInt(apiKey?.weeklyResetHour || 0)
+
       weeklyOpusCost = await redis.getWeeklyOpusCost(keyId, resetDay, resetHour)
     }
 
@@ -1159,10 +1237,13 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
 
       // 获取窗口开始时间和计算剩余时间
       const windowStart = await client.get(windowStartKey)
+
       if (windowStart) {
         const now = Date.now()
+
         windowStartTime = parseInt(windowStart)
         const windowDuration = rateLimitWindow * 60 * 1000 // 转换为毫秒
+
         windowEndTime = windowStartTime + windowDuration
 
         // 如果窗口还有效
@@ -1212,6 +1293,7 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
 
   // 使用 Pipeline 批量获取数据
   const pipeline = client.pipeline()
+
   for (const key of uniqueKeys) {
     pipeline.hgetall(key)
   }
@@ -1231,6 +1313,7 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
 
   for (let i = 0; i < results.length; i++) {
     const [err, data] = results[i]
+
     if (err || !data || Object.keys(data).length === 0) {
       continue
     }
@@ -1242,6 +1325,7 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
     // 提取模型名称
     if (isAlltimeQuery) {
       const alltimeMatch = key.match(alltimeKeyPattern)
+
       if (alltimeMatch) {
         model = alltimeMatch[1]
       }
@@ -1289,6 +1373,7 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
     }
 
     const stats = modelStatsMap.get(model)
+
     stats.inputTokens += parseInt(data.totalInputTokens) || parseInt(data.inputTokens) || 0
     stats.outputTokens += parseInt(data.totalOutputTokens) || parseInt(data.outputTokens) || 0
     stats.cacheCreateTokens +=
@@ -1346,6 +1431,7 @@ async function calculateKeyStats(keyId, timeRange, startDate, endDate) {
       }
 
       const costResult = CostCalculator.calculateCost(costUsage, model)
+
       totalRatedCost += costResult.costs.total
       totalRealCost += costResult.costs.total
     }
@@ -1405,14 +1491,18 @@ router.post('/api-keys/batch-last-usage', authenticateAdmin, async (req, res) =>
         try {
           // 获取最新的使用记录
           const usageRecords = await redis.getUsageRecords(keyId, 1)
+
           if (!Array.isArray(usageRecords) || usageRecords.length === 0) {
             lastUsageData[keyId] = null
+
             return
           }
 
           const lastUsageRecord = usageRecords[0]
+
           if (!lastUsageRecord || (!lastUsageRecord.accountId && !lastUsageRecord.accountType)) {
             lastUsageData[keyId] = null
+
             return
           }
 
@@ -1453,6 +1543,7 @@ router.post('/api-keys/batch-last-usage', authenticateAdmin, async (req, res) =>
     return res.json({ success: true, data: lastUsageData })
   } catch (error) {
     logger.error('❌ Failed to get batch last-usage:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to get last-usage data',
@@ -1606,6 +1697,7 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
         Number(activationDays) < 1
       ) {
         const unitText = activationUnit === 'hours' ? 'hours' : 'days'
+
         return res.status(400).json({
           error: `Activation ${unitText} must be a positive integer when using activation mode`
         })
@@ -1620,12 +1712,14 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
 
     // 验证服务权限字段（支持数组格式）
     const permissionsError = validatePermissions(permissions)
+
     if (permissionsError) {
       return res.status(400).json({ error: permissionsError })
     }
 
     // 验证服务倍率
     const serviceRatesError = validateServiceRates(serviceRates)
+
     if (serviceRatesError) {
       return res.status(400).json({ error: serviceRatesError })
     }
@@ -1649,6 +1743,7 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
     const payloadRulesValidation = requestBodyRuleService.validateAndNormalizeRules(
       openaiResponsesPayloadRules
     )
+
     if (!payloadRulesValidation.valid) {
       return res.status(400).json({ error: payloadRulesValidation.error })
     }
@@ -1656,6 +1751,7 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
     // 验证周费用重置配置
     if (weeklyResetDay !== undefined && weeklyResetDay !== null && weeklyResetDay !== '') {
       const day = Number(weeklyResetDay)
+
       if (!Number.isInteger(day) || day < 1 || day > 7) {
         return res
           .status(400)
@@ -1664,6 +1760,7 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
     }
     if (weeklyResetHour !== undefined && weeklyResetHour !== null && weeklyResetHour !== '') {
       const hour = Number(weeklyResetHour)
+
       if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
         return res.status(400).json({ error: 'Weekly reset hour must be an integer from 0 to 23' })
       }
@@ -1716,9 +1813,11 @@ router.post('/api-keys', authenticateAdmin, async (req, res) => {
     })
 
     logger.success(`🔑 Admin created new API key: ${name}`)
+
     return res.json({ success: true, data: newKey })
   } catch (error) {
     logger.error('❌ Failed to create API key:', error)
+
     return res.status(500).json({ error: 'Failed to create API key', message: error.message })
   }
 })
@@ -1775,12 +1874,14 @@ router.post('/api-keys/batch', authenticateAdmin, async (req, res) => {
 
     // 验证服务权限字段（支持数组格式）
     const batchPermissionsError = validatePermissions(permissions)
+
     if (batchPermissionsError) {
       return res.status(400).json({ error: batchPermissionsError })
     }
 
     // 验证服务倍率
     const batchServiceRatesError = validateServiceRates(serviceRates)
+
     if (batchServiceRatesError) {
       return res.status(400).json({ error: batchServiceRatesError })
     }
@@ -1859,6 +1960,7 @@ router.post('/api-keys/batch', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('Failed to batch create API keys:', error)
+
     return res.status(500).json({
       success: false,
       error: 'Failed to batch create API keys',
@@ -1889,6 +1991,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
     // 验证服务权限字段（支持数组格式）
     if (updates.permissions !== undefined) {
       const updatePermissionsError = validatePermissions(updates.permissions)
+
       if (updatePermissionsError) {
         return res.status(400).json({ error: updatePermissionsError })
       }
@@ -1897,6 +2000,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
     // 验证服务倍率
     if (updates.serviceRates !== undefined) {
       const updateServiceRatesError = validateServiceRates(updates.serviceRates)
+
       if (updateServiceRatesError) {
         return res.status(400).json({ error: updateServiceRatesError })
       }
@@ -1918,6 +2022,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
       try {
         // 获取当前API Key信息
         const currentKey = await redis.getApiKey(keyId)
+
         if (!currentKey || Object.keys(currentKey).length === 0) {
           results.failedCount++
           results.errors.push(`API key ${keyId} not found`)
@@ -1975,12 +2080,14 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
         }
         if (updates.weeklyResetDay !== undefined) {
           const day = Number(updates.weeklyResetDay)
+
           if (Number.isInteger(day) && day >= 1 && day <= 7) {
             finalUpdates.weeklyResetDay = day
           }
         }
         if (updates.weeklyResetHour !== undefined) {
           const hour = Number(updates.weeklyResetHour)
+
           if (Number.isInteger(hour) && hour >= 0 && hour <= 23) {
             finalUpdates.weeklyResetHour = hour
           }
@@ -2019,6 +2126,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
               }
               case 'add': {
                 const newTags = [...currentTags]
+
                 operationTags.forEach((tag) => {
                   if (!newTags.includes(tag)) {
                     newTags.push(tag)
@@ -2049,6 +2157,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
           setImmediate(async () => {
             try {
               const weeklyInitService = require('../../services/weeklyClaudeCostInitService')
+
               await weeklyInitService.backfillSingleKey(keyId)
             } catch (err) {
               logger.error(`❌ 批量编辑回填单 Key 周费用失败 (${keyId})：`, err)
@@ -2083,6 +2192,7 @@ router.put('/api-keys/batch', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to batch edit API keys:', error)
+
     return res.status(500).json({
       error: 'Batch edit failed',
       message: error.message
@@ -2133,6 +2243,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     // 处理名称字段
     if (name !== undefined && name !== null && name !== '') {
       const trimmedName = name.toString().trim()
+
       if (trimmedName.length === 0) {
         return res.status(400).json({ error: 'API Key name cannot be empty' })
       }
@@ -2174,6 +2285,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
 
     if (rateLimitCost !== undefined && rateLimitCost !== null && rateLimitCost !== '') {
       const cost = Number(rateLimitCost)
+
       if (isNaN(cost) || cost < 0) {
         return res.status(400).json({ error: 'Rate limit cost must be a non-negative number' })
       }
@@ -2213,6 +2325,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     if (permissions !== undefined) {
       // 验证服务权限字段（支持数组格式）
       const singlePermissionsError = validatePermissions(permissions)
+
       if (singlePermissionsError) {
         return res.status(400).json({ error: singlePermissionsError })
       }
@@ -2258,6 +2371,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
       } else {
         // 验证日期格式
         const expireDate = new Date(expiresAt)
+
         if (isNaN(expireDate.getTime())) {
           return res.status(400).json({ error: 'Invalid expiration date format' })
         }
@@ -2269,6 +2383,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     // 处理每日费用限制
     if (dailyCostLimit !== undefined && dailyCostLimit !== null && dailyCostLimit !== '') {
       const costLimit = Number(dailyCostLimit)
+
       if (isNaN(costLimit) || costLimit < 0) {
         return res.status(400).json({ error: 'Daily cost limit must be a non-negative number' })
       }
@@ -2277,6 +2392,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
 
     if (totalCostLimit !== undefined && totalCostLimit !== null && totalCostLimit !== '') {
       const costLimit = Number(totalCostLimit)
+
       if (isNaN(costLimit) || costLimit < 0) {
         return res.status(400).json({ error: 'Total cost limit must be a non-negative number' })
       }
@@ -2290,6 +2406,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
       weeklyOpusCostLimit !== ''
     ) {
       const costLimit = Number(weeklyOpusCostLimit)
+
       // 明确验证非负数（0 表示禁用，负数无意义）
       if (isNaN(costLimit) || costLimit < 0) {
         return res
@@ -2313,6 +2430,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     // 处理服务倍率
     if (serviceRates !== undefined) {
       const singleServiceRatesError = validateServiceRates(serviceRates)
+
       if (singleServiceRatesError) {
         return res.status(400).json({ error: singleServiceRatesError })
       }
@@ -2341,6 +2459,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
       const payloadRulesValidation = requestBodyRuleService.validateAndNormalizeRules(
         openaiResponsesPayloadRules
       )
+
       if (!payloadRulesValidation.valid) {
         return res.status(400).json({ error: payloadRulesValidation.error })
       }
@@ -2349,8 +2468,10 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
 
     // 处理周费用重置配置
     let resetConfigChanged = false
+
     if (weeklyResetDay !== undefined && weeklyResetDay !== null && weeklyResetDay !== '') {
       const day = Number(weeklyResetDay)
+
       if (!Number.isInteger(day) || day < 1 || day > 7) {
         return res
           .status(400)
@@ -2361,6 +2482,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     }
     if (weeklyResetHour !== undefined && weeklyResetHour !== null && weeklyResetHour !== '') {
       const hour = Number(weeklyResetHour)
+
       if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
         return res.status(400).json({ error: 'Weekly reset hour must be an integer from 0 to 23' })
       }
@@ -2389,6 +2511,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
         // 分配给用户
         try {
           const user = await userService.getUserById(ownerId, false)
+
           if (!user) {
             return res.status(400).json({ error: 'Invalid owner: User not found' })
           }
@@ -2405,6 +2528,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
           logger.info(`🔄 Admin reassigning API key ${keyId} to user ${user.username}`)
         } catch (error) {
           logger.error('Error fetching user for owner reassignment:', error)
+
           return res.status(400).json({ error: 'Invalid owner ID' })
         }
       } else {
@@ -2422,6 +2546,7 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
       setImmediate(async () => {
         try {
           const weeklyInitService = require('../../services/weeklyClaudeCostInitService')
+
           await weeklyInitService.backfillSingleKey(keyId)
         } catch (err) {
           logger.error(`❌ 回填单 Key 周费用失败 (${keyId})：`, err)
@@ -2430,9 +2555,11 @@ router.put('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     }
 
     logger.success(`📝 Admin updated API key: ${keyId}`)
+
     return res.json({ success: true, message: 'API key updated successfully' })
   } catch (error) {
     logger.error('❌ Failed to update API key:', error)
+
     return res.status(500).json({ error: 'Failed to update API key', message: error.message })
   }
 })
@@ -2445,6 +2572,7 @@ router.patch('/api-keys/:keyId/expiration', authenticateAdmin, async (req, res) 
 
     // 获取当前API Key信息
     const keyData = await redis.getApiKey(keyId)
+
     if (!keyData || Object.keys(keyData).length === 0) {
       return res.status(404).json({ error: 'API key not found' })
     }
@@ -2504,6 +2632,7 @@ router.patch('/api-keys/:keyId/expiration', authenticateAdmin, async (req, res) 
     await apiKeyService.updateApiKey(keyId, updates)
 
     logger.success(`📝 Updated API key expiration: ${keyId} (${keyData.name})`)
+
     return res.json({
       success: true,
       message: 'API key expiration updated successfully',
@@ -2511,6 +2640,7 @@ router.patch('/api-keys/:keyId/expiration', authenticateAdmin, async (req, res) 
     })
   } catch (error) {
     logger.error('❌ Failed to update API key expiration:', error)
+
     return res.status(500).json({
       error: 'Failed to update API key expiration',
       message: error.message
@@ -2536,6 +2666,7 @@ router.delete('/api-keys/batch', authenticateAdmin, async (req, res) => {
           isArray: Array.isArray(keyIds)
         })}`
       )
+
       return res.status(400).json({
         error: 'Invalid request',
         message: 'keyIds 必须是一个非空数组'
@@ -2551,6 +2682,7 @@ router.delete('/api-keys/batch', authenticateAdmin, async (req, res) => {
 
     // 验证keyIds格式
     const invalidKeys = keyIds.filter((id) => !id || typeof id !== 'string')
+
     if (invalidKeys.length > 0) {
       return res.status(400).json({
         error: 'Invalid key IDs',
@@ -2573,6 +2705,7 @@ router.delete('/api-keys/batch', authenticateAdmin, async (req, res) => {
       try {
         // 检查API Key是否存在
         const apiKey = await redis.getApiKey(keyId)
+
         if (!apiKey || Object.keys(apiKey).length === 0) {
           results.failedCount++
           results.errors.push({ keyId, error: 'API Key 不存在' })
@@ -2613,6 +2746,7 @@ router.delete('/api-keys/batch', authenticateAdmin, async (req, res) => {
     })
   } catch (error) {
     logger.error('❌ Failed to batch delete API keys:', error)
+
     return res.status(500).json({
       error: 'Batch delete failed',
       message: error.message
@@ -2628,9 +2762,11 @@ router.delete('/api-keys/:keyId', authenticateAdmin, async (req, res) => {
     await apiKeyService.deleteApiKey(keyId, req.admin.username, 'admin')
 
     logger.success(`🗑️ Admin deleted API key: ${keyId}`)
+
     return res.json({ success: true, message: 'API key deleted successfully' })
   } catch (error) {
     logger.error('❌ Failed to delete API key:', error)
+
     return res.status(500).json({ error: 'Failed to delete API key', message: error.message })
   }
 })
@@ -2652,9 +2788,11 @@ router.get('/api-keys/deleted', authenticateAdmin, async (req, res) => {
     }))
 
     logger.success(`📋 Admin retrieved ${enrichedKeys.length} deleted API keys`)
+
     return res.json({ success: true, apiKeys: enrichedKeys, total: enrichedKeys.length })
   } catch (error) {
     logger.error('❌ Failed to get deleted API keys:', error)
+
     return res
       .status(500)
       .json({ error: 'Failed to retrieve deleted API keys', message: error.message })
@@ -2672,6 +2810,7 @@ router.post('/api-keys/:keyId/restore', authenticateAdmin, async (req, res) => {
 
     if (result.success) {
       logger.success(`Admin ${adminUsername} restored API key: ${keyId}`)
+
       return res.json({
         success: true,
         message: 'API Key 已成功恢复',
@@ -2718,6 +2857,7 @@ router.delete('/api-keys/:keyId/permanent', authenticateAdmin, async (req, res) 
 
     if (result.success) {
       logger.success(`🗑️ Admin ${adminUsername} permanently deleted API key: ${keyId}`)
+
       return res.json({
         success: true,
         message: 'API Key 已彻底删除'
@@ -2770,6 +2910,7 @@ router.delete('/api-keys/deleted/clear-all', authenticateAdmin, async (req, res)
     })
   } catch (error) {
     logger.error('❌ Failed to clear all deleted API keys:', error)
+
     return res.status(500).json({
       success: false,
       error: '清空已删除的 API Keys 失败',

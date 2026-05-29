@@ -307,6 +307,7 @@ const modelsFromApi = ref({ claude: [], gemini: [], openai: [], platforms: {} })
 
 const loadModels = async () => {
   const result = await getModelsApi()
+
   if (result.success && result.data) {
     modelsFromApi.value = result.data
   }
@@ -317,13 +318,16 @@ onMounted(loadModels)
 const availableModels = computed(() => {
   if (props.mode === 'account') {
     const platform = props.account?.platform
+
     if (!platform) return []
     // azure-openai 使用 deploymentName
     if (platform === 'azure-openai') {
       return [{ value: props.account.deploymentName, label: props.account.deploymentName }]
     }
+
     return modelsFromApi.value.platforms?.[platform] || []
   }
+
   // apikey 模式
   return modelsFromApi.value[props.serviceType] || []
 })
@@ -342,22 +346,29 @@ const platformFallbackModels = {
 const defaultModel = computed(() => {
   if (props.mode === 'account') {
     const platform = props.account?.platform
+
     if (platform === 'azure-openai') return props.account?.deploymentName
     // bedrock 优先用列表，列表为空时按凭证类型回退
     if (platform === 'bedrock') {
       const models = availableModels.value
+
       if (models.length > 0) return models[0].value
       if (props.account?.credentialType === 'bearer_token')
         return 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'
+
       return 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
     }
     const models = availableModels.value
+
     if (models.length > 0) return models[0].value
+
     return platformFallbackModels[platform] || platformFallbackModels.claude
   }
   // apikey 模式: 优先用列表，回退用 serviceConfig 的 defaultModel
   const models = availableModels.value
+
   if (models.length > 0) return models[0].value
+
   return apikeyServiceConfig.value.defaultModel
 })
 
@@ -399,8 +410,10 @@ const apikeyServiceConfig = computed(
 
 const maskedApiKey = computed(() => {
   const key = props.apiKeyValue
+
   if (!key) return ''
   if (key.length <= 10) return '****'
+
   return key.substring(0, 6) + '****' + key.substring(key.length - 4)
 })
 
@@ -469,21 +482,27 @@ const platformBadgeClass = computed(() => platformConfig.value.badge)
 
 const credentialTypeLabel = computed(() => {
   const ct = props.account?.credentialType
+
   if (ct === 'access_key') return 'Access Key'
   if (ct === 'bearer_token') return 'Bearer Token'
+
   return 'Unknown'
 })
 const credentialTypeIcon = computed(() => {
   const ct = props.account?.credentialType
+
   if (ct === 'access_key') return 'fas fa-key'
   if (ct === 'bearer_token') return 'fas fa-ticket'
+
   return 'fas fa-question'
 })
 const credentialTypeBadgeClass = computed(() => {
   const ct = props.account?.credentialType
+
   if (ct === 'access_key') return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
   if (ct === 'bearer_token')
     return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300'
+
   return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
 })
 
@@ -493,19 +512,23 @@ const modalTitle = computed(() =>
 )
 const modalSubtitle = computed(() => {
   if (props.mode === 'account') return props.account?.name || '未知账户'
+
   return props.apiKeyName || '当前 API Key'
 })
 
 const headerIconBgClass = computed(() => {
   const s = state.testStatus.value
+
   if (s === 'success') return 'bg-gradient-to-br from-green-500 to-emerald-500'
   if (s === 'error') return 'bg-gradient-to-br from-red-500 to-pink-500'
+
   return 'bg-gradient-to-br from-blue-500 to-indigo-500'
 })
 
 const statusDescription = computed(() => {
   const s = state.testStatus.value
   const apiName = props.mode === 'account' ? platformLabel.value : apikeyServiceConfig.value.name
+
   if (s === 'idle')
     return props.mode === 'account'
       ? '点击下方按钮开始测试账户连通性'
@@ -514,6 +537,7 @@ const statusDescription = computed(() => {
   if (s === 'success')
     return props.mode === 'account' ? `账户可以正常访问 ${apiName}` : 'API Key 可以正常访问服务'
   if (s === 'error') return state.errorMessage.value || `无法连接到 ${apiName}`
+
   return ''
 })
 
@@ -532,17 +556,20 @@ const getAccountEndpoint = () => {
     droid: `${APP_CONFIG.apiPrefix}/admin/droid-accounts/${props.account.id}/test`,
     ccr: `${APP_CONFIG.apiPrefix}/admin/ccr-accounts/${props.account.id}/test`
   }
+
   return endpoints[platform] || ''
 }
 
 const startTest = () => {
   if (props.mode === 'account') {
     const endpoint = getAccountEndpoint()
+
     if (!endpoint) return
     const authToken = localStorage.getItem('authToken')
     const useSSE = ['claude', 'claude-console', 'bedrock', 'gemini-api'].includes(
       props.account.platform
     )
+
     state.sendTestRequest(
       endpoint,
       { model: selectedModel.value },
@@ -553,6 +580,7 @@ const startTest = () => {
     )
   } else {
     const endpoint = `${APP_CONFIG.apiPrefix}/apiStats${apikeyServiceConfig.value.endpoint}`
+
     state.sendTestRequest(
       endpoint,
       {

@@ -32,6 +32,7 @@ function hashText(text) {
     return ''
   }
   const hash = crypto.createHash('sha256').update(text).digest('hex')
+
   return hash.slice(0, TEXT_HASH_LENGTH)
 }
 
@@ -44,6 +45,7 @@ function getOrCreateSessionCache(sessionId) {
   if (!signatureCache.has(sessionId)) {
     signatureCache.set(sessionId, new Map())
   }
+
   return signatureCache.get(sessionId)
 }
 
@@ -81,8 +83,10 @@ function cacheSignature(sessionId, thinkingText, signature) {
   // 淘汰策略：超过限制时删除最老的 1/4 条目
   if (sessionCache.size >= MAX_ENTRIES_PER_SESSION) {
     const entries = Array.from(sessionCache.entries())
+
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
     const toRemove = Math.max(1, Math.floor(entries.length / 4))
+
     for (let i = 0; i < toRemove; i++) {
       sessionCache.delete(entries[i][0])
     }
@@ -113,16 +117,19 @@ function getCachedSignature(sessionId, thinkingText) {
   }
 
   const sessionCache = signatureCache.get(sessionId)
+
   if (!sessionCache) {
     return null
   }
 
   const textHash = hashText(thinkingText)
+
   if (!textHash) {
     return null
   }
 
   const entry = sessionCache.get(textHash)
+
   if (!entry) {
     return null
   }
@@ -131,12 +138,14 @@ function getCachedSignature(sessionId, thinkingText) {
   if (Date.now() - entry.timestamp > SIGNATURE_CACHE_TTL_MS) {
     sessionCache.delete(textHash)
     logger.debug(`[SignatureCache] Entry expired for hash ${textHash}`)
+
     return null
   }
 
   logger.debug(
     `[SignatureCache] Cache hit for session ${sessionId.slice(0, 8)}..., hash ${textHash}`
   )
+
   return entry.signature
 }
 
@@ -160,9 +169,11 @@ function clearSignatureCache(sessionId = null) {
  */
 function getCacheStats() {
   let totalEntries = 0
+
   for (const sessionCache of signatureCache.values()) {
     totalEntries += sessionCache.size
   }
+
   return {
     sessionCount: signatureCache.size,
     totalEntries

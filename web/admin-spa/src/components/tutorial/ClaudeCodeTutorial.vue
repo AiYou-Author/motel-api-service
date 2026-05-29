@@ -490,6 +490,7 @@ const { currentBaseUrl } = useTutorialUrls()
 
 const platformName = computed(() => {
   const names = { windows: 'Windows', macos: 'macOS', linux: 'Linux / WSL2' }
+
   return names[props.platform]
 })
 </script>

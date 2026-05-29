@@ -23,8 +23,10 @@ router.get('/gemini-api-accounts', authenticateAdmin, async (req, res) => {
     // 根据分组ID筛选
     if (groupId) {
       const group = await accountGroupService.getGroup(groupId)
+
       if (group && group.platform === 'gemini') {
         const groupMembers = await accountGroupService.getGroupMembers(groupId)
+
         accounts = accounts.filter((account) => groupMembers.includes(account.id))
       } else {
         accounts = []
@@ -44,13 +46,16 @@ router.get('/gemini-api-accounts', authenticateAdmin, async (req, res) => {
 
     // 单次遍历构建绑定数映射（只算直连，不算 group）
     const bindingCountMap = new Map()
+
     for (const key of allApiKeys) {
       const binding = key.geminiAccountId
+
       if (!binding) {
         continue
       }
       // 处理 api: 前缀
       const accountId = binding.startsWith('api:') ? binding.substring(4) : binding
+
       bindingCountMap.set(accountId, (bindingCountMap.get(accountId) || 0) + 1)
     }
 
@@ -61,6 +66,7 @@ router.get('/gemini-api-accounts', authenticateAdmin, async (req, res) => {
     const currentMonth = `${tzDate.getUTCFullYear()}-${String(tzDate.getUTCMonth() + 1).padStart(2, '0')}`
 
     const statsPipeline = client.pipeline()
+
     for (const accountId of accountIds) {
       statsPipeline.hgetall(`account_usage:${accountId}`)
       statsPipeline.hgetall(`account_usage:daily:${accountId}:${today}`)
@@ -70,6 +76,7 @@ router.get('/gemini-api-accounts', authenticateAdmin, async (req, res) => {
 
     // 处理统计数据
     const allUsageStatsMap = new Map()
+
     for (let i = 0; i < accountIds.length; i++) {
       const accountId = accountIds[i]
       const [errTotal, total] = statsResults[i * 3]
@@ -224,6 +231,7 @@ router.put('/gemini-api-accounts/:id', authenticateAdmin, async (req, res) => {
     // 验证priority的有效性（1-100）
     if (updates.priority !== undefined) {
       const priority = parseInt(updates.priority)
+
       if (isNaN(priority) || priority < 1 || priority > 100) {
         return res.status(400).json({
           success: false,
@@ -254,6 +262,7 @@ router.put('/gemini-api-accounts/:id', authenticateAdmin, async (req, res) => {
 
     // 获取账户当前信息以处理分组变更
     const currentAccount = await geminiApiAccountService.getAccount(id)
+
     if (!currentAccount) {
       return res.status(404).json({
         success: false,
@@ -307,6 +316,7 @@ router.delete('/gemini-api-accounts/:id', authenticateAdmin, async (req, res) =>
     const { id } = req.params
 
     const account = await geminiApiAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -326,6 +336,7 @@ router.delete('/gemini-api-accounts/:id', authenticateAdmin, async (req, res) =>
     const result = await geminiApiAccountService.deleteAccount(id)
 
     let message = 'Gemini-API账号已成功删除'
+
     if (unboundCount > 0) {
       message += `，${unboundCount} 个 API Key 已切换为共享池模式`
     }
@@ -385,6 +396,7 @@ router.put('/gemini-api-accounts/:id/toggle', authenticateAdmin, async (req, res
     const { id } = req.params
 
     const account = await geminiApiAccountService.getAccount(id)
+
     if (!account) {
       return res.status(404).json({
         success: false,
@@ -393,6 +405,7 @@ router.put('/gemini-api-accounts/:id/toggle', authenticateAdmin, async (req, res
     }
 
     const newActiveStatus = account.isActive === 'true' ? 'false' : 'true'
+
     await geminiApiAccountService.updateAccount(id, {
       isActive: newActiveStatus
     })
@@ -445,9 +458,11 @@ router.post('/gemini-api-accounts/:id/reset-status', authenticateAdmin, async (r
     const result = await geminiApiAccountService.resetAccountStatus(id)
 
     logger.success(`Admin reset status for Gemini-API account: ${id}`)
+
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('❌ Failed to reset Gemini-API account status:', error)
+
     return res.status(500).json({ error: 'Failed to reset status', message: error.message })
   }
 })
@@ -467,6 +482,7 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
   const axios = require('axios')
 
   const abortController = new AbortController()
+
   res.on('close', () => abortController.abort())
 
   const safeWrite = (data) => {
@@ -482,6 +498,7 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
 
   try {
     const account = await geminiApiAccountService.getAccount(accountId)
+
     if (!account) {
       return res.status(404).json({ error: 'Account not found' })
     }
@@ -518,6 +535,7 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
     // 配置代理
     if (account.proxy) {
       const agent = ProxyHelper.createProxyAgent(account.proxy)
+
       if (agent) {
         requestConfig.httpsAgent = agent
         requestConfig.httpAgent = agent
@@ -529,12 +547,15 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
 
       if (response.status !== 200) {
         const chunks = []
+
         response.data.on('data', (chunk) => chunks.push(chunk))
         response.data.on('end', () => {
           const errorData = Buffer.concat(chunks).toString()
           let errorMsg = `API Error: ${response.status}`
+
           try {
             const json = JSON.parse(errorData)
+
             errorMsg = extractErrorMessage(json, errorMsg)
           } catch {
             if (errorData.length < 500) {
@@ -552,13 +573,16 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
           )
           safeEnd()
         })
+
         return
       }
 
       let buffer = ''
+
       response.data.on('data', (chunk) => {
         buffer += chunk.toString()
         const lines = buffer.split('\n')
+
         buffer = lines.pop() || ''
 
         for (const line of lines) {
@@ -566,6 +590,7 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
             continue
           }
           const jsonStr = line.substring(5).trim()
+
           if (!jsonStr || jsonStr === '[DONE]') {
             continue
           }
@@ -573,6 +598,7 @@ router.post('/gemini-api-accounts/:accountId/test', authenticateAdmin, async (re
           try {
             const data = JSON.parse(jsonStr)
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+
             if (text) {
               safeWrite(`data: ${JSON.stringify({ type: 'content', text })}\n\n`)
             }

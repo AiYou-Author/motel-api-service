@@ -26,6 +26,7 @@ router.post('/', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: group })
   } catch (error) {
     logger.error('❌ Failed to create account group:', error)
+
     return res.status(400).json({ error: error.message })
   }
 })
@@ -35,9 +36,11 @@ router.get('/', authenticateAdmin, async (req, res) => {
   try {
     const { platform } = req.query
     const groups = await accountGroupService.getAllGroups(platform)
+
     return res.json({ success: true, data: groups })
   } catch (error) {
     logger.error('❌ Failed to get account groups:', error)
+
     return res.status(500).json({ error: error.message })
   }
 })
@@ -55,6 +58,7 @@ router.get('/:groupId', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: group })
   } catch (error) {
     logger.error('❌ Failed to get account group:', error)
+
     return res.status(500).json({ error: error.message })
   }
 })
@@ -66,9 +70,11 @@ router.put('/:groupId', authenticateAdmin, async (req, res) => {
     const updates = req.body
 
     const updatedGroup = await accountGroupService.updateGroup(groupId, updates)
+
     return res.json({ success: true, data: updatedGroup })
   } catch (error) {
     logger.error('❌ Failed to update account group:', error)
+
     return res.status(400).json({ error: error.message })
   }
 })
@@ -77,10 +83,13 @@ router.put('/:groupId', authenticateAdmin, async (req, res) => {
 router.delete('/:groupId', authenticateAdmin, async (req, res) => {
   try {
     const { groupId } = req.params
+
     await accountGroupService.deleteGroup(groupId)
+
     return res.json({ success: true, message: '分组删除成功' })
   } catch (error) {
     logger.error('❌ Failed to delete account group:', error)
+
     return res.status(400).json({ error: error.message })
   }
 })
@@ -99,9 +108,11 @@ router.get('/:groupId/members', authenticateAdmin, async (req, res) => {
 
     // 获取成员详细信息
     const members = []
+
     for (const memberId of memberIds) {
       // 根据分组平台优先查找对应账户
       let account = null
+
       switch (group.platform) {
         case 'droid':
           account = await droidAccountService.getAccount(memberId)
@@ -146,6 +157,7 @@ router.get('/:groupId/members', authenticateAdmin, async (req, res) => {
     return res.json({ success: true, data: members })
   } catch (error) {
     logger.error('❌ Failed to get group members:', error)
+
     return res.status(500).json({ error: error.message })
   }
 })

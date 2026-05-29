@@ -33,7 +33,7 @@
         </p>
       </div>
 
-      <div class="rounded-lg bg-white px-6 py-8 shadow dark:bg-gray-800 dark:shadow-xl">
+      <div class="rounded-lg bg-white px-4 py-6 shadow dark:bg-gray-800 dark:shadow-xl">
         <form class="space-y-5" @submit.prevent="handleRegister">
           <!-- 用户名 -->
           <div>
@@ -48,7 +48,7 @@
                 id="username"
                 v-model="form.username"
                 autocomplete="username"
-                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
                 :disabled="loading"
                 name="username"
                 placeholder="请输入用户名"
@@ -69,7 +69,7 @@
                 id="email"
                 v-model="form.email"
                 autocomplete="email"
-                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
                 :disabled="loading"
                 name="email"
                 placeholder="请输入邮箱"
@@ -91,7 +91,7 @@
                 id="password"
                 v-model="form.password"
                 autocomplete="new-password"
-                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
                 :disabled="loading"
                 name="password"
                 placeholder="至少 8 位字符"
@@ -114,7 +114,7 @@
                 id="confirmPassword"
                 v-model="form.confirmPassword"
                 autocomplete="new-password"
-                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
+                class="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:border-blue-400 dark:focus:ring-blue-400 sm:text-sm"
                 :disabled="loading"
                 name="confirmPassword"
                 placeholder="再次输入密码"
@@ -148,7 +148,7 @@
           <!-- 注册按钮 -->
           <div>
             <button
-              class="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
+              class="group relative flex min-h-[48px] w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-3 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
               :disabled="loading || !form.username || !form.password || !form.confirmPassword"
               type="submit"
             >
@@ -221,6 +221,7 @@ const form = reactive({
 const redirect = computed(() => route.query.redirect || '/user/store')
 const loginRedirect = computed(() => {
   const r = route.query.redirect
+
   return r ? `/user/login?redirect=${encodeURIComponent(r)}` : '/user/login'
 })
 
@@ -229,10 +230,12 @@ const handleRegister = async () => {
 
   if (form.password !== form.confirmPassword) {
     error.value = '两次输入的密码不一致'
+
     return
   }
   if (form.password.length < 8) {
     error.value = '密码至少需要 8 位字符'
+
     return
   }
 
@@ -257,6 +260,7 @@ onMounted(() => {
   themeStore.initTheme()
   // 获取URL中的推广码
   const refCode = route.query.ref
+
   if (refCode && typeof refCode === 'string') {
     form.referralCode = refCode.toUpperCase()
   }

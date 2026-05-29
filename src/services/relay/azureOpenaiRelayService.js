@@ -9,6 +9,7 @@ function normalizeModelName(model) {
   if (model && model.startsWith('azure/')) {
     return model.replace('azure/', '')
   }
+
   return model
 }
 
@@ -28,10 +29,12 @@ async function handleAzureOpenAIRequest({
   try {
     // 构建 Azure OpenAI 请求 URL
     const baseUrl = account.azureEndpoint
+
     deploymentName = account.deploymentName || 'default'
     // Azure Responses API requires preview versions; fall back appropriately
     const apiVersion =
       account.apiVersion || (endpoint === 'responses' ? '2025-04-01-preview' : '2024-02-01')
+
     if (endpoint === 'chat/completions') {
       requestUrl = `${baseUrl}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
     } else if (endpoint === 'responses') {
@@ -131,12 +134,14 @@ async function handleAzureOpenAIRequest({
     })
 
     const requestStartTime = Date.now()
+
     logger.debug(`🔄 Starting Azure OpenAI HTTP request at ${new Date().toISOString()}`)
 
     // 发送请求
     const response = await axios(axiosConfig)
 
     const requestDuration = Date.now() - requestStartTime
+
     logger.debug(`✅ Azure OpenAI HTTP request completed at ${new Date().toISOString()}`)
 
     logger.debug(`Azure OpenAI response received`, {
@@ -216,8 +221,10 @@ async function handleAzureOpenAIRequest({
     // 网络错误标记临时不可用
     const azureAutoProtectionDisabled =
       account?.disableAutoProtection === true || account?.disableAutoProtection === 'true'
+
     if (account?.id && !azureAutoProtectionDisabled) {
       const statusCode = error.response?.status || 503
+
       await upstreamErrorHelper
         .markTempUnavailable(account.id, 'azure-openai', statusCode)
         .catch(() => {})
@@ -243,6 +250,7 @@ class StreamManager {
     if (this.activeStreams.has(streamId)) {
       try {
         const cleanup = this.cleanupCallbacks.get(streamId)
+
         if (cleanup) {
           cleanup()
         }
@@ -306,8 +314,10 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
       'x-ratelimit-remaining-requests',
       'x-ratelimit-remaining-tokens'
     ]
+
     passThroughHeaders.forEach((header) => {
       const value = upstreamResponse.headers[header]
+
       if (value) {
         clientResponse.setHeader(header, value)
       }
@@ -326,6 +336,7 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
         if (line.startsWith('data: ')) {
           try {
             const jsonStr = line.slice(6) // 移除 'data: ' 前缀
+
             if (jsonStr.trim() === '[DONE]') {
               continue
             }
@@ -415,6 +426,7 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
         if (eventCount > maxEvents) {
           logger.warn(`Stream ${streamId} exceeded max events limit`)
           cleanup()
+
           return
         }
 
@@ -446,6 +458,7 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
         // 处理完整的 SSE 事件
         if (buffer.includes('\n\n')) {
           const events = buffer.split('\n\n')
+
           buffer = events.pop() || '' // 保留最后一个可能不完整的事件
 
           for (const event of events) {
@@ -508,6 +521,7 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
                 allParsedEvents[i],
                 `final-event-scan-${i}`
               )
+
               if (foundUsage) {
                 usageData = foundUsage
                 if (foundModel) {
@@ -532,6 +546,7 @@ function handleStreamResponse(upstreamResponse, clientResponse, options = {}) {
               combinedData,
               'combined-events'
             )
+
             if (combinedUsage) {
               usageData = combinedUsage
               logger.debug('🎯 Usage found via combined events analysis!')
@@ -655,26 +670,32 @@ function extractUsageDataRobust(responseData, context = 'unknown') {
 
           if (key === 'usage' && value && typeof value === 'object') {
             logger.debug(`✅ Usage found at path: ${currentPath}`, value)
+
             return { usage: value, path: currentPath }
           }
 
           if (typeof value === 'object' && value !== null) {
             const nested = findUsageRecursive(value, currentPath)
+
             if (nested) {
               return nested
             }
           }
         }
+
         return null
       }
 
       const found = findUsageRecursive(responseData)
+
       if (found) {
         usageData = found.usage
         // Try to find model in the same parent object
         const pathParts = found.path.split('.')
+
         pathParts.pop() // remove 'usage'
         let modelParent = responseData
+
         for (const part of pathParts) {
           modelParent = modelParent?.[part]
         }
@@ -692,6 +713,7 @@ function extractUsageDataRobust(responseData, context = 'unknown') {
       // 检查是否有 choices 数组，usage 可能在最后一个 choice 中
       if (responseData?.choices?.length > 0) {
         const lastChoice = responseData.choices[responseData.choices.length - 1]
+
         if (lastChoice?.usage) {
           usageData = lastChoice.usage
           actualModel = responseData.model || lastChoice.model
@@ -745,8 +767,10 @@ function handleNonStreamResponse(upstreamResponse, clientResponse) {
       'x-ratelimit-remaining-requests',
       'x-ratelimit-remaining-tokens'
     ]
+
     passThroughHeaders.forEach((header) => {
       const value = upstreamResponse.headers[header]
+
       if (value) {
         clientResponse.setHeader(header, value)
       }
@@ -754,6 +778,7 @@ function handleNonStreamResponse(upstreamResponse, clientResponse) {
 
     // 返回响应数据
     const responseData = upstreamResponse.data
+
     clientResponse.json(responseData)
 
     // 使用强化的用量提取

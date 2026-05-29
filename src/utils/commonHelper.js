@@ -28,6 +28,7 @@ const createEncryptor = (salt) => {
     if (!keyCache) {
       keyCache = crypto.scryptSync(config.security.encryptionKey, salt, 32)
     }
+
     return keyCache
   }
 
@@ -39,7 +40,9 @@ const createEncryptor = (salt) => {
     const iv = crypto.randomBytes(IV_LENGTH)
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
     let encrypted = cipher.update(text, 'utf8', 'hex')
+
     encrypted += cipher.final('hex')
+
     return `${iv.toString('hex')}:${encrypted}`
   }
 
@@ -51,8 +54,10 @@ const createEncryptor = (salt) => {
       return text
     }
     const cacheKey = crypto.createHash('sha256').update(text).digest('hex')
+
     if (useCache) {
       const cached = decryptCache.get(cacheKey)
+
       if (cached !== undefined) {
         return cached
       }
@@ -63,10 +68,12 @@ const createEncryptor = (salt) => {
       const iv = Buffer.from(ivHex, 'hex')
       const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
       let decrypted = decipher.update(encrypted, 'hex', 'utf8')
+
       decrypted += decipher.final('utf8')
       if (useCache) {
         decryptCache.set(cacheKey, decrypted, 5 * 60 * 1000)
       }
+
       return decrypted
     } catch (e) {
       return text
@@ -82,6 +89,7 @@ const createEncryptor = (salt) => {
   }
 
   _encryptorCache.set(salt, instance)
+
   return instance
 }
 
@@ -121,6 +129,7 @@ const isAccountHealthy = (account) => {
     return false
   }
   const status = (account.status || 'active').toLowerCase()
+
   return !['error', 'unauthorized', 'blocked', 'temp_error'].includes(status)
 }
 
@@ -143,12 +152,14 @@ const safeParseJson = (value, fallback = null) => {
 // 安全解析 JSON 为对象
 const safeParseJsonObject = (value, fallback = null) => {
   const parsed = safeParseJson(value, fallback)
+
   return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback
 }
 
 // 安全解析 JSON 为数组
 const safeParseJsonArray = (value, fallback = []) => {
   const parsed = safeParseJson(value, fallback)
+
   return Array.isArray(parsed) ? parsed : fallback
 }
 
@@ -168,6 +179,7 @@ const normalizeModelName = (model) => {
       .replace('anthropic.', '')
       .replace(/-v\d+:\d+$/, '')
   }
+
   return model.replace(/-v\d+:\d+$|:latest$/, '')
 }
 
@@ -177,6 +189,7 @@ const normalizeEndpointType = (endpointType) => {
     return 'anthropic'
   }
   const normalized = String(endpointType).toLowerCase()
+
   return ['openai', 'comm', 'anthropic'].includes(normalized) ? normalized : 'anthropic'
 }
 
@@ -189,6 +202,7 @@ const isModelInMapping = (modelMapping, requestedModel) => {
     return true
   }
   const lower = requestedModel.toLowerCase()
+
   return Object.keys(modelMapping).some((k) => k.toLowerCase() === lower)
 }
 
@@ -201,11 +215,13 @@ const getMappedModelName = (modelMapping, requestedModel) => {
     return modelMapping[requestedModel]
   }
   const lower = requestedModel.toLowerCase()
+
   for (const [key, value] of Object.entries(modelMapping)) {
     if (key.toLowerCase() === lower) {
       return value
     }
   }
+
   return requestedModel
 }
 
@@ -218,16 +234,19 @@ const sortAccountsByPriority = (accounts) =>
   [...accounts].sort((a, b) => {
     const priorityA = parseInt(a.priority, 10) || 50
     const priorityB = parseInt(b.priority, 10) || 50
+
     if (priorityA !== priorityB) {
       return priorityA - priorityB
     }
     const lastUsedA = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0
     const lastUsedB = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0
+
     if (lastUsedA !== lastUsedB) {
       return lastUsedA - lastUsedB
     }
     const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0
     const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+
     return createdA - createdB
   })
 
@@ -236,6 +255,7 @@ const composeStickySessionKey = (prefix, sessionHash, apiKeyId = null) => {
   if (!sessionHash) {
     return null
   }
+
   return `sticky:${prefix}:${apiKeyId || 'default'}:${sessionHash}`
 }
 
@@ -252,6 +272,7 @@ const truncate = (str, maxLen = 100, suffix = '...') => {
   if (!str || str.length <= maxLen) {
     return str
   }
+
   return str.slice(0, maxLen - suffix.length) + suffix
 }
 
@@ -261,6 +282,7 @@ const maskSensitive = (str, keepStart = 4, keepEnd = 4, maskChar = '*') => {
     return str
   }
   const maskLen = Math.min(str.length - keepStart - keepEnd, 8)
+
   return str.slice(0, keepStart) + maskChar.repeat(maskLen) + str.slice(-keepEnd)
 }
 
@@ -271,12 +293,14 @@ const maskSensitive = (str, keepStart = 4, keepEnd = 4, maskChar = '*') => {
 // 安全解析整数
 const safeParseInt = (value, fallback = 0) => {
   const parsed = parseInt(value, 10)
+
   return isNaN(parsed) ? fallback : parsed
 }
 
 // 安全解析浮点数
 const safeParseFloat = (value, fallback = 0) => {
   const parsed = parseFloat(value)
+
   return isNaN(parsed) ? fallback : parsed
 }
 
@@ -294,6 +318,7 @@ const getDateInTimezone = (date = new Date(), offset = config.system?.timezoneOf
 // 获取时区日期字符串 YYYY-MM-DD
 const getDateStringInTimezone = (date = new Date()) => {
   const d = getDateInTimezone(date)
+
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
@@ -302,6 +327,7 @@ const isExpired = (expiresAt) => {
   if (!expiresAt) {
     return false
   }
+
   return new Date(expiresAt).getTime() < Date.now()
 }
 
@@ -310,6 +336,7 @@ const getTimeRemaining = (expiresAt) => {
   if (!expiresAt) {
     return Infinity
   }
+
   return Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
 }
 
@@ -330,6 +357,7 @@ const getAppVersion = () => {
   }
   try {
     const versionFile = path.join(__dirname, '..', '..', 'VERSION')
+
     if (fs.existsSync(versionFile)) {
       return fs.readFileSync(versionFile, 'utf8').trim()
     }
@@ -341,6 +369,7 @@ const getAppVersion = () => {
   } catch {
     // ignore
   }
+
   return '1.0.0'
 }
 
@@ -348,6 +377,7 @@ const getAppVersion = () => {
 const versionGt = (a, b) => {
   const pa = a.split('.').map(Number)
   const pb = b.split('.').map(Number)
+
   for (let i = 0; i < 3; i++) {
     if ((pa[i] || 0) > (pb[i] || 0)) {
       return true
@@ -356,6 +386,7 @@ const versionGt = (a, b) => {
       return false
     }
   }
+
   return false
 }
 

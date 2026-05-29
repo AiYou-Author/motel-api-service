@@ -34,10 +34,13 @@ class ClientValidator {
    */
   static getValidator(clientId) {
     const validator = VALIDATOR_MAP[clientId]
+
     if (!validator) {
       logger.warn(`Unknown client ID: ${clientId}`)
+
       return null
     }
+
     return validator
   }
 
@@ -60,6 +63,7 @@ class ClientValidator {
 
     if (!validator) {
       logger.warn(`No validator found for client: ${clientId}`)
+
       return false
     }
 
@@ -67,6 +71,7 @@ class ClientValidator {
       return validator.validate(req)
     } catch (error) {
       logger.error(`Error validating client ${clientId}:`, error)
+
       return false
     }
   }
@@ -130,6 +135,7 @@ class ClientValidator {
     logger.api(
       `❌ No matching client found for User-Agent: "${userAgent}" and path: "${requestPath}"`
     )
+
     return {
       allowed: false,
       matchedClient: null,
@@ -146,6 +152,7 @@ class ClientValidator {
    */
   static getClientInfo(clientId) {
     const validator = this.getValidator(clientId)
+
     if (!validator) {
       return null
     }

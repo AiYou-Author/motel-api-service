@@ -5,8 +5,8 @@
 
     <!-- 主内容区域 -->
     <div
-      class="glass-strong rounded-xl p-3 shadow-xl sm:rounded-2xl sm:p-4 md:rounded-3xl md:p-6"
-      style="z-index: 1; min-height: calc(100vh - 120px)"
+      class="glass-strong min-h-[calc(100dvh-100px)] rounded-xl p-3 shadow-xl sm:min-h-[calc(100dvh-120px)] sm:rounded-2xl sm:p-4 md:rounded-3xl md:p-6"
+      style="z-index: 1"
     >
       <!-- 标签栏 -->
       <TabBar :active-tab="activeTab" @tab-change="handleTabChange" />
@@ -42,7 +42,8 @@ const tabRouteMap = computed(() => {
     userManagement: '/user-management',
     storeOrders: '/store-orders',
     storePlans: '/admin/store/plans',
-    settings: '/settings'
+    settings: '/settings',
+    referral: '/admin/referral/config'
   }
 
   return baseMap
@@ -69,8 +70,11 @@ const initActiveTab = () => {
       UserManagement: 'userManagement',
       StoreOrders: 'storeOrders',
       StorePlansAdmin: 'storePlans',
-      Settings: 'settings'
+      Settings: 'settings',
+      ReferralConfig: 'referral',
+      ReferralWithdrawal: 'referral'
     }
+
     if (routeName && nameToTabMap[routeName]) {
       activeTab.value = nameToTabMap[routeName]
     } else {
@@ -88,6 +92,7 @@ watch(
   () => route.path,
   (newPath) => {
     const tabKey = Object.keys(tabRouteMap.value).find((key) => tabRouteMap.value[key] === newPath)
+
     if (tabKey) {
       activeTab.value = tabKey
     } else {
@@ -99,9 +104,15 @@ watch(
         Accounts: 'accounts',
         RequestDetails: 'requestDetails',
         QuotaCards: 'quotaCards',
+        UserManagement: 'userManagement',
+        StoreOrders: 'storeOrders',
+        StorePlansAdmin: 'storePlans',
         Tutorial: 'tutorial',
-        Settings: 'settings'
+        Settings: 'settings',
+        ReferralConfig: 'referral',
+        ReferralWithdrawal: 'referral'
       }
+
       if (routeName && nameToTabMap[routeName]) {
         activeTab.value = nameToTabMap[routeName]
       }

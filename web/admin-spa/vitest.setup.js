@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi } from 'vitest'
 
 // Mock global objects
 global.console = {
@@ -7,26 +7,28 @@ global.console = {
   error: vi.fn(),
   warn: vi.fn(),
   info: vi.fn(),
-  debug: vi.fn(),
-};
+  debug: vi.fn()
+}
 
 // Mock localStorage
 const localStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-global.localStorage = localStorageMock;
+  clear: vi.fn()
+}
+
+global.localStorage = localStorageMock
 
 // Mock sessionStorage
 const sessionStorageMock = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-global.sessionStorage = sessionStorageMock;
+  clear: vi.fn()
+}
+
+global.sessionStorage = sessionStorageMock
 
 // Mock matchMedia
 global.matchMedia = vi.fn().mockImplementation((query) => ({
@@ -37,27 +39,27 @@ global.matchMedia = vi.fn().mockImplementation((query) => ({
   removeListener: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
-  dispatchEvent: vi.fn(),
-}));
+  dispatchEvent: vi.fn()
+}))
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+  disconnect: vi.fn()
+}))
 
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
-  takeRecords: vi.fn(),
-}));
+  takeRecords: vi.fn()
+}))
 
 // Clean up after each test
 afterEach(() => {
-  vi.clearAllMocks();
-  localStorageMock.clear();
-  sessionStorageMock.clear();
-});
+  vi.clearAllMocks()
+  localStorageMock.clear()
+  sessionStorageMock.clear()
+})

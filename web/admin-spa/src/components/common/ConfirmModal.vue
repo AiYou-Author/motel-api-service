@@ -1,10 +1,11 @@
 <template>
   <Teleport to="body">
-    <div v-if="show" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div v-if="show" class="modal fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <!-- 移动端全屏覆盖，桌面端居中 -->
       <div
-        class="modal-content mx-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+        class="modal-content mx-auto w-full max-w-md rounded-2xl bg-white p-4 shadow-xl dark:bg-gray-800 sm:rounded-3xl sm:p-6"
       >
-        <div class="mb-6 flex items-start gap-4">
+        <div class="mb-4 flex items-start gap-3 sm:mb-6 sm:gap-4">
           <div
             :class="[
               'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full',
@@ -36,16 +37,16 @@
           </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:gap-3">
           <button
-            class="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+            class="min-h-[44px] flex-1 rounded-xl bg-gray-100 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 sm:py-2.5"
             @click="$emit('cancel')"
           >
             {{ cancelText }}
           </button>
           <button
             :class="[
-              'flex-1 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition-all',
+              'min-h-[44px] flex-1 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition-all sm:py-2.5',
               type === 'danger'
                 ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
                 : type === 'warning'

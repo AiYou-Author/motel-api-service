@@ -126,6 +126,7 @@ function mapToErrorCode(error, options = {}) {
   // 按错误 code 匹配（网络错误）
   if (errorCode) {
     const codeStr = String(errorCode).toUpperCase()
+
     if (codeStr === 'ENOTFOUND' || codeStr === 'EAI_AGAIN') {
       matchedCode = 'E002'
     } else if (codeStr === 'ECONNREFUSED' || codeStr === 'ECONNRESET') {
@@ -138,6 +139,7 @@ function mapToErrorCode(error, options = {}) {
   }
 
   const result = ERROR_CODES[matchedCode]
+
   return {
     code: matchedCode,
     message: result.message,
@@ -170,6 +172,7 @@ function extractOriginalMessage(error) {
   if (error.response?.data?.message) {
     return error.response.data.message
   }
+
   return ''
 }
 
@@ -181,6 +184,7 @@ function extractOriginalMessage(error) {
  */
 function createSafeErrorResponse(error, options = {}) {
   const mapped = mapToErrorCode(error, options)
+
   return {
     error: {
       code: mapped.code,
@@ -198,6 +202,7 @@ function createSafeErrorResponse(error, options = {}) {
  */
 function createSafeSSEError(error, options = {}) {
   const mapped = mapToErrorCode(error, options)
+
   return `event: error\ndata: ${JSON.stringify({
     error: mapped.message,
     code: mapped.code,
@@ -220,6 +225,7 @@ function sanitizeErrorMessage(message) {
   if (!message) {
     return 'Service temporarily unavailable'
   }
+
   return mapToErrorCode({ message }, { logOriginal: false }).message
 }
 
@@ -236,10 +242,12 @@ function isAccountDisabledError(statusCode, body) {
     return false
   }
   const message = extractOriginalMessage(body)
+
   if (!message) {
     return false
   }
   const lower = message.toLowerCase()
+
   return (
     lower.includes('organization has been disabled') ||
     lower.includes('account has been disabled') ||

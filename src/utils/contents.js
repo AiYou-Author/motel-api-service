@@ -33,6 +33,7 @@ function simple(actual, expected, threshold) {
   }
 
   const score = stringSimilarity.compareTwoStrings(normalize(actual), normalize(expected))
+
   return { score, threshold, passed: score >= threshold }
 }
 
@@ -225,6 +226,7 @@ const promptCatalogByCategory = {
 
 for (const [id, definition] of Object.entries(PROMPT_DEFINITIONS)) {
   const entry = { id, ...definition }
+
   promptCatalogByCategory[entry.category].push(entry)
 }
 
@@ -282,6 +284,7 @@ function normalizePrompt(value) {
   if (typeof value !== 'string') {
     return ''
   }
+
   return collapseWhitespace(value.replace(PLACEHOLDER_PATTERN, ' '))
 }
 
@@ -315,11 +318,13 @@ const promptEntries = Object.entries(promptMap)
  */
 function getTrailingPlaceholderAnchor(template) {
   const trimmed = template.trimEnd()
+
   if (!trimmed.endsWith(PLACEHOLDER_TOKEN)) {
     return null
   }
 
   const placeholderIndex = trimmed.lastIndexOf(PLACEHOLDER_TOKEN)
+
   if (placeholderIndex < 0) {
     return null
   }
@@ -342,33 +347,39 @@ function trimRawValueByTrailingPlaceholder(rawValue, template) {
   }
 
   const trimmedTemplate = template.trimEnd()
+
   if (!trimmedTemplate.endsWith(PLACEHOLDER_TOKEN)) {
     return rawValue
   }
 
   const placeholderIndex = trimmedTemplate.lastIndexOf(PLACEHOLDER_TOKEN)
+
   if (placeholderIndex < 0) {
     return rawValue
   }
 
   const anchorStart = Math.max(0, placeholderIndex - TRAILING_PLACEHOLDER_ANCHOR_LENGTH)
   const anchorSegment = trimmedTemplate.slice(anchorStart, placeholderIndex)
+
   if (!anchorSegment.trim()) {
     return rawValue
   }
 
   const directIndex = rawValue.indexOf(anchorSegment)
+
   if (directIndex !== -1) {
     return rawValue.slice(0, directIndex + anchorSegment.length)
   }
 
   const pattern = toFlexibleWhitespacePattern(anchorSegment)
+
   if (!pattern) {
     return rawValue
   }
 
   const regex = new RegExp(pattern)
   const match = regex.exec(rawValue)
+
   if (match && typeof match.index === 'number') {
     return rawValue.slice(0, match.index + match[0].length)
   }
@@ -383,11 +394,13 @@ function trimRawValueByTrailingPlaceholder(rawValue, template) {
  */
 function trimTrailingPlaceholder(normalizedValue, template) {
   const anchor = getTrailingPlaceholderAnchor(template)
+
   if (!anchor) {
     return normalizedValue
   }
 
   const matchIndex = normalizedValue.lastIndexOf(anchor)
+
   if (matchIndex === -1) {
     return normalizedValue
   }
@@ -433,6 +446,7 @@ function matchesTemplateIgnoringPlaceholders(normalizedValue, parts) {
 
     const partNoSpace = part.replace(/\s+/g, '')
     const index = valueNoSpace.indexOf(partNoSpace, cursor)
+
     if (index === -1) {
       return false
     }
@@ -457,6 +471,7 @@ function bestSimilarityByTemplates(value) {
 
   for (const [templateId, templateText] of promptEntries) {
     const normalizedTemplate = normalizedPromptMap[templateId]
+
     if (!normalizedTemplate) {
       continue
     }
@@ -504,6 +519,7 @@ function normalizeSystemText(value) {
     }
 
     const regex = new RegExp(`^${pattern}$`, 'i')
+
     if (regex.test(collapsed)) {
       return normalizedPromptMap[promptId]
     }
@@ -518,6 +534,7 @@ function normalizeSystemText(value) {
  */
 function bestSimilarity(value) {
   const { bestScore } = bestSimilarityByTemplates(value)
+
   return { bestScore }
 }
 

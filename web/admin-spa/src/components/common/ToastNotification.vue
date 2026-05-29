@@ -48,6 +48,7 @@ const getIconClass = (type) => {
     warning: 'fas fa-exclamation-triangle',
     info: 'fas fa-info-circle'
   }
+
   return iconMap[type] || iconMap.info
 }
 
@@ -83,13 +84,16 @@ const addToast = (message, type = 'info', title = null, duration = 5000) => {
 // 移除Toast
 const removeToast = (id) => {
   const index = toasts.value.findIndex((toast) => toast.id === id)
+
   if (index > -1) {
     const toast = toasts.value[index]
+
     toast.isVisible = false
 
     // 等待动画完成后移除
     setTimeout(() => {
       const currentIndex = toasts.value.findIndex((t) => t.id === id)
+
       if (currentIndex > -1) {
         toasts.value.splice(currentIndex, 1)
       }

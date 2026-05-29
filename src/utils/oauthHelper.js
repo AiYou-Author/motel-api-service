@@ -352,6 +352,7 @@ function parseCallbackUrl(input) {
 
   // 基本格式验证：授权码应该只包含字母、数字、下划线、连字符
   const validCodePattern = /^[A-Za-z0-9_-]+$/
+
   if (!validCodePattern.test(cleanedCode)) {
     throw new Error('授权码包含无效字符，请检查是否复制了正确的 Authorization Code')
   }
@@ -492,6 +493,7 @@ async function exchangeSetupTokenCode(authorizationCode, codeVerifier, state, pr
       })
 
       let errorMessage = `HTTP ${status}`
+
       if (errorData) {
         if (typeof errorData === 'string') {
           errorMessage += `: ${errorData}`

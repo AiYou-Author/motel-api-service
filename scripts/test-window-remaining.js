@@ -20,6 +20,7 @@ async function testWindowRemaining() {
     }
 
     const apiId = idResponse.data.data.id
+
     console.log(`   ✅ API Key ID: ${apiId}\n`)
 
     // 第二步：查询统计数据
@@ -33,6 +34,7 @@ async function testWindowRemaining() {
     }
 
     const stats = statsResponse.data.data
+
     console.log(`   ✅ 成功获取统计数据\n`)
 
     // 第三步：检查时间窗口信息
@@ -55,6 +57,7 @@ async function testWindowRemaining() {
       if (stats.limits.windowRemainingSeconds > 0) {
         const minutes = Math.floor(stats.limits.windowRemainingSeconds / 60)
         const seconds = stats.limits.windowRemainingSeconds % 60
+
         console.log(`   - 格式化剩余时间: ${minutes}分${seconds}秒`)
         console.log(`   - 窗口状态: 🟢 活跃中`)
       } else {

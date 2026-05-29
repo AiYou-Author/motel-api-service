@@ -4,6 +4,7 @@ const CostCalculator = require('./costCalculator')
 
 function toNumber(value) {
   const num = Number(value)
+
   return Number.isFinite(num) ? num : 0
 }
 
@@ -22,6 +23,7 @@ async function updateRateLimitCounters(
   }
 
   const client = redis.getClient()
+
   if (!client) {
     throw new Error('Redis 未连接，无法更新限流计数')
   }
@@ -69,6 +71,7 @@ async function updateRateLimitCounters(
     try {
       const costInfo = pricingService.calculateCost(usagePayload, model)
       const { totalCost: calculatedCost } = costInfo || {}
+
       if (typeof calculatedCost === 'number') {
         totalCost = calculatedCost
       }
@@ -81,6 +84,7 @@ async function updateRateLimitCounters(
       try {
         const fallback = CostCalculator.calculateCost(usagePayload, model)
         const { costs } = fallback || {}
+
         if (costs && typeof costs.total === 'number') {
           totalCost = costs.total
         }
@@ -96,6 +100,7 @@ async function updateRateLimitCounters(
         const apiKeyService = require('../services/apiKeyService')
         const serviceRatesService = require('../services/serviceRatesService')
         const service = serviceRatesService.getService(accountType, model)
+
         ratedCost = await apiKeyService.calculateRatedCost(keyId, service, totalCost)
       } catch (error) {
         ratedCost = totalCost

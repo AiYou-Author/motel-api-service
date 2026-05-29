@@ -121,18 +121,21 @@ const form = reactive({
 // 计算最小日期时间
 const minDateTime = computed(() => {
   const now = new Date()
+
   // 如果有当前过期时间且未过期，从当前过期时间开始
   if (props.apiKey.expiresAt && new Date(props.apiKey.expiresAt) > now) {
     return new Date(props.apiKey.expiresAt).toISOString().slice(0, 16)
   }
   // 否则从现在开始
   now.setMinutes(now.getMinutes() + 1)
+
   return now.toISOString().slice(0, 16)
 })
 
 // 格式化过期日期
 const formatExpireDate = (dateString) => {
   const date = new Date(dateString)
+
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -146,11 +149,13 @@ const formatExpireDate = (dateString) => {
 const updateRenewExpireAt = () => {
   if (!form.renewDuration) {
     form.newExpiresAt = null
+
     return
   }
 
   if (form.renewDuration === 'permanent') {
     form.newExpiresAt = null
+
     return
   }
 

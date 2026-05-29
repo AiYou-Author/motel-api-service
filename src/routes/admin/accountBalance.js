@@ -9,11 +9,13 @@ const router = express.Router()
 
 const ensureValidPlatform = (rawPlatform) => {
   const normalized = accountBalanceService.normalizePlatform(rawPlatform)
+
   if (!normalized) {
     return { ok: false, status: 400, error: '缺少 platform 参数' }
   }
 
   const supported = accountBalanceService.getSupportedPlatforms()
+
   if (!supported.includes(normalized)) {
     return { ok: false, status: 400, error: `不支持的平台: ${normalized}` }
   }
@@ -29,6 +31,7 @@ router.get('/accounts/:accountId/balance', authenticateAdmin, async (req, res) =
     const { platform, queryApi } = req.query
 
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -44,6 +47,7 @@ router.get('/accounts/:accountId/balance', authenticateAdmin, async (req, res) =
     return res.json(balance)
   } catch (error) {
     logger.error('获取账户余额失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -57,6 +61,7 @@ router.post('/accounts/:accountId/balance/refresh', authenticateAdmin, async (re
     const { platform } = req.body || {}
 
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -64,6 +69,7 @@ router.post('/accounts/:accountId/balance/refresh', authenticateAdmin, async (re
     logger.info(`手动刷新余额: ${valid.platform}:${accountId}`)
 
     const balance = await accountBalanceService.refreshAccountBalance(accountId, valid.platform)
+
     if (!balance) {
       return res.status(404).json({ success: false, error: 'Account not found' })
     }
@@ -71,6 +77,7 @@ router.post('/accounts/:accountId/balance/refresh', authenticateAdmin, async (re
     return res.json(balance)
   } catch (error) {
     logger.error('刷新账户余额失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -83,6 +90,7 @@ router.get('/accounts/balance/platform/:platform', authenticateAdmin, async (req
     const { queryApi } = req.query
 
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -92,6 +100,7 @@ router.get('/accounts/balance/platform/:platform', authenticateAdmin, async (req
     return res.json({ success: true, data: balances })
   } catch (error) {
     logger.error('批量获取余额失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -101,9 +110,11 @@ router.get('/accounts/balance/platform/:platform', authenticateAdmin, async (req
 router.get('/accounts/balance/summary', authenticateAdmin, async (req, res) => {
   try {
     const summary = await accountBalanceService.getBalanceSummary()
+
     return res.json({ success: true, data: summary })
   } catch (error) {
     logger.error('获取余额汇总失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -116,6 +127,7 @@ router.delete('/accounts/:accountId/balance/cache', authenticateAdmin, async (re
     const { platform } = req.query
 
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -125,6 +137,7 @@ router.delete('/accounts/:accountId/balance/cache', authenticateAdmin, async (re
     return res.json({ success: true, message: '缓存已清除' })
   } catch (error) {
     logger.error('清除缓存失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -136,6 +149,7 @@ router.get('/accounts/:accountId/balance/script', authenticateAdmin, async (req,
     const { platform } = req.query
 
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -144,9 +158,11 @@ router.get('/accounts/:accountId/balance/script', authenticateAdmin, async (req,
       valid.platform,
       accountId
     )
+
     return res.json({ success: true, data: config || null })
   } catch (error) {
     logger.error('获取余额脚本配置失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -156,15 +172,19 @@ router.put('/accounts/:accountId/balance/script', authenticateAdmin, async (req,
     const { accountId } = req.params
     const { platform } = req.query
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
 
     const payload = req.body || {}
+
     await accountBalanceService.redis.setBalanceScriptConfig(valid.platform, accountId, payload)
+
     return res.json({ success: true, data: payload })
   } catch (error) {
     logger.error('保存余额脚本配置失败', error)
+
     return res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -174,6 +194,7 @@ router.post('/accounts/:accountId/balance/script/test', authenticateAdmin, async
     const { accountId } = req.params
     const { platform } = req.query
     const valid = ensureValidPlatform(platform)
+
     if (!valid.ok) {
       return res.status(valid.status).json({ success: false, error: valid.error })
     }
@@ -187,6 +208,7 @@ router.post('/accounts/:accountId/balance/script/test', authenticateAdmin, async
 
     const payload = req.body || {}
     const { scriptBody } = payload
+
     if (!scriptBody) {
       return res.status(400).json({ success: false, error: '脚本内容不能为空' })
     }
@@ -207,6 +229,7 @@ router.post('/accounts/:accountId/balance/script/test', authenticateAdmin, async
     return res.json({ success: true, data: result })
   } catch (error) {
     logger.error('测试余额脚本失败', error)
+
     return res.status(400).json({ success: false, error: error.message })
   }
 })
