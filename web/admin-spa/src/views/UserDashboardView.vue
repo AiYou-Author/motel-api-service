@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-[100dvh] touch-pan-y overflow-x-hidden bg-gray-50 dark:bg-gray-900">
     <!-- 导航栏 -->
     <nav class="bg-white shadow dark:bg-gray-800">
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between">
-          <div class="flex items-center">
+          <div class="flex min-w-0 flex-1 items-center">
             <div class="flex flex-shrink-0 items-center">
               <svg
                 class="h-8 w-8 text-blue-600 dark:text-blue-400"
@@ -21,11 +21,13 @@
               </svg>
               <span class="ml-2 text-xl font-bold text-gray-900 dark:text-white">Motel</span>
             </div>
-            <div class="ml-10">
-              <div class="flex items-baseline space-x-4">
+            <div class="ml-3 min-w-0 flex-1 sm:ml-10">
+              <div
+                class="flex touch-pan-x items-baseline gap-1 overflow-x-auto overscroll-x-contain whitespace-nowrap pr-2 [-webkit-overflow-scrolling:touch]"
+              >
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'overview'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -37,7 +39,7 @@
 
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'usage'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -48,7 +50,7 @@
                 </button>
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'orders'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -59,7 +61,7 @@
                 </button>
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'store'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -70,7 +72,7 @@
                 </button>
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'tutorial'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -81,7 +83,7 @@
                 </button>
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'account'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -92,7 +94,7 @@
                 </button>
                 <button
                   :class="[
-                    'rounded-md px-3 py-2 text-sm font-medium',
+                    'shrink-0 rounded-md px-3 py-2 text-sm font-medium',
                     activeTab === 'referral'
                       ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
@@ -104,8 +106,8 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-700 dark:text-gray-300">
+          <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+            <div class="hidden text-sm text-gray-700 dark:text-gray-300 sm:block">
               欢迎，<span class="font-medium">{{ userStore.userName }}</span>
             </div>
 
@@ -116,7 +118,8 @@
               class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               @click="handleLogout"
             >
-              退出登录
+              <span class="hidden sm:inline">退出登录</span>
+              <span class="sm:hidden">退出</span>
             </button>
           </div>
         </div>

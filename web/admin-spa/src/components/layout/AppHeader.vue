@@ -1,12 +1,12 @@
 <template>
   <!-- 顶部导航 -->
   <div
-    class="glass-strong mb-4 rounded-xl p-3 shadow-xl sm:mb-6 sm:rounded-2xl sm:p-4 md:mb-8 md:rounded-3xl md:p-6"
+    class="glass-strong mb-3 rounded-xl p-3 shadow-xl sm:mb-6 sm:rounded-2xl sm:p-4 md:mb-8 md:rounded-3xl md:p-6"
     style="z-index: 10; position: relative"
   >
     <div class="flex flex-col items-center justify-between gap-3 sm:flex-row sm:gap-4">
       <div
-        class="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-start sm:gap-3 md:gap-4"
+        class="flex w-full items-center justify-center gap-2 overflow-hidden sm:w-auto sm:justify-start sm:gap-3 md:gap-4"
       >
         <LogoTitle
           :loading="oemLoading"
@@ -51,10 +51,10 @@
         <!-- 用户菜单 -->
         <div class="user-menu-container relative">
           <button
-            class="user-menu-button flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 sm:px-4 sm:py-2.5"
+            class="user-menu-button flex min-h-[44px] items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 sm:px-4 sm:py-2.5"
             @click="userMenuOpen = !userMenuOpen"
           >
-            <i class="fas fa-user-circle text-sm sm:text-base" />
+            <i class="fas fa-user-circle text-base sm:text-base" />
             <span class="hidden sm:inline">{{ currentUser.username || 'Admin' }}</span>
             <i
               class="fas fa-chevron-down ml-1 text-xs transition-transform duration-200"
@@ -65,7 +65,7 @@
           <!-- 悬浮菜单 -->
           <div
             v-if="userMenuOpen"
-            class="user-menu-dropdown absolute right-0 top-full mt-2 w-48 rounded-xl border border-gray-200 bg-white py-2 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:w-56"
+            class="user-menu-dropdown absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 bg-white py-2 shadow-xl dark:border-gray-700 dark:bg-gray-800 max-sm:left-0 max-sm:right-auto max-sm:w-[calc(100vw-2rem)]"
             style="z-index: 999999"
             @click.stop
           >
@@ -125,7 +125,7 @@
             </div>
 
             <button
-              class="flex w-full items-center gap-3 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+              class="flex min-h-[48px] w-full items-center gap-3 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
               @click="openChangePasswordModal"
             >
               <i class="fas fa-key text-blue-500" />
@@ -135,7 +135,7 @@
             <hr class="my-2 border-gray-200 dark:border-gray-700" />
 
             <button
-              class="flex w-full items-center gap-3 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+              class="flex min-h-[48px] w-full items-center gap-3 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
               @click="logout"
             >
               <i class="fas fa-sign-out-alt text-red-500" />

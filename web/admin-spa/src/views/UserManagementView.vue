@@ -1,16 +1,16 @@
 <template>
-  <div class="space-y-6">
+  <div class="space-y-6 overflow-x-auto">
     <!-- Header -->
-    <div class="sm:flex sm:items-center">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="sm:flex-auto">
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">用户管理</h1>
         <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
           管理用户、API Key 并查看用量统计
         </p>
       </div>
-      <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+      <div class="flex shrink-0 items-center">
         <button
-          class="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 sm:w-auto"
+          class="inline-flex min-h-[44px] items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
           :disabled="loading"
           @click="loadUsers"
         >

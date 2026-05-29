@@ -1,6 +1,6 @@
 // App 配置
 export const APP_CONFIG = {
-  basePath: import.meta.env.VITE_APP_BASE_URL || '/admin-next/',
+  basePath: import.meta.env.VITE_APP_BASE_URL || '/',
   apiPrefix: import.meta.env.DEV ? '/webapi' : ''
 }
 

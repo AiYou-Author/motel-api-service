@@ -276,75 +276,42 @@ class Application {
         next()
       })
 
-      // 🎨 新版管理界面静态文件服务（必须在其他路由之前）
+      // 🎨 Admin SPA 静态文件服务
+      // - 新路径：/ (不再使用 /admin-next 前缀)
+      // - 兼容路径：/admin-next/* 301 重定向到去前缀后的新路径
       const adminSpaPath = path.join(__dirname, '..', 'web', 'admin-spa', 'dist')
+      const adminSpaIndexPath = path.join(adminSpaPath, 'index.html')
 
-      if (fs.existsSync(adminSpaPath)) {
-        // 处理不带斜杠的路径，重定向到带斜杠的路径
-        this.app.get('/admin-next', (req, res) => {
-          res.redirect(301, '/admin-next/')
-        })
-
-        // 使用 all 方法确保捕获所有 HTTP 方法
-        this.app.all('/admin-next/', (req, res) => {
-          logger.info('🎯 HIT: /admin-next/ route handler triggered!')
-          logger.info(`Method: ${req.method}, Path: ${req.path}, URL: ${req.url}`)
-
-          if (req.method !== 'GET' && req.method !== 'HEAD') {
-            return res.status(405).send('Method Not Allowed')
-          }
-
-          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
-          res.sendFile(path.join(adminSpaPath, 'index.html'))
-        })
-
-        // 处理所有其他 /admin-next/* 路径（但排除根路径）
+      if (fs.existsSync(adminSpaIndexPath)) {
+        // 兼容：/admin-next/* -> /*
+        this.app.get('/admin-next', (req, res) => res.redirect(301, '/'))
+        this.app.get('/admin-next/', (req, res) => res.redirect(301, '/'))
         this.app.get('/admin-next/*', (req, res) => {
-          // 如果是根路径，跳过（应该由上面的路由处理）
-          if (req.path === '/admin-next/') {
-            logger.error('❌ ERROR: /admin-next/ should not reach here!')
+          const requestPath = req.path.replace(/^\/admin-next\/?/, '')
+          const target = '/' + requestPath
 
-            return res.status(500).send('Route configuration error')
-          }
-
-          const requestPath = req.path.replace('/admin-next/', '')
-
-          // 安全检查
-          if (
-            requestPath.includes('..') ||
-            requestPath.includes('//') ||
-            requestPath.includes('\\')
-          ) {
-            return res.status(400).json({ error: 'Invalid path' })
-          }
-
-          // 检查是否为静态资源
-          const filePath = path.join(adminSpaPath, requestPath)
-
-          // 如果文件存在且是静态资源
-          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            // 设置缓存头
-            if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-              res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
-            } else if (filePath.endsWith('.html')) {
-              res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
-            }
-
-            return res.sendFile(filePath)
-          }
-
-          // 如果是静态资源但文件不存在
-          if (requestPath.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/i)) {
-            return res.status(404).send('Not found')
-          }
-
-          // 其他所有路径返回 index.html（SPA 路由）
-          res.sendFile(path.join(adminSpaPath, 'index.html'))
+          res.redirect(301, target)
         })
 
-        logger.info('✅ Admin SPA (next) static files mounted at /admin-next/')
+        // 静态资源（构建后路径为 /assets/...）
+        this.app.use(
+          '/assets',
+          express.static(path.join(adminSpaPath, 'assets'), {
+            immutable: true,
+            maxAge: '365d'
+          })
+        )
+        // 其他 dist 下的静态文件（如 favicon、manifest 等）
+        this.app.use(
+          express.static(adminSpaPath, {
+            index: false,
+            maxAge: '1h'
+          })
+        )
+
+        logger.info('✅ Admin SPA static files mounted at / (compat: /admin-next/* -> /*)')
       } else {
-        logger.warn('⚠️ Admin SPA dist directory not found, skipping /admin-next route')
+        logger.warn('⚠️ Admin SPA dist index.html not found, skipping SPA static mount')
       }
 
       // 🛣️ 路由
@@ -393,7 +360,63 @@ class Application {
 
       // 🏠 根路径重定向到新版管理界面
       this.app.get('/', (req, res) => {
-        res.redirect('/admin-next/api-stats')
+        res.redirect('/user/store')
+      })
+
+      // 🌐 SPA fallback: 对前端路由返回 index.html
+      // 必须放在所有 API 路由之后，且在 404 JSON 之前。
+      this.app.get('*', (req, res, next) => {
+        try {
+          if (req.method !== 'GET' && req.method !== 'HEAD') {
+            return next()
+          }
+
+          // 只对浏览器页面导航做 fallback，避免影响 API/下载等请求
+          const accept = String(req.headers.accept || '')
+
+          if (!accept.includes('text/html')) {
+            return next()
+          }
+
+          // 排除后端路由前缀
+          const excludedPrefixes = [
+            '/api',
+            '/claude',
+            '/openai',
+            '/gemini',
+            '/azure',
+            '/droid',
+            '/admin',
+            '/users',
+            '/web',
+            '/apiStats',
+            '/store',
+            '/health',
+            '/metrics',
+            '/assets'
+          ]
+
+          if (excludedPrefixes.some((p) => req.path === p || req.path.startsWith(p + '/'))) {
+            return next()
+          }
+
+          // 静态资源直接放行
+          if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|map)$/i)) {
+            return next()
+          }
+
+          const indexPath = path.join(__dirname, '..', 'web', 'admin-spa', 'dist', 'index.html')
+
+          if (!fs.existsSync(indexPath)) {
+            return next()
+          }
+
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+
+          return res.sendFile(indexPath)
+        } catch (err) {
+          return next(err)
+        }
       })
 
       // 🏥 增强的健康检查端点
@@ -637,7 +660,7 @@ class Application {
       this.server = this.app.listen(config.server.port, config.server.host, () => {
         logger.start(`Claude Relay Service started on ${config.server.host}:${config.server.port}`)
         logger.info(
-          `🌐 Web interface: http://${config.server.host}:${config.server.port}/admin-next/api-stats`
+          `🌐 Web interface: http://${config.server.host}:${config.server.port}/user/store`
         )
         logger.info(
           `🔗 API endpoint: http://${config.server.host}:${config.server.port}/api/v1/messages`

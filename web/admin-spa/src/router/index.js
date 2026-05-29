@@ -33,13 +33,13 @@ const routes = [
       const currentPath = window.location.pathname
       const basePath = APP_CONFIG.basePath.replace(/\/$/, '') // 移除末尾斜杠
 
-      // 如果当前路径已经是 basePath 或 basePath/，重定向到 api-stats
+      // 如果当前路径已经是 basePath 或 basePath/，重定向到 user store
       if (currentPath === basePath || currentPath === basePath + '/') {
-        return '/api-stats'
+        return '/user/store'
       }
 
       // 否则保持默认重定向
-      return '/api-stats'
+      return '/user/store'
     }
   },
   {
@@ -258,7 +258,7 @@ const routes = [
   // 捕获所有未匹配的路由
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/api-stats'
+    redirect: '/user/store'
   }
 ]
 

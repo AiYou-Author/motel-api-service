@@ -1,9 +1,9 @@
 <template>
-  <div class="mb-4 sm:mb-6">
+  <div class="mb-3 sm:mb-6">
     <!-- 移动端下拉选择器 -->
     <div class="block rounded-xl bg-white/10 p-2 backdrop-blur-sm dark:bg-gray-800/20 sm:hidden">
       <select
-        class="focus:ring-primary-color w-full rounded-lg bg-white/90 px-4 py-3 font-semibold text-gray-700 focus:outline-none focus:ring-2 dark:bg-gray-800/90 dark:text-gray-200 dark:focus:ring-indigo-400"
+        class="focus:ring-primary-color w-full cursor-pointer rounded-lg bg-white/90 px-4 py-3 font-semibold text-gray-700 focus:outline-none focus:ring-2 dark:bg-gray-800/90 dark:text-gray-200 dark:focus:ring-indigo-400"
         :value="activeTab"
         @change="$emit('tab-change', $event.target.value)"
       >
