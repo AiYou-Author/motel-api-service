@@ -101,8 +101,9 @@ jobs:
         if: steps.check.outputs.needs_bump == 'true'
         id: get_version
         run: |
-          # 获取最新的tag版本
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # 获取最新的tag版本（用 git tag 列出所有tag，不限于reachable）
+          LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          [ -z "$LATEST_TAG" ] && LATEST_TAG="v0.0.0"
           echo "Latest tag: $LATEST_TAG"
           TAG_VERSION=${LATEST_TAG#v}
 
@@ -264,7 +265,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           NEW_TAG="${{ steps.next_version.outputs.new_tag }}"
           git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -f
-          git push origin "$NEW_TAG"
+          git push origin "$NEW_TAG" --force
 
       - name: Prepare image names
         id: image_names
