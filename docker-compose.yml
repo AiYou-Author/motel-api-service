@@ -1,13 +1,11 @@
-version: '3.8'
-
 # Motel API Service Docker Compose 配置
 # 所有配置通过环境变量设置，无需映射 .env 文件
 
 services:
   # 🚀 Motel API Service
   motel-api:
-    build: .
     image: ghcr.io/aiyou-author/motel-api-service:latest
+    build: .
     restart: unless-stopped
     ports:
       # 绑定地址：生产环境建议使用反向代理，设置 BIND_HOST=127.0.0.1
@@ -77,8 +75,16 @@ services:
       - DEBUG=${DEBUG:-false}
       - ENABLE_CORS=${ENABLE_CORS:-true}
       - TRUST_PROXY=${TRUST_PROXY:-true}
+
+      # 👥 用户管理配置
+      - USER_MANAGEMENT_ENABLED=${USER_MANAGEMENT_ENABLED:-true}
+      - DEFAULT_USER_ROLE=${DEFAULT_USER_ROLE:-user}
+      - USER_SESSION_TIMEOUT=${USER_SESSION_TIMEOUT:-86400000}
+      - MAX_API_KEYS_PER_USER=${MAX_API_KEYS_PER_USER:-1}
+      - ALLOW_USER_DELETE_API_KEYS=${ALLOW_USER_DELETE_API_KEYS:-false}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - motel-api-network
     healthcheck:
